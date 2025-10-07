@@ -1,0 +1,44 @@
+<nav class="navbar">
+  <!-- Espacio vacío a la izquierda -->
+  <div class="navbar-left"></div>
+
+  <!-- Contenido derecho -->
+  <div class="navbar-right">
+    <!-- Botón de notificaciones -->
+    <button class="notification-btn">
+      <i class="fa-solid fa-bell"></i>
+      <span class="notification-badge">3</span>
+    </button>
+
+    <!-- Perfil del usuario -->
+    <div class="profile-dropdown">
+      <div class="profile-trigger" (click)="toggleDropdown()">
+        <div class="profile-avatar">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="profile-info">
+          <span class="profile-name">Felipita</span>
+          <span class="profile-role">Cajera</span>
+        </div>
+        <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+      </div>
+
+      <!-- Menú desplegable -->
+      <div class="dropdown-menu" [class.show]="isDropdownOpen">
+        <a routerLink="/mi-perfil" class="dropdown-item">
+          <i class="fa-solid fa-user"></i>
+          Mi Perfil
+        </a>
+        <a routerLink="/cambiar-contrasena" class="dropdown-item">
+          <i class="fa-solid fa-key"></i>
+          Cambiar Contraseña
+        </a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item logout-item">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Cerrar Sesión
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>

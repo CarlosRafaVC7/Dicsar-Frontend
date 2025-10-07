@@ -1,0 +1,137 @@
+/* === SIDEBAR BASE === */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  border-right: 1px solid #e6e6e6;
+  font-family: "Inter", system-ui, sans-serif;
+  padding: 0;
+  z-index: 1000;
+}
+
+.brand {
+  background-color: #0a2c8c;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 0;
+  margin: 0;
+  width: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.brand-icon {
+  background: rgba(255, 255, 255, 0.15);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.brand-text {
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.5px;
+}
+
+/* === MENÚ === */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #3a3a3a;
+  font-weight: 500;
+  font-size: 15px;
+  position: relative;
+  transition: all 0.25s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* barra lateral activa */
+.menu-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 5px;
+  border-radius: 5px;
+  background-color: #0a2c8c;
+}
+
+/* hover moderno */
+.menu-item:hover {
+  background-color: #f5f7ff;
+  color: #0a2c8c;
+}
+
+.menu-item.active {
+  background-color: #e8edff;
+  color: #0a2c8c;
+  font-weight: 600;
+}
+
+.icon {
+  font-size: 19px;
+  width: 26px;
+  text-align: center;
+  color: #4b4b4b;
+}
+
+/* cuando el item está activo, el ícono también azul */
+.menu-item.active .icon {
+  color: #0a2c8c;
+}
+
+/* === LOGOUT === */
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e53935;
+  font-weight: 600;
+  font-size: 15px;
+  border-top: 1px solid #f1f1f1;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: auto;
+}
+
+.logout:hover {
+  opacity: 0.8;
+}
+
+.logout-icon {
+  font-size: 18px;
+}
+

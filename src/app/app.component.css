@@ -1,0 +1,45 @@
+/* src/styles.css (o app.component.css) */
+body, html { height:100%; margin:0; font-family: Inter, system-ui, Arial; }
+main.main-content {
+  margin-left: 220px; /* debe coincidir con el width del sidebar */
+  padding: 28px;
+  min-height: 100vh;
+  background: #f6f7fb; /* tono similar al mock */
+}
+:host {
+  display: block;
+  margin-left: 220px;
+}
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 60px; /* 👈 El margen que ya tienes */
+}
+
+.content-area {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 70px); /* Resta la altura del navbar */
+}
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 60px;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-area {
+  flex: 1;
+  padding: 20px;
+  background-color: #f8f9fa;
+  overflow-y: auto;
+}
