@@ -1,21 +1,30 @@
 <nav class="navbar">
-  <!-- Espacio vacío a la izquierda -->
   <div class="navbar-left"></div>
 
-  <!-- Contenido derecho -->
   <div class="navbar-right">
     <!-- Botón de notificaciones -->
-    <button class="notification-btn">
+    <button class="notification-btn" (click)="toggleNotifications()">
       <i class="fa-solid fa-bell"></i>
-      <span class="notification-badge">3</span>
+      <span class="notification-badge">{{ notificaciones.length }}</span>
     </button>
+
+    <!-- Modal de notificaciones -->
+    <div class="notifications-modal" *ngIf="isNotificationsOpen">
+      <h3>Notificaciones</h3>
+      <ul>
+        <li *ngFor="let noti of notificaciones" [ngClass]="getTipoClass(noti.tipo)">
+          <i class="fa-solid" [ngClass]="getTipoIcon(noti.tipo)"></i>
+          <strong>{{ noti.tipo }}</strong> - {{ noti.producto.nombre }}: {{ noti.descripcion }}
+          <br>
+          <small>{{ noti.fechaHora | date:'short' }} por {{ noti.usuario }}</small>
+        </li>
+      </ul>
+    </div>
 
     <!-- Perfil del usuario -->
     <div class="profile-dropdown">
       <div class="profile-trigger" (click)="toggleDropdown()">
-        <div class="profile-avatar">
-          <i class="fa-solid fa-user"></i>
-        </div>
+        <div class="profile-avatar"><i class="fa-solid fa-user"></i></div>
         <div class="profile-info">
           <span class="profile-name">Felipita</span>
           <span class="profile-role">Cajera</span>
@@ -23,21 +32,11 @@
         <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
       </div>
 
-      <!-- Menú desplegable -->
       <div class="dropdown-menu" [class.show]="isDropdownOpen">
-        <a routerLink="/mi-perfil" class="dropdown-item">
-          <i class="fa-solid fa-user"></i>
-          Mi Perfil
-        </a>
-        <a routerLink="/cambiar-contrasena" class="dropdown-item">
-          <i class="fa-solid fa-key"></i>
-          Cambiar Contraseña
-        </a>
+        <a routerLink="/mi-perfil" class="dropdown-item"><i class="fa-solid fa-user"></i> Mi Perfil</a>
+        <a routerLink="/cambiar-contrasena" class="dropdown-item"><i class="fa-solid fa-key"></i> Cambiar Contraseña</a>
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item logout-item">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          Cerrar Sesión
-        </a>
+        <a class="dropdown-item logout-item"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</a>
       </div>
     </div>
   </div>

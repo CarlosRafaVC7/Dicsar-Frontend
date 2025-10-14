@@ -1,9 +1,290 @@
-<section class="page">
-  <div class="page-header">
-    <h2>Gestión de Inventario</h2>
-    <p class="subtitle">Administre productos, stock y ventas</p>
+<!-- ⚠️ ALERTA -->
+<div *ngIf="alertaVisible" class="alerta" [ngClass]="alertaTipo">
+  {{ alertaMensaje }}
+</div>
+
+<div class="inventario-container">
+
+  <!-- 🧭 TABS -->
+  <div class="tabs">
+    <button
+      [class.active]="activeTab === 'productos'"
+      (click)="cambiarTab('productos')">
+      📦 Productos
+    </button>
+
+    <button
+      [class.active]="activeTab === 'categorias'"
+      (click)="cambiarTab('categorias')">
+      🗂️ Categorías
+    </button>
+
+    <button
+      [class.active]="activeTab === 'unidades'"
+      (click)="cambiarTab('unidades')">
+      📏 Unidades de Medida
+    </button>
   </div>
 
-  <!-- Aquí vendrá la tabla / filtros / botones -->
-  <p>Vista vacía: aquí implementaremos el listado y controles.</p>
-</section>
+  <!-- =================================================================== -->
+  <!-- 🧱 TAB: PRODUCTOS -->
+  <!-- =================================================================== -->
+  <div *ngIf="activeTab === 'productos'" class="tab-content">
+    <h2>📦 Gestión de Productos</h2>
+
+    <form (ngSubmit)="guardarProducto()" class="formulario">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input type="text" [(ngModel)]="nuevoProducto.nombre" name="nombreProducto" required />
+        </div>
+
+        <div class="form-group">
+          <label>Código:</label>
+          <input type="text" [(ngModel)]="nuevoProducto.codigo" name="codigo" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción:</label>
+        <textarea [(ngModel)]="nuevoProducto.descripcion" name="descripcion" rows="2"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio Base:</label>
+          <input type="number" [(ngModel)]="nuevoProducto.precioBase" name="precioBase" required step="0.01" />
+        </div>
+
+        <div class="form-group">
+          <label>Precio Compra:</label>
+          <input type="number" [(ngModel)]="nuevoProducto.precioCompra" name="precioCompra" step="0.01" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stock Actual:</label>
+          <input type="number" [(ngModel)]="nuevoProducto.stockActual" name="stockActual" />
+        </div>
+
+        <div class="form-group">
+          <label>Stock Mínimo:</label>
+          <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" name="stockMinimo" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoría:</label>
+          <select [(ngModel)]="nuevoProducto.categoriaId" name="categoriaId" required>
+            <option value="">Seleccione categoría</option>
+            <option *ngFor="let c of categorias" [value]="c.idCategoria">{{ c.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Unidad de Medida:</label>
+          <select [(ngModel)]="nuevoProducto.unidadMedidaId" name="unidadMedidaId" required>
+            <option value="">Seleccione unidad</option>
+            <option *ngFor="let u of unidades" [value]="u.idUnidadMed">{{ u.nombre }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Proveedor:</label>
+          <select [(ngModel)]="nuevoProducto.proveedorId" name="proveedorId">
+            <option [ngValue]="null">Sin proveedor</option>
+            <option *ngFor="let p of proveedores" [value]="p.idProveedor">{{ p.razonSocial }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Fecha de Vencimiento:</label>
+          <input 
+            type="date" 
+            [(ngModel)]="nuevoProducto.fechaVencimiento" 
+            name="fechaVencimiento" 
+            [min]="minDate" />
+        </div>
+      </div>
+
+      <div class="form-buttons">
+        <button type="submit" class="btn-guardar">
+          {{ editandoProducto ? '🔄 Actualizar' : '💾 Guardar' }}
+        </button>
+        <button *ngIf="editandoProducto" type="button" (click)="cancelarEdicionProducto()" class="btn-cancelar">
+          ❌ Cancelar
+        </button>
+      </div>
+    </form>
+
+    <div class="tabla-container">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Código</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Categoría</th>
+            <th>Unidad</th>
+            <th>Proveedor</th>
+            <th>Vencimiento</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of productos">
+            <td>{{ p.idProducto }}</td>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.codigo }}</td>
+            <td class="precio">S/ {{ p.precioBase | number:'1.2-2' }}</td>
+            <td [class.stock-bajo]="p.stockActual <= p.stockMinimo" class="stock">
+              {{ p.stockActual }}
+            </td>
+            <!-- 🔥 SOLUCIÓN: Usar el objeto categoría completo del backend -->
+            <td>{{ p.categoria?.nombre || '---' }}</td>
+            <td>{{ p.unidadMedida?.nombre || '---' }}</td>
+            <td>{{ p.proveedor?.razonSocial || '---' }}</td>
+            <td [class.vencido]="esProductoVencido(p.fechaVencimiento)" class="fecha">
+              {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
+            </td>
+            <td class="acciones">
+              <button (click)="editarProducto(p)" class="btn-editar" title="Editar">✏️</button>
+              <button (click)="eliminarProducto(p.idProducto!)" class="btn-eliminar" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- 🟦 TAB: CATEGORÍAS -->
+  <!-- =================================================================== -->
+  <div *ngIf="activeTab === 'categorias'" class="tab-content">
+    <h2>🗂️ Gestión de Categorías</h2>
+
+    <!-- Formulario -->
+    <form (ngSubmit)="guardarCategoria()" class="formulario">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input type="text" [(ngModel)]="nuevaCategoria.nombre" name="nombreCategoria" required />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción:</label>
+          <input type="text" [(ngModel)]="nuevaCategoria.descripcion" name="descripcionCategoria" />
+        </div>
+      </div>
+
+      <div class="form-buttons">
+        <button type="submit" class="btn-guardar">
+          {{ editandoCategoria ? '🔄 Actualizar' : '💾 Guardar' }}
+        </button>
+        <button *ngIf="editandoCategoria" type="button" (click)="cancelarEdicionCategoria()" class="btn-cancelar">
+          ❌ Cancelar
+        </button>
+      </div>
+    </form>
+
+    <!-- Tabla -->
+    <div class="tabla-container">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of categorias">
+            <td>{{ c.idCategoria }}</td>
+            <td>{{ c.nombre }}</td>
+            <td>{{ c.descripcion }}</td>
+            <td>
+              <span [class.estado-activo]="c.estado" [class.estado-inactivo]="!c.estado" class="estado">
+                {{ c.estado ? '✅ Activo' : '❌ Inactivo' }}
+              </span>
+            </td>
+            <td class="acciones">
+              <button (click)="editarCategoria(c)" class="btn-editar" title="Editar">✏️</button>
+              <button (click)="eliminarCategoria(c.idCategoria!)" class="btn-eliminar" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- 🟩 TAB: UNIDADES DE MEDIDA -->
+  <!-- =================================================================== -->
+  <div *ngIf="activeTab === 'unidades'" class="tab-content">
+    <h2>📏 Gestión de Unidades de Medida</h2>
+
+    <!-- Formulario -->
+    <form (ngSubmit)="guardarUnidad()" class="formulario">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre:</label>
+          <input type="text" [(ngModel)]="nuevaUnidad.nombre" name="nombreUnidad" required />
+        </div>
+
+        <div class="form-group">
+          <label>Abreviatura:</label>
+          <input type="text" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviaturaUnidad" required maxlength="5" />
+        </div>
+      </div>
+
+      <div class="form-buttons">
+        <button type="submit" class="btn-guardar">
+          {{ editandoUnidad ? '🔄 Actualizar' : '💾 Guardar' }}
+        </button>
+        <button *ngIf="editandoUnidad" type="button" (click)="cancelarEdicionUnidad()" class="btn-cancelar">
+          ❌ Cancelar
+        </button>
+      </div>
+    </form>
+
+    <!-- Tabla -->
+    <div class="tabla-container">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Abreviatura</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of unidades">
+            <td>{{ u.idUnidadMed }}</td>
+            <td>{{ u.nombre }}</td>
+            <td><span class="abreviatura">{{ u.abreviatura }}</span></td>
+            <td>
+              <span [class.estado-activo]="u.estado" [class.estado-inactivo]="!u.estado" class="estado">
+                {{ u.estado ? '✅ Activo' : '❌ Inactivo' }}
+              </span>
+            </td>
+            <td class="acciones">
+              <button (click)="editarUnidad(u)" class="btn-editar" title="Editar">✏️</button>
+              <button (click)="eliminarUnidad(u.idUnidadMed!)" class="btn-eliminar" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

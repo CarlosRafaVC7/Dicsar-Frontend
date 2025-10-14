@@ -1,1 +1,81 @@
-<p>proveedores works!</p>
+<div class="container mt-4">
+  <h2 class="text-center mb-4">Gestión de Proveedores</h2>
+
+  <div class="alert alert-info text-center" *ngIf="mensaje">{{ mensaje }}</div>
+
+  <!-- FORMULARIO -->
+  <form (ngSubmit)="guardarProveedor()" class="card p-4 shadow mb-4">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Razón Social</label>
+        <input [(ngModel)]="proveedorForm.razonSocial" name="razonSocial" class="form-control" required />
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">RUC</label>
+        <input [(ngModel)]="proveedorForm.ruc" name="ruc" class="form-control" required />
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Teléfono</label>
+        <input [(ngModel)]="proveedorForm.telefono" name="telefono" class="form-control" />
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Dirección</label>
+        <input [(ngModel)]="proveedorForm.direccion" name="direccion" class="form-control" />
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input [(ngModel)]="proveedorForm.email" name="email" class="form-control" />
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Contacto</label>
+        <input [(ngModel)]="proveedorForm.contacto" name="contacto" class="form-control" />
+      </div>
+
+      <div class="col-12 text-center mt-3">
+        <button type="submit" class="btn btn-success me-2">
+          {{ editando ? 'Actualizar' : 'Guardar' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cancelarEdicion()">Cancelar</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- TABLA -->
+  <div class="card shadow p-3">
+    <h5 class="mb-3">Lista de Proveedores</h5>
+    <table class="table table-hover table-bordered">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>#</th>
+          <th>Razón Social</th>
+          <th>RUC</th>
+          <th>Dirección</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+          <th>Contacto</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="text-center">
+        <tr *ngFor="let p of proveedores; index as i">
+          <td>{{ i + 1 }}</td>
+          <td>{{ p.razonSocial }}</td>
+          <td>{{ p.ruc }}</td>
+          <td>{{ p.direccion }}</td>
+          <td>{{ p.telefono }}</td>
+          <td>{{ p.email }}</td>
+          <td>{{ p.contacto }}</td>
+          <td>
+            <button class="btn btn-sm btn-primary me-2" (click)="editarProveedor(p)">Editar</button>
+            <button class="btn btn-sm btn-danger" (click)="eliminarProveedor(p.idProveedor)">Eliminar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

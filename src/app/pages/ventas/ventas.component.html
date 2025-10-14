@@ -1,1 +1,91 @@
-<p>ventas works!</p>
+<div class="ventas-container">
+  <!-- 🧭 TABS -->
+  <div class="tabs">
+    <button [class.active]="activeTab === 'salidas'" (click)="cambiarTab('salidas')">
+      🔄 Registrar Movimiento
+    </button>
+    
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- TAB: REGISTRAR MOVIMIENTO + HISTORIAL -->
+  <!-- ===================================================== -->
+  <div *ngIf="activeTab === 'salidas'" class="tab-content">
+    <h2>🔄 Registrar Movimiento</h2>
+
+    <form (ngSubmit)="registrarMovimiento()" class="formulario">
+      <div class="form-group">
+        <label>Producto:</label>
+        <select [(ngModel)]="nuevoMovimiento.producto" name="producto" required>
+          <option [ngValue]="null">Seleccione un producto</option>
+          <option *ngFor="let p of productos" [ngValue]="p">
+            {{ p.nombre }} (Stock: {{ p.stockActual }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de Movimiento:</label>
+        <select [(ngModel)]="nuevoMovimiento.tipoMovimiento" name="tipoMovimiento" required>
+          <option *ngFor="let tipo of tiposMovimiento" [value]="tipo">{{ tipo }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cantidad:</label>
+        <input type="number" [(ngModel)]="nuevoMovimiento.cantidad" name="cantidad" min="1" required />
+      </div>
+
+      <div class="form-group">
+        <label>Descripción:</label>
+        <input type="text" [(ngModel)]="nuevoMovimiento.descripcion" name="descripcion" />
+      </div>
+
+      <div class="form-buttons">
+        <button type="submit" class="btn-guardar">💾 Registrar</button>
+      </div>
+    </form>
+
+    <p *ngIf="mensajeError" class="error">{{ mensajeError }}</p>
+
+    <!-- ===================================================== -->
+    <!-- 📋 HISTORIAL DE MOVIMIENTOS -->
+    <!-- ===================================================== -->
+    <div class="historial-container">
+      <h2>📜 Historial de Movimientos</h2>
+
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Producto</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Descripción</th>
+            <th>Usuario</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of movimientos">
+            <td>{{ m.idMovimiento }}</td>
+            <td>{{ m.producto.nombre }}</td>
+            <td [class.entrada]="m.tipoMovimiento === 'ENTRADA'" 
+                [class.salida]="m.tipoMovimiento === 'SALIDA'">
+                {{ m.tipoMovimiento }}
+            </td>
+            <td>{{ m.cantidad }}</td>
+            <td>{{ m.descripcion || '---' }}</td>
+            <td>{{ m.usuarioMovimiento }}</td>
+            <td>{{ m.fechaMovimiento | date:'yyyy-MM-dd HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================================================== -->
+  <!-- TAB: REPORTES -->
+  <!-- ===================================================== -->
+  
+</div>

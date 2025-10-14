@@ -7,15 +7,17 @@ import { ProveedoresComponent } from './pages/proveedores/proveedores.component'
 import { VentasComponent } from './pages/ventas/ventas.component';
 import { MiperfilComponent } from './seguridad/navbar/miperfil/miperfil.component';
 import { CambiarcontrasenaComponent } from './seguridad/navbar/cambiarcontrasena/cambiarcontrasena.component';
+import { HistorialPreciosComponent } from './pages/historial-precios/historial-precios.component';
 
 export const appRoutes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'inventario', component: InventarioComponent },
+  { path: 'historial-precios', component: HistorialPreciosComponent },
   { path: 'clientes', component: ClientesComponent },
   { path: 'proveedores', component: ProveedoresComponent },
   { path: 'ventas', component: VentasComponent },
   { path: '**', redirectTo: '/dashboard' },
 { path: 'mi-perfil', component: MiperfilComponent },
-{ path: 'cambiar-contrasena', component: CambiarcontrasenaComponent }
+{ path: 'cambiar-contrasena', component: CambiarcontrasenaComponent },
 ];

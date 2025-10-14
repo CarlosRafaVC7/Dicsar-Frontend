@@ -19,8 +19,9 @@ export class SidebarComponent {
   items: NavItem[] = [
     { label: 'Dashboard',   icon: 'fa-solid fa-grip', route: '/dashboard' },
     { label: 'Inventario',  icon: 'fa-solid fa-cube', route: '/inventario' },
-    { label: 'Clientes',    icon: 'fa-solid fa-people-group', route: '/clientes' },
+    { label: 'Movimientos',      icon: 'fa-solid fa-cart-shopping', route: '/ventas' },
+    { label: 'Historial de Precios', icon: 'fa-solid fa-truck-field', route: '/historial-precios' },
     { label: 'Proveedores', icon: 'fa-solid fa-truck-field', route: '/proveedores' },
-    { label: 'Ventas',      icon: 'fa-solid fa-cart-shopping', route: '/ventas' },
+    { label: 'Clientes',    icon: 'fa-solid fa-people-group', route: '/clientes' },
   ];
 }
