@@ -9,11 +9,15 @@ import { UnidadMedService } from '../../services/unidad-medida.service';
 import { ProductoService } from '../../services/producto.service';
 import { Proveedor } from '../../models/proveedor.model';
 import { ProveedorService } from '../../services/proveedor.service';
+import { ViewChild, ElementRef } from '@angular/core';
 
 @Component({
   selector: 'app-inventario',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+  ],
   templateUrl: './inventario.component.html',
   styleUrls: ['./inventario.component.css']
 })
@@ -38,17 +42,35 @@ export class InventarioComponent implements OnInit {
   editandoProducto: any = null;
 
   proveedores: Proveedor[] = [];
+ // === 🔍 FILTRO DE CATEGORÍAS ===
+  categoriaSeleccionada: number | 'todas' = 'todas';
+
+  // === 📂 MODAL UNIDADES ===
+  mostrarModalUnidad = false;
+
+  // === 📂 MODAL PRODUCTO ===
+  mostrarModalProducto = false;
+
+  // === 📁 IMPORTAR CSV ===
+  @ViewChild('inputCSV') inputCSV!: ElementRef<HTMLInputElement>;
 
   // === ⚠️ ALERTAS ===
   alertaVisible = false;
   alertaMensaje = '';
   alertaTipo: 'exito' | 'error' | 'info' = 'info';
 
+  // NUEVAS PROPIEDADES (búsqueda, filtro por nombre de categoría y edición inline)
+  search: string = '';
+  selectedCategory: string = 'Todas las categorías';
+
+  editingPriceId: number | null = null;
+  draftPrice: number | null = null;
+
   constructor(
     private categoriaService: CategoriaService,
     private unidadMedService: UnidadMedService,
     private productoService: ProductoService,
-    private proveedorService: ProveedorService
+    private proveedorService: ProveedorService,
   ) {}
 
   get minDate(): string {
@@ -212,6 +234,8 @@ export class InventarioComponent implements OnInit {
             this.cargarProductos();
             this.cancelarEdicionProducto();
             this.mostrarAlerta('Producto actualizado correctamente', 'exito');
+            // cerrar modal después de actualizar
+            this.mostrarModalProducto = false;
           },
           error: (err) => {
             console.error('Error completo:', err);
@@ -227,6 +251,8 @@ export class InventarioComponent implements OnInit {
           this.cargarProductos();
           this.nuevoProducto = this.resetProducto();
           this.mostrarAlerta('Producto creado correctamente', 'exito');
+          // cerrar modal después de crear
+          this.mostrarModalProducto = false;
         },
         error: (err) => {
           console.error('Error completo:', err);
@@ -254,6 +280,8 @@ export class InventarioComponent implements OnInit {
       precioCompra: p.precioCompra,
       fechaVencimiento: p.fechaVencimiento ? p.fechaVencimiento.split('T')[0] : ''
     };
+    // abrir la modal para edición
+    this.abrirModalProducto();
   }
 
   cancelarEdicionProducto() {
@@ -271,6 +299,133 @@ export class InventarioComponent implements OnInit {
         error: () => this.mostrarAlerta('Error al eliminar producto', 'error')
       });
     }
+  }
+
+  // ==================== FILTRADO VISIBLE (combinado search + categoría) ====================
+  get visibleProducts() {
+    const q = (this.search || '').trim().toLowerCase();
+    return (this.productos || []).filter((p: any) => {
+      const catName = p.categoria?.nombre || '';
+      const matchesCategory =
+        this.selectedCategory === 'Todas las categorías' || catName === this.selectedCategory;
+      const matchesSearch =
+        !q ||
+        (p.nombre || '').toLowerCase().includes(q) ||
+        catName.toLowerCase().includes(q) ||
+        (p.codigo || '').toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+  }
+
+  // ==================== CSV IMPORT (parse básico y anexar localmente) ====================
+  abrirImportarCSV() {
+    this.inputCSV.nativeElement.click();
+  }
+
+  importarCSV(event: any) {
+    const file = event?.target?.files?.[0];
+    if (!file) {
+      this.mostrarAlerta('No se seleccionó archivo', 'info');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const text = e.target.result as string;
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      const newItems: any[] = [];
+      let nextId = this.productos && this.productos.length ? Math.max(...this.productos.map((x:any)=>x.idProducto || 0)) + 1 : 1;
+      for (const line of lines) {
+        const cols = line.split(',').map(c => c.trim());
+        // Si detecta encabezado, saltar
+        if (/^name|nombre/i.test(cols[0]) && /category|categoria/i.test(cols[1])) continue;
+        if (cols.length >= 4) {
+          const price = Number(cols[3]) || 0;
+          newItems.push({
+            idProducto: nextId++,
+            nombre: cols[0],
+            categoria: { nombre: cols[1] },
+            unidadMedida: { nombre: cols[2] },
+            precioBase: price,
+            stockActual: 0
+          });
+        } else if (cols.length === 3) {
+          const price = Number(cols[2]) || 0;
+          newItems.push({
+            idProducto: nextId++,
+            nombre: cols[0],
+            categoria: { nombre: cols[1] },
+            unidadMedida: { nombre: 'unidad' },
+            precioBase: price,
+            stockActual: 0
+          });
+        }
+      }
+      if (newItems.length) {
+        this.productos = [...this.productos, ...newItems];
+        this.mostrarAlerta(`Importados ${newItems.length} productos (local)`, 'exito');
+      } else {
+        this.mostrarAlerta('No se detectaron filas válidas en CSV', 'info');
+      }
+      // limpiar input
+      this.inputCSV.nativeElement.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  // ==================== EDICIÓN INLINE DE PRECIO ====================
+  startEditPrice(producto: any) {
+    this.editingPriceId = producto.idProducto;
+    this.draftPrice = Number(producto.precioBase) || 0;
+  }
+
+  confirmEditPrice(producto: any) {
+    if (this.draftPrice === null || isNaN(this.draftPrice) || this.draftPrice < 0) {
+      this.mostrarAlerta('Precio inválido', 'error');
+      return;
+    }
+    this.productoService.actualizar(producto.idProducto, { ...producto, precioBase: this.draftPrice }).subscribe({
+      next: () => {
+        producto.precioBase = this.draftPrice;
+        this.editingPriceId = null;
+        this.draftPrice = null;
+        this.mostrarAlerta('Precio actualizado correctamente', 'exito');
+      },
+      error: () => {
+        producto.precioBase = this.draftPrice;
+        this.editingPriceId = null;
+        this.draftPrice = null;
+        this.mostrarAlerta('Actualizado localmente (sin backend)', 'info');
+      }
+    });
+  }
+
+  cancelEditPrice() {
+    this.editingPriceId = null;
+    this.draftPrice = null;
+  }
+
+  // ==================== FILTRADO POR SELECT (mantener compatibilidad) ====================
+  filtrarPorCategoria() {
+    // El getter visibleProducts realiza el filtrado dinámico; aquí solo se asegura que la UI reevalúe.
+    // Si se quería filtrar en backend, reemplazar por llamada a servicio.
+  }
+
+  // ==================== MODAL DE UNIDADES ====================
+  abrirModalUnidad() {
+    this.mostrarModalUnidad = true;
+  }
+
+  cerrarModalUnidad() {
+    this.mostrarModalUnidad = false;
+  }
+
+  // Abrir/cerrar modal usando boolean (sin Angular Material)
+  abrirModalProducto() {
+    this.mostrarModalProducto = true;
+  }
+
+  cerrarModalProducto() {
+    this.mostrarModalProducto = false;
   }
 
   // ==================== MÉTODOS AUXILIARES ====================
@@ -295,5 +450,18 @@ export class InventarioComponent implements OnInit {
     const hoy = new Date();
     const vencimiento = new Date(fechaVencimiento);
     return vencimiento < hoy;
+  }
+
+  // Abre prompt para crear proveedor rápido (mínimo funcional)
+  crearProveedorRapido() {
+    const nombre = prompt('Nombre del nuevo proveedor');
+    if (!nombre) return;
+    const nextId = this.proveedores && this.proveedores.length
+      ? Math.max(...this.proveedores.map((p:any)=>p.idProveedor || 0)) + 1
+      : 1;
+    const nuevo: any = { idProveedor: nextId, nombre: nombre };
+    this.proveedores = [...this.proveedores, nuevo];
+    this.nuevoProducto.proveedorId = nuevo.idProveedor;
+    this.mostrarAlerta('Proveedor creado', 'exito');
   }
 }

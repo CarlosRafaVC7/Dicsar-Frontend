@@ -1,290 +1,294 @@
-<!-- ⚠️ ALERTA -->
-<div *ngIf="alertaVisible" class="alerta" [ngClass]="alertaTipo">
-  {{ alertaMensaje }}
-</div>
+<div class="inventario-shell">
+  <!-- Encabezado -->
+  <header class="panel-header">
+    <div class="title-block">
+      <h1>Gestión de Productos</h1>
 
-<div class="inventario-container">
+    </div>
 
-  <!-- 🧭 TABS -->
-  <div class="tabs">
-    <button
-      [class.active]="activeTab === 'productos'"
-      (click)="cambiarTab('productos')">
-      📦 Productos
-    </button>
+    <div class="controls">
+      <input class="search" placeholder="Buscar producto o categoría..." [(ngModel)]="search" />
+      <select class="category-select" [(ngModel)]="selectedCategory" (change)="filtrarPorCategoria()">
+        <option>Todas las categorías</option>
+        <option *ngFor="let c of categorias">{{ c.nombre }}</option>
+      </select>
 
-    <button
-      [class.active]="activeTab === 'categorias'"
-      (click)="cambiarTab('categorias')">
-      🗂️ Categorías
-    </button>
+      <button class="btn-unidades" (click)="abrirModalUnidad()">Unidades de medida</button>
 
-    <button
-      [class.active]="activeTab === 'unidades'"
-      (click)="cambiarTab('unidades')">
-      📏 Unidades de Medida
-    </button>
+      <label class="btn-csv" title="Importar CSV">
+        <input #inputCSV type="file" accept=".csv,text/csv" hidden (change)="importarCSV($event)" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          <path d="M5 13l7 7 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+        Importar CSV
+      </label>
+
+      <!-- Botón Nuevo Producto -->
+      <button class="btn btn-primario" (click)="abrirModalProducto()">+ Nuevo Producto</button>
+    </div>
+  </header>
+
+  <!-- Tabs (se conservan) -->
+  <div class="tabs tab-row">
+    <button [class.active]="activeTab === 'productos'" (click)="cambiarTab('productos')">Productos</button>
+    <button [class.active]="activeTab === 'categorias'" (click)="cambiarTab('categorias')">Categorías</button>
+    <button [class.active]="activeTab === 'unidades'" (click)="cambiarTab('unidades')">Unidades</button>
   </div>
 
-  <!-- =================================================================== -->
-  <!-- 🧱 TAB: PRODUCTOS -->
-  <!-- =================================================================== -->
+  <!-- ========================== 🛒 TAB PRODUCTOS ========================== -->
   <div *ngIf="activeTab === 'productos'" class="tab-content">
-    <h2>📦 Gestión de Productos</h2>
-
-    <form (ngSubmit)="guardarProducto()" class="formulario">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nombre:</label>
-          <input type="text" [(ngModel)]="nuevoProducto.nombre" name="nombreProducto" required />
-        </div>
-
-        <div class="form-group">
-          <label>Código:</label>
-          <input type="text" [(ngModel)]="nuevoProducto.codigo" name="codigo" />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Descripción:</label>
-        <textarea [(ngModel)]="nuevoProducto.descripcion" name="descripcion" rows="2"></textarea>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Precio Base:</label>
-          <input type="number" [(ngModel)]="nuevoProducto.precioBase" name="precioBase" required step="0.01" />
-        </div>
-
-        <div class="form-group">
-          <label>Precio Compra:</label>
-          <input type="number" [(ngModel)]="nuevoProducto.precioCompra" name="precioCompra" step="0.01" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Stock Actual:</label>
-          <input type="number" [(ngModel)]="nuevoProducto.stockActual" name="stockActual" />
-        </div>
-
-        <div class="form-group">
-          <label>Stock Mínimo:</label>
-          <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" name="stockMinimo" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Categoría:</label>
-          <select [(ngModel)]="nuevoProducto.categoriaId" name="categoriaId" required>
-            <option value="">Seleccione categoría</option>
-            <option *ngFor="let c of categorias" [value]="c.idCategoria">{{ c.nombre }}</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Unidad de Medida:</label>
-          <select [(ngModel)]="nuevoProducto.unidadMedidaId" name="unidadMedidaId" required>
-            <option value="">Seleccione unidad</option>
-            <option *ngFor="let u of unidades" [value]="u.idUnidadMed">{{ u.nombre }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Proveedor:</label>
-          <select [(ngModel)]="nuevoProducto.proveedorId" name="proveedorId">
-            <option [ngValue]="null">Sin proveedor</option>
-            <option *ngFor="let p of proveedores" [value]="p.idProveedor">{{ p.razonSocial }}</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Fecha de Vencimiento:</label>
-          <input 
-            type="date" 
-            [(ngModel)]="nuevoProducto.fechaVencimiento" 
-            name="fechaVencimiento" 
-            [min]="minDate" />
-        </div>
-      </div>
-
-      <div class="form-buttons">
-        <button type="submit" class="btn-guardar">
-          {{ editandoProducto ? '🔄 Actualizar' : '💾 Guardar' }}
-        </button>
-        <button *ngIf="editandoProducto" type="button" (click)="cancelarEdicionProducto()" class="btn-cancelar">
-          ❌ Cancelar
-        </button>
-      </div>
-    </form>
-
-    <div class="tabla-container">
-      <table class="tabla">
+    <!-- Productos: tabla moderna -->
+    <section class="panel">
+      <table class="products-table">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Nombre</th>
-            <th>Código</th>
-            <th>Precio</th>
-            <th>Stock</th>
             <th>Categoría</th>
             <th>Unidad</th>
-            <th>Proveedor</th>
-            <th>Vencimiento</th>
-            <th>Acciones</th>
+            <th>Precio</th>
+            <th>Estado</th>
+            <th class="actions-col">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of productos">
-            <td>{{ p.idProducto }}</td>
-            <td>{{ p.nombre }}</td>
-            <td>{{ p.codigo }}</td>
-            <td class="precio">S/ {{ p.precioBase | number:'1.2-2' }}</td>
-            <td [class.stock-bajo]="p.stockActual <= p.stockMinimo" class="stock">
-              {{ p.stockActual }}
+          <tr *ngFor="let p of visibleProducts" class="product-row"
+            [class.vencido]="esProductoVencido(p.fechaVencimiento)">
+            <td class="name-col">
+              <div class="cell-content">{{ p.nombre }}</div>
             </td>
-            <!-- 🔥 SOLUCIÓN: Usar el objeto categoría completo del backend -->
-            <td>{{ p.categoria?.nombre || '---' }}</td>
-            <td>{{ p.unidadMedida?.nombre || '---' }}</td>
-            <td>{{ p.proveedor?.razonSocial || '---' }}</td>
-            <td [class.vencido]="esProductoVencido(p.fechaVencimiento)" class="fecha">
-              {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
+            <td class="cat-col">
+              <div class="cell-content">{{ p.categoria?.nombre || p.categoria }}</div>
             </td>
-            <td class="acciones">
-              <button (click)="editarProducto(p)" class="btn-editar" title="Editar">✏️</button>
-              <button (click)="eliminarProducto(p.idProducto!)" class="btn-eliminar" title="Eliminar">🗑️</button>
+            <td class="unit-col">
+              <div class="cell-content">{{ p.unidadMedida?.nombre || p.unidadMedida?.abreviatura || '-' }}</div>
             </td>
+
+            <!-- Precio editable inline -->
+            <td class="price-col">
+              <div class="cell-content">
+                <div *ngIf="editingPriceId !== p.idProducto; else editTpl" class="price-view">
+                  <strong>{{ p.precioBase | currency:'USD':'symbol':'1.2-2' }}</strong>
+                </div>
+                <ng-template #editTpl>
+                  <div class="price-edit">
+                    <input type="number" step="0.01" [(ngModel)]="draftPrice" />
+                  </div>
+                </ng-template>
+              </div>
+            </td>
+            <td>
+              <span [ngClass]="{
+      'badge-activo': p.estado === 'Activo',
+      'badge-inactivo': p.estado === 'Inactivo'
+    }">
+                {{ p.estado }}
+              </span>
+            </td>
+            <td class="actions actions-col">
+              <!-- Mantener botones de edición inline de precio -->
+              <div class="cell-content">
+                <button *ngIf="editingPriceId !== p.idProducto" class="icon-btn" (click)="startEditPrice(p)"
+                  title="Editar precio">💲</button>
+                <button *ngIf="editingPriceId === p.idProducto" class="icon-btn confirm" (click)="confirmEditPrice(p)"
+                  title="Confirmar">✅</button>
+                <button *ngIf="editingPriceId === p.idProducto" class="icon-btn cancel" (click)="cancelEditPrice()"
+                  title="Cancelar">❌</button>
+
+                <!-- Reemplazo: botones con texto claros y accesibles -->
+                <button class="btn-action btn-edit" (click)="editarProducto(p)" title="Editar producto">Editar</button>
+                <button class="btn-action btn-delete" (click)="eliminarProducto(p.idProducto)"
+                  title="Eliminar producto">Eliminar</button>
+
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="visibleProducts.length === 0">
+            <td colspan="5" class="empty">No hay productos que coincidan.</td>
           </tr>
         </tbody>
       </table>
+    </section>
+
+    <!-- Barra compacta en lugar del formulario grande -->
+    <div class="compact-toolbar">
+      <div class="left">
+      </div>
+      <div class="right">
+        <!-- botón eliminado tal como solicitaste -->
+      </div>
+    </div>
+
+    <!-- Modal: Nuevo Producto -->
+    <div class="modal-overlay" *ngIf="mostrarModalProducto" (click)="cerrarModalProducto()">
+      <div class="modal product-modal" (click)="$event.stopPropagation()">
+        <header class="modal-head">
+          <h3>{{ editandoProducto ? 'Editar Producto' : 'Nuevo Producto' }}</h3>
+          <button class="close" (click)="cerrarModalProducto()">✖</button>
+        </header>
+
+        <form class="product-modal-form" (ngSubmit)="guardarProducto()">
+          <!-- Grid 2 columnas, labels compactos -->
+          <div class="field">
+            <label>Nombre</label>
+            <input type="text" [(ngModel)]="nuevoProducto.nombre" name="modalNombre" required />
+          </div>
+
+          <div class="field">
+            <label>Código</label>
+            <input type="text" [(ngModel)]="nuevoProducto.codigo" name="modalCodigo" />
+          </div>
+
+          <div class="field">
+            <label>Categoría</label>
+            <select [(ngModel)]="nuevoProducto.categoriaId" name="modalCategoria" required>
+              <option [ngValue]="0">Seleccione...</option>
+              <option *ngFor="let c of categorias" [ngValue]="c.idCategoria">{{ c.nombre }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Unidad</label>
+            <select [(ngModel)]="nuevoProducto.unidadMedidaId" name="modalUnidad" required>
+              <option [ngValue]="0">Seleccione...</option>
+              <option *ngFor="let u of unidades" [ngValue]="u.idUnidadMed">{{ u.nombre }}</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label>Descripción</label>
+            <textarea [(ngModel)]="nuevoProducto.descripcion" name="modalDescripcion"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Precio</label>
+            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioBase" name="modalPrecio" />
+          </div>
+
+          <div class="field">
+            <label>Stock Actual</label>
+            <input type="number" [(ngModel)]="nuevoProducto.stockActual" name="modalStock" />
+          </div>
+
+          <div class="field">
+            <label>Stock Mínimo</label>
+            <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" name="modalStockMin" />
+          </div>
+
+          <div class="field">
+            <label>Proveedor</label>
+            <select [(ngModel)]="nuevoProducto.proveedorId" name="modalProveedor">
+              <option [ngValue]="null">Seleccione...</option>
+              <option *ngFor="let p of proveedores" [ngValue]="p.idProveedor">{{ $any(p).nombre }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Fecha vencimiento</label>
+            <input type="date" [(ngModel)]="nuevoProducto.fechaVencimiento" name="modalFecha" [min]="minDate" />
+          </div>
+
+          <footer class="modal-foot form-actions">
+            <button type="button" class="btn btn-cancelar" (click)="cerrarModalProducto()">Cancelar</button>
+            <button type="submit" class="btn btn-primario">{{ editandoProducto ? 'Actualizar' : 'Crear' }}</button>
+          </footer>
+        </form>
+      </div>
     </div>
   </div>
 
-  <!-- =================================================================== -->
-  <!-- 🟦 TAB: CATEGORÍAS -->
-  <!-- =================================================================== -->
+  <!-- ========================== 📂 TAB CATEGORÍAS ========================== -->
   <div *ngIf="activeTab === 'categorias'" class="tab-content">
-    <h2>🗂️ Gestión de Categorías</h2>
-
-    <!-- Formulario -->
+    <h2>Gestión de Categorías</h2>
     <form (ngSubmit)="guardarCategoria()" class="formulario">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nombre:</label>
-          <input type="text" [(ngModel)]="nuevaCategoria.nombre" name="nombreCategoria" required />
-        </div>
+      <input type="text" placeholder="Nombre" [(ngModel)]="nuevaCategoria.nombre" name="nombre" required />
+      <textarea placeholder="Descripción" [(ngModel)]="nuevaCategoria.descripcion" name="descripcion"></textarea>
 
-        <div class="form-group">
-          <label>Descripción:</label>
-          <input type="text" [(ngModel)]="nuevaCategoria.descripcion" name="descripcionCategoria" />
-        </div>
-      </div>
-
-      <div class="form-buttons">
-        <button type="submit" class="btn-guardar">
-          {{ editandoCategoria ? '🔄 Actualizar' : '💾 Guardar' }}
-        </button>
-        <button *ngIf="editandoCategoria" type="button" (click)="cancelarEdicionCategoria()" class="btn-cancelar">
-          ❌ Cancelar
-        </button>
-      </div>
+      <button type="submit" class="btn btn-primario">
+        {{ editandoCategoria ? 'Actualizar Categoría' : 'Agregar Categoría' }}
+      </button>
+      <button type="button" *ngIf="editandoCategoria" (click)="cancelarEdicionCategoria()" class="btn btn-cancelar">
+        Cancelar
+      </button>
     </form>
 
-    <!-- Tabla -->
-    <div class="tabla-container">
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let c of categorias">
-            <td>{{ c.idCategoria }}</td>
-            <td>{{ c.nombre }}</td>
-            <td>{{ c.descripcion }}</td>
-            <td>
-              <span [class.estado-activo]="c.estado" [class.estado-inactivo]="!c.estado" class="estado">
-                {{ c.estado ? '✅ Activo' : '❌ Inactivo' }}
-              </span>
-            </td>
-            <td class="acciones">
-              <button (click)="editarCategoria(c)" class="btn-editar" title="Editar">✏️</button>
-              <button (click)="eliminarCategoria(c.idCategoria!)" class="btn-eliminar" title="Eliminar">🗑️</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of categorias">
+          <td>{{ c.nombre }}</td>
+          <td>{{ c.descripcion }}</td>
+          <td>
+            <button class="btn-mini" (click)="editarCategoria(c)">✏️</button>
+            <button class="btn-mini eliminar" (click)="eliminarCategoria(c.idCategoria!)">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
-  <!-- =================================================================== -->
-  <!-- 🟩 TAB: UNIDADES DE MEDIDA -->
-  <!-- =================================================================== -->
+  <!-- ========================== ⚖️ TAB UNIDADES ========================== -->
   <div *ngIf="activeTab === 'unidades'" class="tab-content">
-    <h2>📏 Gestión de Unidades de Medida</h2>
-
-    <!-- Formulario -->
+    <h2>Gestión de Unidades de Medida</h2>
     <form (ngSubmit)="guardarUnidad()" class="formulario">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nombre:</label>
-          <input type="text" [(ngModel)]="nuevaUnidad.nombre" name="nombreUnidad" required />
-        </div>
+      <input type="text" placeholder="Nombre" [(ngModel)]="nuevaUnidad.nombre" name="nombre" required />
+      <input type="text" placeholder="Abreviatura" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviatura" />
 
-        <div class="form-group">
-          <label>Abreviatura:</label>
-          <input type="text" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviaturaUnidad" required maxlength="5" />
-        </div>
-      </div>
-
-      <div class="form-buttons">
-        <button type="submit" class="btn-guardar">
-          {{ editandoUnidad ? '🔄 Actualizar' : '💾 Guardar' }}
-        </button>
-        <button *ngIf="editandoUnidad" type="button" (click)="cancelarEdicionUnidad()" class="btn-cancelar">
-          ❌ Cancelar
-        </button>
-      </div>
+      <button type="submit" class="btn btn-primario">
+        {{ editandoUnidad ? 'Actualizar Unidad' : 'Agregar Unidad' }}
+      </button>
+      <button type="button" *ngIf="editandoUnidad" (click)="cancelarEdicionUnidad()" class="btn btn-cancelar">
+        Cancelar
+      </button>
     </form>
 
-    <!-- Tabla -->
-    <div class="tabla-container">
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Abreviatura</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let u of unidades">
-            <td>{{ u.idUnidadMed }}</td>
-            <td>{{ u.nombre }}</td>
-            <td><span class="abreviatura">{{ u.abreviatura }}</span></td>
-            <td>
-              <span [class.estado-activo]="u.estado" [class.estado-inactivo]="!u.estado" class="estado">
-                {{ u.estado ? '✅ Activo' : '❌ Inactivo' }}
-              </span>
-            </td>
-            <td class="acciones">
-              <button (click)="editarUnidad(u)" class="btn-editar" title="Editar">✏️</button>
-              <button (click)="eliminarUnidad(u.idUnidadMed!)" class="btn-eliminar" title="Eliminar">🗑️</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Abreviatura</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of unidades">
+          <td>{{ u.nombre }}</td>
+          <td>{{ u.abreviatura }}</td>
+          <td>
+            <button class="btn-mini" (click)="editarUnidad(u)">✏️</button>
+            <button class="btn-mini eliminar" (click)="eliminarUnidad(u.idUnidadMed!)">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
+  <!-- ========================== ⚙️ MODAL UNIDADES ========================== -->
+  <div class="modal-overlay" *ngIf="mostrarModalUnidad" (click)="cerrarModalUnidad()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <h3>Unidades de medida</h3>
+        <button class="close" (click)="cerrarModalUnidad()">✖</button>
+      </header>
+      <div class="modal-body">
+        <ul class="units-list">
+          <li *ngFor="let u of unidades">
+            <span>{{ u.nombre }}</span>
+            <small class="muted">{{ u.abreviatura }}</small>
+          </li>
+        </ul>
+      </div>
+      <footer class="modal-foot">
+        <button class="btn" (click)="cerrarModalUnidad()">Cerrar</button>
+      </footer>
+    </div>
+  </div>
 </div>

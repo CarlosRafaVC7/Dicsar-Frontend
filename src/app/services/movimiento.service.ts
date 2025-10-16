@@ -43,4 +43,8 @@ export class MovimientoService {
     const params = new HttpParams().set('usuario', usuario);
     return this.http.post<Movimiento>(this.baseUrl, movimiento, { params });
   }
+  eliminar(id: number): Observable<any> {
+  return this.http.delete(`${this.baseUrl}/${id}`);
+}
+
 }

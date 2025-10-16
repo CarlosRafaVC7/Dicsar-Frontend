@@ -1,0 +1,208 @@
+/* Diseño moderno para formulario de proveedores - paleta neutra y sombras suaves */
+
+/* Variables */
+:root {
+  --bg-card: #ffffff;
+  --input-bg: #f9f9f9;
+  --input-border: #dcdcdc;
+  --focus-border: #007bff;
+  --text-primary: #22332b;
+  --text-muted: #6b7a72;
+  --accent-green: #2f8a57;
+  --accent-green-600: #1f6b43;
+  --btn-cancel: #9aa3a0;
+  --radius: 12px;
+  --shadow-soft: 0 8px 24px rgba(20,36,28,0.08);
+  --transition-fast: 0.14s ease;
+  --max-width: 880px;
+  --gutter: 18px;
+}
+
+/* Contenedor centrado */
+.proveedores-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: linear-gradient(180deg, #fbfbf9 0%, #f6f7f5 100%);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Tarjeta del formulario */
+.proveedores-card {
+  width: 100%;
+  max-width: var(--max-width);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(34,51,43,0.04);
+  box-sizing: border-box;
+}
+
+/* Encabezado */
+.proveedores-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.proveedores-card .card-title {
+  margin: 0;
+  font-family: "Segoe UI", Poppins, Inter, system-ui, -apple-system, "Helvetica Neue", Arial;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 18px;
+}
+.proveedores-card .card-sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Grid del formulario */
+.proveedores-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+/* Campo full-width (por ejemplo textarea o fila única) */
+.proveedores-form .full {
+  grid-column: 1 / -1;
+}
+
+/* Labels */
+.proveedores-form label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-family: "Segoe UI", Poppins, Inter, system-ui, -apple-system, "Helvetica Neue", Arial;
+}
+
+/* Inputs y selects */
+.proveedores-form input[type="text"],
+.proveedores-form input[type="email"],
+.proveedores-form input[type="tel"],
+.proveedores-form input[type="number"],
+.proveedores-form input[type="url"],
+.proveedores-form textarea,
+.proveedores-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  box-sizing: border-box;
+}
+
+/* Textarea */
+.proveedores-form textarea {
+  min-height: 120px;
+  resize: vertical;
+  padding-top: 10px;
+}
+
+/* Focus: borde azul suave, sombra sutil */
+.proveedores-form input:focus,
+.proveedores-form textarea:focus,
+.proveedores-form select:focus {
+  border-color: var(--focus-border);
+  box-shadow: 0 6px 18px rgba(0,123,255,0.08);
+  transform: translateY(-1px);
+}
+
+/* Placeholder styling */
+.proveedores-form ::placeholder {
+  color: #aeb6b1;
+  opacity: 1;
+}
+
+/* Mensajes de ayuda/errores */
+.form-help {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* Botones (container) */
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+/* Botón guardar (verde suave) */
+.btn-guardar {
+  background: linear-gradient(180deg, var(--accent-green), var(--accent-green-600));
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 8px 20px rgba(47,138,87,0.12);
+}
+.btn-guardar:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(47,138,87,0.14); }
+
+/* Botón cancelar (gris) */
+.btn-cancelar {
+  background: #f4f4f4;
+  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cancelar:hover { background: #eef0ef; transform: translateY(-1px); }
+
+/* Botón pequeño (opcional) */
+.btn-small {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Accesibilidad / foco visible */
+.btn-guardar:focus, .btn-cancelar:focus, .proveedores-form input:focus { box-shadow: 0 0 0 4px rgba(0,123,255,0.06); }
+
+/* Estilos para versiones compactas (responsive) */
+@media (max-width: 900px) {
+  .proveedores-form { grid-template-columns: 1fr; }
+  .form-actions { justify-content: stretch; flex-direction: column-reverse; gap: 8px; }
+  .btn-guardar, .btn-cancelar { width: 100%; }
+  .proveedores-card { padding: 18px; margin: 12px; }
+}
+
+/* Pequeños ajustes: inputs deshabilitados y error */
+.input-disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.input-error {
+  border-color: #e06a5a !important;
+  box-shadow: 0 6px 18px rgba(224,106,90,0.06);
+}
+
+/* Centrado de formulario cuando se usa en página sin shell */
+.proveedores-centered {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 20px;
+}
+
+/* Fin */

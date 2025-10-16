@@ -13,26 +13,23 @@ export class ProductoService {
 
   listar(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrl).pipe(
-      map(res => {
-        console.log('📦 Productos desde backend:', res);
-        return res.map(p => ({
-          idProducto: p.idProducto,
-          nombre: p.nombre,
-          descripcion: p.descripcion,
-          codigo: p.codigo,
-          precioBase: p.precio,
-          stockActual: p.stockActual,
-          stockMinimo: p.stockMinimo,
-          categoriaId: p.categoria?.idCategoria, // Para el formulario
-          categoria: p.categoria, // Objeto completo para mostrar
-          unidadMedidaId: p.unidadMedida?.idUnidadMed, // Para el formulario
-          unidadMedida: p.unidadMedida, // Objeto completo para mostrar
-          proveedorId: p.proveedor?.idProveedor, // Para el formulario
-          proveedor: p.proveedor, // Objeto completo para mostrar
-          precioCompra: p.precioCompra,
-          fechaVencimiento: p.fechaVencimiento
-        }));
-      })
+      map(res => res.map(p => ({
+        idProducto: p.idProducto,
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        codigo: p.codigo,
+        precioBase: p.precio,
+        stockActual: p.stockActual,
+        stockMinimo: p.stockMinimo,
+        categoriaId: p.categoria?.idCategoria,
+        categoria: p.categoria,
+        unidadMedidaId: p.unidadMedida?.idUnidadMed,
+        unidadMedida: p.unidadMedida,
+        proveedorId: p.proveedor?.idProveedor,
+        proveedor: p.proveedor,
+        precioCompra: p.precioCompra,
+        fechaVencimiento: p.fechaVencimiento
+      })))
     );
   }
 
@@ -51,7 +48,6 @@ export class ProductoService {
       fechaVencimiento: producto.fechaVencimiento ? 
         `${producto.fechaVencimiento}T00:00:00` : null
     };
-
     return this.http.post<any>(this.apiUrl, productoFormateado).pipe(
       map(res => res.producto)
     );
@@ -72,7 +68,6 @@ export class ProductoService {
       fechaVencimiento: producto.fechaVencimiento ? 
         `${producto.fechaVencimiento}T00:00:00` : null
     };
-
     return this.http.put<any>(`${this.apiUrl}/${id}`, productoFormateado).pipe(
       map(res => res.producto)
     );

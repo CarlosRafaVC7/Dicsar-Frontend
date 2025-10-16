@@ -10,10 +10,10 @@
     <button (click)="volverAInventario()" class="btn-volver">
       ← Volver al Inventario
     </button>
-    <h1>📊 Historial de Precios</h1>
+    <h1> Historial de Precios</h1>
     <div class="header-stats" *ngIf="productoSeleccionadoId && historialPrecios.length > 0">
-      <span class="stat">📈 Registros: {{ totalRegistros }}</span>
-      <span class="stat">💰 Precio actual: S/ {{ precioActual | number:'1.2-2' }}</span>
+      <span class="stat"> Registros: {{ totalRegistros }}</span>
+      <span class="stat"> Precio actual: S/ {{ precioActual | number:'1.2-2' }}</span>
       <span class="stat" [class.positivo]="variacionTotal > 0" [class.negativo]="variacionTotal < 0">
         {{ variacionTotal > 0 ? '▲' : '▼' }} Variación total: {{ variacionTotal | number:'1.2-2' }}%
       </span>
@@ -23,7 +23,7 @@
   <!-- 🎛️ FILTROS -->
   <div class="filtros-container">
     <div class="filtro-group">
-      <label>🔍 Seleccionar Producto:</label>
+      <label> Seleccionar Producto:</label>
       <select 
         [(ngModel)]="productoSeleccionadoId" 
         (change)="cargarHistorialPrecios()"
