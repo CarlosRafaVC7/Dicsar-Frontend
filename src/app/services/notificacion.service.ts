@@ -39,4 +39,8 @@ export class NotificacionService {
   listarPorProducto(idProducto: number): Observable<Notificacion[]> {
     return this.http.get<Notificacion[]>(`${this.baseUrl}/producto/${idProducto}`);
   }
+
+  eliminar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
 }

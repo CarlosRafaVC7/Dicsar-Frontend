@@ -113,8 +113,8 @@
           <tr *ngFor="let m of filteredMovimientos">
             <td>{{ m.idMovimiento }}</td>
             <td>{{ m.fechaMovimiento ? (m.fechaMovimiento | date:'dd/MM/yyyy, HH:mm') : '-' }}</td>
-            <td>{{ m.producto?.nombre }}</td>
-            <td>{{ m.producto?.codigo || '-' }}</td>
+            <td>{{ m.producto.nombre }}</td>
+            <td>{{ m.producto.codigo || '-' }}</td>
             <td>
               <span class="badge" [ngClass]="{
               'badge-in': m.tipoMovimiento === 'ENTRADA',
@@ -177,8 +177,8 @@
           <tr *ngFor="let m of movimientosFiltrados">
             <td>{{ m.idMovimiento }}</td>
             <td>{{ m.fechaMovimiento | date:'dd/MM/yyyy, HH:mm' }}</td>
-            <td>{{ m.producto?.nombre }}</td>
-            <td>{{ m.producto?.codigo || '-' }}</td>
+            <td>{{ m.producto.nombre }}</td>
+            <td>{{ m.producto.codigo || '-' }}</td>
             <td>{{ m.tipoMovimiento }}</td>
             <td>{{ m.cantidad }}</td>
             <td>{{ m.usuarioMovimiento || '---' }}</td>

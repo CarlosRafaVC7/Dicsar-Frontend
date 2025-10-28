@@ -13,23 +13,33 @@ export class ProductoService {
 
   listar(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrl).pipe(
-      map(res => res.map(p => ({
-        idProducto: p.idProducto,
-        nombre: p.nombre,
-        descripcion: p.descripcion,
-        codigo: p.codigo,
-        precioBase: p.precio,
-        stockActual: p.stockActual,
-        stockMinimo: p.stockMinimo,
-        categoriaId: p.categoria?.idCategoria,
-        categoria: p.categoria,
-        unidadMedidaId: p.unidadMedida?.idUnidadMed,
-        unidadMedida: p.unidadMedida,
-        proveedorId: p.proveedor?.idProveedor,
-        proveedor: p.proveedor,
-        precioCompra: p.precioCompra,
-        fechaVencimiento: p.fechaVencimiento
-      })))
+      map(res => {
+        console.log('🔍 RESPUESTA CRUDA DEL BACKEND:', res);
+        console.log('🔍 PRIMER PRODUCTO DEL BACKEND:', res[0]);
+        
+        return res.map(p => {
+          console.log(`🔍 Producto del backend: ${p.nombre}, estado original: ${p.estado} (${typeof p.estado})`);
+          
+          return {
+            idProducto: p.idProducto,
+            nombre: p.nombre,
+            descripcion: p.descripcion,
+            codigo: p.codigo,
+            precioBase: p.precio,
+            stockActual: p.stockActual,
+            stockMinimo: p.stockMinimo,
+            categoriaId: p.categoria?.idCategoria,
+            categoria: p.categoria,
+            unidadMedidaId: p.unidadMedida?.idUnidadMed,
+            unidadMedida: p.unidadMedida,
+            proveedorId: p.proveedor?.idProveedor,
+            proveedor: p.proveedor,
+            precioCompra: p.precioCompra,
+            fechaVencimiento: p.fechaVencimiento,
+            estado: p.estado  // 🔧 AGREGADO: mapear el estado desde el backend
+          };
+        });
+      })
     );
   }
 
@@ -46,8 +56,12 @@ export class ProductoService {
       proveedorId: producto.proveedorId || null,
       precioCompra: producto.precioCompra,
       fechaVencimiento: producto.fechaVencimiento ? 
-        `${producto.fechaVencimiento}T00:00:00` : null
+        `${producto.fechaVencimiento}T00:00:00` : null,
+      estado: producto.estado !== undefined ? producto.estado : true  // 🔧 AGREGADO: incluir estado
     };
+    
+    console.log('📤 ENVIANDO PRODUCTO AL BACKEND:', productoFormateado);
+    
     return this.http.post<any>(this.apiUrl, productoFormateado).pipe(
       map(res => res.producto)
     );
@@ -66,8 +80,12 @@ export class ProductoService {
       proveedorId: producto.proveedorId || null,
       precioCompra: producto.precioCompra,
       fechaVencimiento: producto.fechaVencimiento ? 
-        `${producto.fechaVencimiento}T00:00:00` : null
+        `${producto.fechaVencimiento}T00:00:00` : null,
+      estado: producto.estado !== undefined ? producto.estado : true  // 🔧 AGREGADO: incluir estado
     };
+    
+    console.log('📤 ACTUALIZANDO PRODUCTO EN BACKEND:', productoFormateado);
+    
     return this.http.put<any>(`${this.apiUrl}/${id}`, productoFormateado).pipe(
       map(res => res.producto)
     );
@@ -76,4 +94,12 @@ export class ProductoService {
   eliminar(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+  actualizarEstado(id: number, nuevoEstado: boolean, usuario: string): Observable<any> {
+  return this.http.patch(
+    `${this.apiUrl}/${id}/estado?nuevoEstado=${nuevoEstado}&usuario=${usuario}`, 
+    {},
+    { responseType: 'text' }  // ¡CRUCIAL! El backend devuelve texto plano
+  );
+}
+
 }

@@ -10,15 +10,74 @@
 
     <!-- Modal de notificaciones -->
     <div class="notifications-modal" *ngIf="isNotificationsOpen">
-      <h3>Notificaciones</h3>
-      <ul>
-        <li *ngFor="let noti of notificaciones" [ngClass]="getTipoClass(noti.tipo)">
-          <i class="fa-solid" [ngClass]="getTipoIcon(noti.tipo)"></i>
-          <strong>{{ noti.tipo }}</strong> - {{ noti.producto.nombre }}: {{ noti.descripcion }}
-          <br>
-          <small>{{ noti.fechaHora | date:'short' }} por {{ noti.usuario }}</small>
-        </li>
-      </ul>
+      <div class="notifications-header">
+        <h3>🔔 Centro de Notificaciones</h3>
+        <button class="close-btn" (click)="toggleNotifications()">×</button>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="notifications-filters">
+        <select [(ngModel)]="filtroProducto" (change)="filtrarPorProducto(filtroProducto)" class="filter-select">
+          <option [ngValue]="null">📦 Todos los productos</option>
+          <option *ngFor="let producto of productosConNotificaciones" [ngValue]="producto.idProducto">
+            {{ producto.nombre }}
+          </option>
+        </select>
+        <button class="refresh-btn" (click)="cargarNotificaciones()" title="Actualizar">
+          🔄
+        </button>
+      </div>
+
+      <!-- Lista de notificaciones -->
+      <div class="notifications-list">
+        <div *ngFor="let noti of notificaciones" 
+             class="notification-card" 
+             [ngClass]="getTipoClass(noti.tipo)">
+          
+          <!-- Icono y tipo -->
+          <div class="notification-icon">
+            <i class="fa-solid" [ngClass]="getTipoIcon(noti.tipo)"></i>
+          </div>
+          
+          <!-- Contenido -->
+          <div class="notification-content">
+            <div class="notification-header">
+              <span class="notification-type">{{ noti.tipo }}</span>
+              <button class="delete-btn" 
+                      (click)="eliminarNotificacion(noti.id)"
+                      title="Eliminar notificación">
+                🗑️
+              </button>
+            </div>
+            
+            <div class="notification-product">
+              📦 {{ noti.producto.nombre }}
+            </div>
+            
+            <div class="notification-description">
+              {{ noti.descripcion }}
+            </div>
+            
+            <div class="notification-footer">
+              <span class="notification-date">
+                📅 {{ noti.fechaHora | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+              <span class="notification-user">
+                👤 {{ noti.usuario }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje cuando no hay notificaciones -->
+        <div *ngIf="notificaciones.length === 0" class="no-notifications">
+          <div class="no-notifications-content">
+            <i class="fa-solid fa-bell-slash"></i>
+            <h4>No hay notificaciones</h4>
+            <p>No tienes notificaciones {{ filtroProducto ? 'para este producto' : 'en este momento' }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Perfil del usuario -->

@@ -11,4 +11,5 @@ export interface Producto {
   proveedorId?: number | null;
   precioCompra: number;
   fechaVencimiento: string; 
+  estado?: boolean;
 }
