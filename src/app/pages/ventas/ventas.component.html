@@ -136,6 +136,17 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Paginación -->
+      <div class="pagination" *ngIf="totalPaginas > 1">
+        <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+          ← Anterior
+        </button>
+        <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+        <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+          Siguiente →
+        </button>
+      </div>
     </div>
   </section>
 

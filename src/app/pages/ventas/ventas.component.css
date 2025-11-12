@@ -504,3 +504,41 @@
 
 .btn-pdf:hover { background-color: #8e2a20; }
 
+
+/* ============================= PAGINACIÓN ============================= */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  margin-top: 1rem;
+}
+
+.page-btn {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.page-btn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.page-info {
+  font-weight: 500;
+  color: #64748b;
+  font-size: 0.95rem;
+}
