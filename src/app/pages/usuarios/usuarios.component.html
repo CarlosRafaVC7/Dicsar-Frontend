@@ -1,0 +1,176 @@
+<div class="usuarios-container">
+  <div class="header">
+    <h1>👥 Gestión de Usuarios</h1>
+    <div class="header-actions">
+      <button class="btn-add" (click)="abrirModalUsuario()">
+        ➕ Nuevo Usuario
+      </button>
+    </div>
+  </div>
+
+  <!-- Búsqueda -->
+  <div class="search-section">
+    <input 
+      type="text" 
+      [(ngModel)]="search" 
+      (input)="actualizarPaginacion()"
+      placeholder="🔍 Buscar por usuario o nombre..." 
+      class="search-input">
+  </div>
+
+  <!-- Tabla de usuarios -->
+  <div class="table-container">
+    <table class="usuarios-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuario</th>
+          <th>Nombre Completo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of usuariosVisibles" [class.inactive]="!u.activo">
+          <td>{{ u.idUsuario }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.nombreCompleto }}</td>
+          <td>
+            <span class="badge-rol" [class.admin]="u.rol === 'ADMIN'">
+              {{ u.rol === 'ADMIN' ? '👑 ADMIN' : '👤 VENDEDOR' }}
+            </span>
+          </td>
+          <td class="status-cell">
+            <div class="status-toggle">
+              <label class="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  [checked]="u.activo"
+                  (change)="toggleEstadoUsuario(u)">
+                <span class="slider"></span>
+              </label>
+              <span class="status-text" [class.active]="u.activo">
+                {{ u.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </td>
+          <td class="actions-cell">
+            <button class="btn-edit" (click)="editarUsuario(u)" title="Editar">
+              ✏️ Editar
+            </button>
+            <button class="btn-delete" (click)="eliminarUsuario(u.idUsuario!)" title="Eliminar">
+              🗑️ Eliminar
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="usuariosVisibles.length === 0">
+          <td colspan="6" class="no-data">No se encontraron usuarios</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPaginas > 1">
+    <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+      ← Anterior
+    </button>
+    <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+    <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+      Siguiente →
+    </button>
+  </div>
+</div>
+
+<!-- Modal Crear/Editar Usuario -->
+<div class="modal-overlay" *ngIf="mostrarModalUsuario" (click)="cerrarModalUsuario()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editandoUsuario ? '✏️ Editar Usuario' : '➕ Nuevo Usuario' }}</h2>
+      <button class="btn-close" (click)="cerrarModalUsuario()">✖</button>
+    </div>
+    
+    <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
+      <div class="form-group">
+        <label>Usuario *</label>
+        <input type="text" formControlName="username" [readonly]="editandoUsuario">
+        <small *ngIf="usuarioForm.get('username')?.hasError('required') && usuarioForm.get('username')?.touched">
+          El usuario es requerido
+        </small>
+      </div>
+
+      <div class="form-group" *ngIf="!editandoUsuario">
+        <label>Contraseña *</label>
+        <input type="password" formControlName="password">
+        <small *ngIf="usuarioForm.get('password')?.hasError('minlength')">
+          Mínimo 6 caracteres
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Nombre Completo *</label>
+        <input type="text" formControlName="nombreCompleto">
+      </div>
+
+      <div class="form-group">
+        <label>Rol *</label>
+        <select formControlName="rol">
+          <option value="VENDEDOR">👤 VENDEDOR</option>
+          <option value="ADMIN">👑 ADMIN</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="activo">
+          <span>Usuario Activo</span>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModalUsuario()">Cancelar</button>
+        <button type="submit" class="btn-save" [disabled]="usuarioForm.invalid">
+          {{ editandoUsuario ? 'Actualizar' : 'Crear' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal-overlay" *ngIf="mostrarModalPassword" (click)="cerrarModalPassword()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🔒 Cambiar Contraseña</h2>
+      <button class="btn-close" (click)="cerrarModalPassword()">✖</button>
+    </div>
+    
+    <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
+      <div class="form-group">
+        <label>Contraseña Actual *</label>
+        <input type="password" formControlName="passwordActual">
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña Nueva *</label>
+        <input type="password" formControlName="passwordNueva">
+        <small *ngIf="passwordForm.get('passwordNueva')?.hasError('minlength')">
+          Mínimo 6 caracteres
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Confirmar Contraseña *</label>
+        <input type="password" formControlName="passwordConfirmar">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModalPassword()">Cancelar</button>
+        <button type="submit" class="btn-save" [disabled]="passwordForm.invalid">
+          Cambiar Contraseña
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

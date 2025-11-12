@@ -1,0 +1,126 @@
+<div class="login-container">
+  <!-- Panel Izquierdo -->
+  <div class="login-left-panel">
+    <div class="brand-section">
+      <div class="brand-logo">
+        <span class="cart-icon">🛒</span>
+      </div>
+      <h1 class="brand-title">DICSAR S.A.C.</h1>
+      <p class="brand-subtitle">Sistema de Gestión Comercial</p>
+    </div>
+
+    <div class="features-section">
+      <h2 class="features-title">Potencia tu negocio con <span class="highlight">tecnología avanzada</span></h2>
+      <p class="features-description">
+        Gestiona inventarios, ventas, clientes y reportes desde una plataforma integral 
+        diseñada para empresas comerciales modernas.
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-item">
+          <span class="feature-icon">📦</span>
+          <div class="feature-content">
+            <h3>Inventario Inteligente</h3>
+            <p>Control total de stock</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <span class="feature-icon">📊</span>
+          <div class="feature-content">
+            <h3>Análisis Avanzado</h3>
+            <p>Reportes en tiempo real</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <span class="feature-icon">👥</span>
+          <div class="feature-content">
+            <h3>CRM Integrado</h3>
+            <p>Gestión de clientes</p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <span class="feature-icon">🔒</span>
+          <div class="feature-content">
+            <h3>Seguridad Total</h3>
+            <p>Datos protegidos</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <div class="stat-item">
+          <h3 class="stat-number">500+</h3>
+          <p class="stat-label">Empresas confían en nosotros</p>
+        </div>
+        <div class="stat-item">
+          <h3 class="stat-number">99.9%</h3>
+          <p class="stat-label">Uptime garantizado</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Derecho -->
+  <div class="login-right-panel">
+    <div class="login-form-container">
+      <div class="login-header">
+        <h2 class="welcome-title">Bienvenido</h2>
+        <p class="welcome-subtitle">Inicia sesión para acceder a al sistema web </p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <div class="form-group">
+          <label for="username">Usuario</label>
+          <input
+            type="text"
+            id="username"
+            formControlName="username"
+            [class.invalid]="f['username'].touched && f['username'].invalid"
+            placeholder="Ingresa tu usuario"
+            autocomplete="username">
+          <div class="error-message" *ngIf="f['username'].touched && f['username'].errors">
+            <span *ngIf="f['username'].errors['required']">El usuario es obligatorio</span>
+            <span *ngIf="f['username'].errors['minlength']">Mínimo 3 caracteres</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <div class="password-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              id="password"
+              formControlName="password"
+              [class.invalid]="f['password'].touched && f['password'].invalid"
+              placeholder="Ingresa tu contraseña"
+              autocomplete="current-password">
+            <button type="button" class="toggle-password" (click)="showPassword = !showPassword">
+              <span *ngIf="!showPassword">👁️</span>
+              <span *ngIf="showPassword">🙈</span>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="f['password'].touched && f['password'].errors">
+            <span *ngIf="f['password'].errors['required']">La contraseña es obligatoria</span>
+            <span *ngIf="f['password'].errors['minlength']">Mínimo 6 caracteres</span>
+          </div>
+        </div>
+
+        <div class="error-alert" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <button type="submit" class="btn-login" [disabled]="loading">
+          <span *ngIf="!loading">⚡ Iniciar Sesión</span>
+          <span *ngIf="loading" class="loading-text">Iniciando...</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p class="copyright">2025-2</p>
+      </div>
+    </div>
+  </div>
+</div>
