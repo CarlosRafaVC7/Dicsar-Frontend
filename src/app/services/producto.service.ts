@@ -25,18 +25,28 @@ export class ProductoService {
             nombre: p.nombre,
             descripcion: p.descripcion,
             codigo: p.codigo,
-            precioBase: p.precio,
+            precioBase: p.precioBase || p.precio,
+            precio: p.precioBase || p.precio,
             stockActual: p.stockActual,
             stockMinimo: p.stockMinimo,
-            categoriaId: p.categoria?.idCategoria,
+            // Campos del DTO plano
+            categoriaId: p.categoriaId || p.categoria?.idCategoria,
+            categoriaNombre: p.categoriaNombre || p.categoria?.nombre,
+            unidadMedidaId: p.unidadMedidaId || p.unidadMedida?.idUnidadMed,
+            unidadMedidaNombre: p.unidadMedidaNombre || p.unidadMedida?.nombre,
+            unidadMedidaAbreviatura: p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura,
+            proveedorId: p.proveedorId || p.proveedor?.idProveedor,
+            proveedorNombre: p.proveedorNombre || p.proveedor?.razonSocial,
+            // Campos anidados (backward compatibility)
             categoria: p.categoria,
-            unidadMedidaId: p.unidadMedida?.idUnidadMed,
             unidadMedida: p.unidadMedida,
-            proveedorId: p.proveedor?.idProveedor,
             proveedor: p.proveedor,
             precioCompra: p.precioCompra,
             fechaVencimiento: p.fechaVencimiento,
-            estado: p.estado  // 🔧 AGREGADO: mapear el estado desde el backend
+            fechaCreacion: p.fechaCreacion,
+            fechaActualizacion: p.fechaActualizacion,
+            estadoVencimiento: p.estadoVencimiento,
+            estado: p.estado
           };
         });
       })
@@ -94,12 +104,21 @@ export class ProductoService {
   eliminar(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  actualizarPrecio(id: number, nuevoPrecio: number, usuario: string): Observable<any> {
+    return this.http.patch(
+      `${this.apiUrl}/${id}/precio?nuevoPrecio=${nuevoPrecio}&usuario=${usuario}`, 
+      {},
+      { responseType: 'text' }  // ¡CRUCIAL! El backend devuelve texto plano
+    );
+  }
+  
   actualizarEstado(id: number, nuevoEstado: boolean, usuario: string): Observable<any> {
-  return this.http.patch(
-    `${this.apiUrl}/${id}/estado?nuevoEstado=${nuevoEstado}&usuario=${usuario}`, 
-    {},
-    { responseType: 'text' }  // ¡CRUCIAL! El backend devuelve texto plano
-  );
-}
+    return this.http.patch(
+      `${this.apiUrl}/${id}/estado?nuevoEstado=${nuevoEstado}&usuario=${usuario}`, 
+      {},
+      { responseType: 'text' }  // ¡CRUCIAL! El backend devuelve texto plano
+    );
+  }
 
 }
