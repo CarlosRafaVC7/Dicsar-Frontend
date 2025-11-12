@@ -25,6 +25,11 @@ export class VentasComponent implements OnInit {
   movimientos: Movimiento[] = [];
   nuevoMovimiento: Movimiento = this.resetMovimiento();
 
+  // === 📄 PAGINACIÓN ===
+  paginaActual = 1;
+  itemsPorPagina = 10;
+  totalPaginas = 1;
+
   // === 📋 TIPOS DE MOVIMIENTO ===
   tiposMovimiento = ['ENTRADA', 'SALIDA', 'AJUSTE'] as const;
 
@@ -192,7 +197,7 @@ filtrarPorFecha() {
   // ============================
   get filteredMovimientos(): Movimiento[] {
     const q = (this.searchMov || '').trim().toLowerCase();
-    return (this.movimientos || []).filter(m => {
+    const filtered = (this.movimientos || []).filter(m => {
       const matchesTipo = this.filterTipo === 'TODOS' || m.tipoMovimiento === this.filterTipo;
       const matchesQuery = !q ||
         (m.producto?.nombre || '').toLowerCase().includes(q) ||
@@ -200,6 +205,22 @@ filtrarPorFecha() {
         (m.descripcion || '').toLowerCase().includes(q);
       return matchesTipo && matchesQuery;
     });
+
+    // Aplicar paginación
+    this.totalPaginas = Math.ceil(filtered.length / this.itemsPorPagina);
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return filtered.slice(inicio, fin);
+  }
+
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas) {
+      this.paginaActual = pagina;
+    }
+  }
+
+  get paginasArray(): number[] {
+    return Array.from({ length: this.totalPaginas }, (_, i) => i + 1);
   }
 
   get totalEntradas(): number {
