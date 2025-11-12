@@ -1,44 +1,139 @@
 <nav class="navbar">
-  <!-- Espacio vacío a la izquierda -->
   <div class="navbar-left"></div>
 
-  <!-- Contenido derecho -->
   <div class="navbar-right">
     <!-- Botón de notificaciones -->
-    <button class="notification-btn">
+    <button class="notification-btn" (click)="toggleNotifications()">
       <i class="fa-solid fa-bell"></i>
-      <span class="notification-badge">3</span>
+      <span class="notification-badge">{{ notificaciones.length }}</span>
     </button>
+
+    <!-- Modal de notificaciones -->
+    <div class="notifications-modal" *ngIf="isNotificationsOpen">
+      <div class="notifications-header">
+        <h3>🔔 Centro de Notificaciones</h3>
+        <button class="close-btn" (click)="toggleNotifications()">×</button>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="notifications-filters">
+        <select [(ngModel)]="filtroProducto" (change)="filtrarPorProducto(filtroProducto)" class="filter-select">
+          <option [ngValue]="null">📦 Todos los productos</option>
+          <option *ngFor="let producto of productosConNotificaciones" [ngValue]="producto.idProducto">
+            {{ producto.nombre }}
+          </option>
+        </select>
+        <button class="refresh-btn" (click)="cargarNotificaciones()" title="Actualizar">
+          🔄
+        </button>
+      </div>
+
+      <!-- Lista de notificaciones -->
+      <div class="notifications-list">
+        <div *ngFor="let noti of notificaciones" 
+             class="notification-card" 
+             [ngClass]="getTipoClass(noti.tipo)">
+          
+          <!-- Icono y tipo -->
+          <div class="notification-icon">
+            <i class="fa-solid" [ngClass]="getTipoIcon(noti.tipo)"></i>
+          </div>
+          
+          <!-- Contenido -->
+          <div class="notification-content">
+            <div class="notification-header">
+              <span class="notification-type">{{ noti.tipo }}</span>
+              <button class="delete-btn" 
+                      (click)="eliminarNotificacion(noti.id)"
+                      title="Eliminar notificación">
+                🗑️
+              </button>
+            </div>
+            
+            <div class="notification-product">
+              📦 {{ noti.producto.nombre }}
+            </div>
+            
+            <div class="notification-description">
+              {{ noti.descripcion }}
+            </div>
+            
+            <div class="notification-footer">
+              <span class="notification-date">
+                📅 {{ noti.fechaHora | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+              <span class="notification-user">
+                👤 {{ noti.usuario }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje cuando no hay notificaciones -->
+        <div *ngIf="notificaciones.length === 0" class="no-notifications">
+          <div class="no-notifications-content">
+            <i class="fa-solid fa-bell-slash"></i>
+            <h4>No hay notificaciones</h4>
+            <p>No tienes notificaciones {{ filtroProducto ? 'para este producto' : 'en este momento' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Perfil del usuario -->
     <div class="profile-dropdown">
       <div class="profile-trigger" (click)="toggleDropdown()">
-        <div class="profile-avatar">
-          <i class="fa-solid fa-user"></i>
-        </div>
+        <div class="profile-avatar"><i class="fa-solid fa-user"></i></div>
         <div class="profile-info">
-          <span class="profile-name">Felipita</span>
-          <span class="profile-role">Cajera</span>
+          <span class="profile-name">{{ currentUser?.nombreCompleto || 'Usuario' }}</span>
+          <span class="profile-role">{{ getRoleName() }}</span>
         </div>
         <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
       </div>
 
-      <!-- Menú desplegable -->
       <div class="dropdown-menu" [class.show]="isDropdownOpen">
-        <a routerLink="/mi-perfil" class="dropdown-item">
-          <i class="fa-solid fa-user"></i>
-          Mi Perfil
-        </a>
-        <a routerLink="/cambiar-contrasena" class="dropdown-item">
-          <i class="fa-solid fa-key"></i>
-          Cambiar Contraseña
-        </a>
+        <a routerLink="/mi-perfil" class="dropdown-item"><i class="fa-solid fa-user"></i> Mi Perfil</a>
+        <a (click)="abrirModalPassword()" class="dropdown-item"><i class="fa-solid fa-key"></i> Cambiar Contraseña</a>
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item logout-item">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          Cerrar Sesión
-        </a>
+        <a (click)="logout()" class="dropdown-item logout-item"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</a>
       </div>
     </div>
   </div>
 </nav>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal-overlay" *ngIf="mostrarModalPassword" (click)="cerrarModalPassword()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🔒 Cambiar Contraseña</h2>
+      <button class="btn-close" (click)="cerrarModalPassword()">✖</button>
+    </div>
+    
+    <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
+      <div class="form-group">
+        <label>Contraseña Actual *</label>
+        <input type="password" formControlName="passwordActual">
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña Nueva *</label>
+        <input type="password" formControlName="passwordNueva">
+        <small *ngIf="passwordForm.get('passwordNueva')?.hasError('minlength')">
+          Mínimo 6 caracteres
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Confirmar Contraseña *</label>
+        <input type="password" formControlName="passwordConfirmar">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModalPassword()">Cancelar</button>
+        <button type="submit" class="btn-save" [disabled]="passwordForm.invalid">
+          Cambiar Contraseña
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

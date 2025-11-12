@@ -1,0 +1,15 @@
+<table class="app-table">
+  <thead>
+    <tr>
+      <th *ngFor="let h of headers">{{ h }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let r of rows">
+      <ng-content select="[table-row]"></ng-content>
+    </tr>
+    <tr *ngIf="rows.length === 0">
+      <td [attr.colspan]="headers.length" class="empty">{{ emptyMessage }}</td>
+    </tr>
+  </tbody>
+</table>

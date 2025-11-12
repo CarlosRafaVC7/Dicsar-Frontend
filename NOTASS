@@ -1,0 +1,8 @@
+* npm install primeng@16.4.2 primeicons --legacy-peer-deps
+*npm install @angular/animations@19 --legacy-peer-deps
+npm install primeng primeicons @angular/animations --legacy-peer-deps
+
+CREAR CARPETAS:
+PS: mkdir src/app/.... (nombre de la carpeta)
+CMD: ng g service model/nombre-del-modelo --type=model (para nuevos modelos)
+CMD: ng g service services/categoria (para nuevos servicios)

@@ -1,1 +1,206 @@
-<p>ventas works!</p>
+<div class="ventas-container">
+  <!-- Header: título + subtítulo y acciones -->
+  <header class="mov-header">
+    <div>
+      <h1>Gestión de Movimientos</h1>
+      <p class="sub">Control de entradas, salidas y ajustes de inventario</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="abrirModalMovimiento()">+ Nuevo Movimiento</button>
+    </div>
+  </header>
+
+  <!-- Tarjetas resumen -->
+  <div class="summary-cards">
+    <div class="card card-in">
+      <div class="card-title">Total Entradas</div>
+      <div class="card-value">{{ totalEntradas }}</div>
+      <div class="card-sub">Unidades ingresadas</div>
+    </div>
+    <div class="card card-out">
+      <div class="card-title">Total Salidas</div>
+      <div class="card-value">{{ totalSalidas }}</div>
+      <div class="card-sub">Unidades retiradas</div>
+    </div>
+    <div class="card card-adjust">
+      <div class="card-title">Total Ajustes</div>
+      <div class="card-value">{{ totalAjustes }}</div>
+      <div class="card-sub">Unidades ajustadas</div>
+    </div>
+  </div>
+
+  <!-- Barra de controles: pestañas (opcional), búsqueda y filtro -->
+  <div class="controls-row-ventas">
+    <div class="tabs pills">
+      <button [class.active]="activeTab === 'salidas'" (click)="cambiarTab('salidas')">Movimientos</button>
+      <button [class.active]="activeTab === 'historial'" (click)="cambiarTab('historial')">Reportes</button>
+    </div>
+
+
+    <div class="search-filter">
+      <input class="search" placeholder="Buscar por producto, código o descripción..." [(ngModel)]="searchMov" />
+      <select [(ngModel)]="filterTipo">
+        <option value="TODOS">Todos los tipos</option>
+        <option value="ENTRADA">Entrada</option>
+        <option value="SALIDA">Salida</option>
+        <option value="AJUSTE">Ajuste</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Modal: Nuevo Movimiento -->
+  <div class="modal-overlay" *ngIf="mostrarModalMovimiento" (click)="cerrarModalMovimiento()">
+    <div class="modal product-modal" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <h3>Nuevo Movimiento</h3>
+        <button class="close" (click)="cerrarModalMovimiento()">✖</button>
+      </header>
+
+      <form class="product-modal-form" (ngSubmit)="registrarMovimiento()">
+        <div class="field">
+          <label>Producto</label>
+          <select [(ngModel)]="nuevoMovimiento.producto" name="producto" required>
+            <option [ngValue]="null">Seleccione un producto</option>
+            <option *ngFor="let p of productos" [ngValue]="p">{{ p.nombre }} (Stock: {{p.stockActual}})</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Tipo de Movimiento</label>
+          <select [(ngModel)]="nuevoMovimiento.tipoMovimiento" name="tipoMovimiento" required>
+            <option value="ENTRADA">Entrada</option>
+            <option value="SALIDA">Salida</option>
+            <option value="AJUSTE">Ajuste</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="number" min="1" [(ngModel)]="nuevoMovimiento.cantidad" name="cantidad" required />
+        </div>
+
+        <div class="field">
+          <label>Descripción</label>
+          <input type="text" [(ngModel)]="nuevoMovimiento.descripcion" name="descripcion" />
+        </div>
+
+        <footer class="modal-foot form-actions">
+          <button type="button" class="btn btn-cancelar" (click)="cerrarModalMovimiento()">Cancelar</button>
+          <button type="submit" class="btn btn-primario">Registrar</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla de Movimientos (pestaña 'salidas') -->
+  <section class="historial-container" *ngIf="activeTab === 'salidas'">
+    <h2>Historial de Movimientos</h2>
+    <div class="table-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Producto</th>
+            <th>Código</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Usuario</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of filteredMovimientos">
+            <td>{{ m.idMovimiento }}</td>
+            <td>{{ m.fechaMovimiento ? (m.fechaMovimiento | date:'dd/MM/yyyy, HH:mm') : '-' }}</td>
+            <td>{{ m.producto.nombre }}</td>
+            <td>{{ m.producto.codigo || '-' }}</td>
+            <td>
+              <span class="badge" [ngClass]="{
+              'badge-in': m.tipoMovimiento === 'ENTRADA',
+              'badge-out': m.tipoMovimiento === 'SALIDA',
+              'badge-ajuste': m.tipoMovimiento === 'AJUSTE'
+            }">{{ m.tipoMovimiento }}</span>
+            </td>
+            <td [class.positive]="m.tipoMovimiento === 'ENTRADA'" [class.negative]="m.tipoMovimiento === 'SALIDA'">
+              {{ m.cantidad > 0 ? (m.cantidad | number) : m.cantidad }}
+            </td>
+            <td>{{ m.usuarioMovimiento || '---' }}</td>
+            <td>
+              <button class="icon-btn" title="Ver" (click)="verMovimiento(m)">𓁹</button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredMovimientos.length === 0">
+            <td colspan="8" class="empty">No hay movimientos registrados.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Paginación -->
+      <div class="pagination" *ngIf="totalPaginas > 1">
+        <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+          ← Anterior
+        </button>
+        <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+        <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+          Siguiente →
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div *ngIf="activeTab === 'historial'" class="filtro-fechas">
+    <h3>Filtrar Reportes por Fecha</h3>
+    <div class="fecha-inputs">
+      <div class="field-date">
+        <label>Fecha inicio</label>
+        <input type="date" [(ngModel)]="fechaInicio" />
+      </div>
+      <div class="field-date">
+        <label>Fecha fin</label>
+        <input type="date" [(ngModel)]="fechaFin" />
+      </div>
+      <button class="btn btn-primario" (click)="filtrarPorFecha()">Filtrar</button>
+    </div>
+  </div>
+<div class="export-buttons" *ngIf="activeTab === 'historial' && movimientosFiltrados.length > 0">
+      <button class="btn btn-pdf" (click)="exportarPDF()">Exportar PDF</button>
+    </div>
+
+  <!-- Tabla Reportes -->
+  <section class="historial-container" *ngIf="activeTab === 'historial' && movimientosFiltrados.length > 0">
+    <h2>Reporte de Movimientos</h2>
+    <div class="table-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Producto</th>
+            <th>Código</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Usuario</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of movimientosFiltrados">
+            <td>{{ m.idMovimiento }}</td>
+            <td>{{ m.fechaMovimiento | date:'dd/MM/yyyy, HH:mm' }}</td>
+            <td>{{ m.producto.nombre }}</td>
+            <td>{{ m.producto.codigo || '-' }}</td>
+            <td>{{ m.tipoMovimiento }}</td>
+            <td>{{ m.cantidad }}</td>
+            <td>{{ m.usuarioMovimiento || '---' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <!-- Mensaje si no hay resultados -->
+  <div *ngIf="activeTab === 'historial' && movimientosFiltrados.length === 0">
+    <p>No hay movimientos dentro del rango seleccionado.</p>
+  </div>
+
+</div>

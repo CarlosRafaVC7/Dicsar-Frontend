@@ -1,0 +1,133 @@
+<!-- ⚠️ ALERTA -->
+<div *ngIf="alertaVisible" class="alerta" [ngClass]="alertaTipo">
+  {{ alertaMensaje }}
+</div>
+
+<div class="historial-container">
+
+  <!-- 🧭 HEADER -->
+  <div class="header">
+    <button (click)="volverAInventario()" class="btn-volver">
+      ← Volver al Inventario
+    </button>
+    <h1> Historial de Precios</h1>
+    <div class="header-stats" *ngIf="productoSeleccionadoId && historialPrecios.length > 0">
+      <span class="stat"> Registros: {{ totalRegistros }}</span>
+      <span class="stat"> Precio actual: S/ {{ precioActual | number:'1.2-2' }}</span>
+      <span class="stat" [class.positivo]="variacionTotal > 0" [class.negativo]="variacionTotal < 0">
+        {{ variacionTotal > 0 ? '▲' : '▼' }} Variación total: {{ variacionTotal | number:'1.2-2' }}%
+      </span>
+    </div>
+  </div>
+
+  <!-- 🎛️ FILTROS -->
+  <div class="filtros-container">
+    <div class="filtro-group">
+      <label> Seleccionar Producto:</label>
+      <select 
+        [(ngModel)]="productoSeleccionadoId" 
+        (change)="cargarHistorialPrecios()"
+        [disabled]="cargando">
+        <option [value]="null">-- Seleccione un producto --</option>
+        <option *ngFor="let p of productos" [value]="p.idProducto">
+          {{ p.nombre }} - {{ p.codigo }} (S/ {{ p.precioBase | number:'1.2-2' }})
+        </option>
+      </select>
+    </div>
+
+    <div class="filtro-group" *ngIf="productoSeleccionadoId">
+      <label>📅 Fecha Inicio:</label>
+      <input 
+        type="date" 
+        [(ngModel)]="fechaInicio"
+        [max]="fechaFin || ''">
+    </div>
+
+    <div class="filtro-group" *ngIf="productoSeleccionadoId">
+      <label>📅 Fecha Fin:</label>
+      <input 
+        type="date" 
+        [(ngModel)]="fechaFin"
+        [min]="fechaInicio || ''">
+    </div>
+
+    <div class="filtro-buttons" *ngIf="productoSeleccionadoId">
+      <button 
+        (click)="aplicarFiltros()" 
+        class="btn-filtrar"
+        [disabled]="cargando">
+        🔍 Filtrar
+      </button>
+      <button 
+        (click)="limpiarFiltros()" 
+        class="btn-limpiar"
+        [disabled]="cargando">
+        🗑️ Limpiar
+      </button>
+    </div>
+  </div>
+
+  <!-- 📊 TABLA HISTORIAL -->
+  <div *ngIf="productoSeleccionadoId" class="tabla-container">
+    
+    <!-- LOADING -->
+    <div *ngIf="cargando" class="loading">
+      <p>🔄 Cargando historial de precios...</p>
+    </div>
+
+    <!-- TABLA -->
+    <div *ngIf="!cargando && historialPrecios.length > 0">
+      <h3>Historial de: {{ obtenerNombreProductoSeleccionado() }}</h3>
+      
+      <table class="tabla-historial">
+        <thead>
+          <tr>
+            <th>📅 Fecha Cambio</th>
+            <th>💰 Precio Anterior</th>
+            <th>💰 Precio Nuevo</th>
+            <th>📈 Variación</th>
+            <th>👤 Usuario</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let historial of historialPrecios; let i = index" 
+              [class.ultimo-registro]="i === 0">
+            <td class="fecha">{{ historial.fechaCambio | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td class="precio-anterior">S/ {{ historial.precioAnterior | number:'1.2-2' }}</td>
+            <td class="precio-nuevo">S/ {{ historial.precioNuevo | number:'1.2-2' }}</td>
+            <td [class.variacion-positiva]="calcularVariacion(historial) > 0" 
+                [class.variacion-negativa]="calcularVariacion(historial) < 0"
+                class="variacion">
+              <span class="icono">
+                {{ calcularVariacion(historial) > 0 ? '▲' : '▼' }}
+              </span>
+              {{ calcularVariacion(historial) | number:'1.2-2' }}%
+            </td>
+            <td class="usuario">
+              <span class="badge-usuario">{{ historial.usuario || 'Sistema' }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SIN DATOS -->
+    <div *ngIf="!cargando && historialPrecios.length === 0 && productoSeleccionadoId" class="sin-datos">
+      <div class="sin-datos-content">
+        <span class="icono">📝</span>
+        <h3>No hay historial de precios</h3>
+        <p>No se encontraron cambios de precio para este producto en el período seleccionado.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIN SELECCIÓN -->
+  <div *ngIf="!productoSeleccionadoId && !cargando" class="sin-seleccion">
+    <div class="sin-seleccion-content">
+      <span class="icono">🔍</span>
+      <h3>Selecciona un producto</h3>
+      <p>Elige un producto de la lista para ver su historial de precios.</p>
+    </div>
+  </div>
+
+</div>
