@@ -1,81 +1,514 @@
-<div class="container mt-4">
-  <h2 class="text-center mb-4">Gestión de Proveedores</h2>
+<div class="proveedores-shell">
+  <!-- Mensajes de alerta -->
+  <div class="alert" *ngIf="alertaVisible" [ngClass]="'alert-' + alertaTipo">
+    <span>{{ alertaMensaje }}</span>
+    <button class="alert-close" (click)="alertaVisible = false">&times;</button>
+  </div>
 
-  <div class="alert alert-info text-center" *ngIf="mensaje">{{ mensaje }}</div>
+  <!-- Encabezado del módulo -->
+  <div class="module-header">
+    <h1>📦 Módulo de Proveedores</h1>
+    <p>Gestiona tus proveedores y consulta su información</p>
+  </div>
 
-  <!-- FORMULARIO -->
-  <form (ngSubmit)="guardarProveedor()" class="card p-4 shadow mb-4">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label">Razón Social</label>
-        <input [(ngModel)]="proveedorForm.razonSocial" name="razonSocial" class="form-control" required />
+  <!-- Sistema de Tabs -->
+  <div class="tabs-container">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'proveedores'"
+      (click)="cambiarTab('proveedores')">
+      📋 Proveedores
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'productos-proveedor'"
+      (click)="cambiarTab('productos-proveedor')">
+      📦 Productos por Proveedor
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'reportes'"
+      (click)="cambiarTab('reportes')">
+      📊 Reportes
+    </button>
+  </div>
+
+  <!-- Tab 1: Proveedores -->
+  <div *ngIf="activeTab === 'proveedores'" class="tab-content">
+    <!-- Estadísticas -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-info">
+          <h3>Total Proveedores</h3>
+          <p class="stat-value">{{ proveedores.length }}</p>
+        </div>
       </div>
-
-      <div class="col-md-4">
-        <label class="form-label">RUC</label>
-        <input [(ngModel)]="proveedorForm.ruc" name="ruc" class="form-control" required />
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <h3>Proveedores Activos</h3>
+          <p class="stat-value">{{ proveedoresActivos }}</p>
+        </div>
       </div>
-
-      <div class="col-md-4">
-        <label class="form-label">Teléfono</label>
-        <input [(ngModel)]="proveedorForm.telefono" name="telefono" class="form-control" />
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Dirección</label>
-        <input [(ngModel)]="proveedorForm.direccion" name="direccion" class="form-control" />
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Email</label>
-        <input [(ngModel)]="proveedorForm.email" name="email" class="form-control" />
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label">Contacto</label>
-        <input [(ngModel)]="proveedorForm.contacto" name="contacto" class="form-control" />
-      </div>
-
-      <div class="col-12 text-center mt-3">
-        <button type="submit" class="btn btn-success me-2">
-          {{ editando ? 'Actualizar' : 'Guardar' }}
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="cancelarEdicion()">Cancelar</button>
+      <div class="stat-card">
+        <div class="stat-icon">❌</div>
+        <div class="stat-info">
+          <h3>Proveedores Inactivos</h3>
+          <p class="stat-value">{{ proveedores.length - proveedoresActivos }}</p>
+        </div>
       </div>
     </div>
-  </form>
 
-  <!-- TABLA -->
-  <div class="card shadow p-3">
-    <h5 class="mb-3">Lista de Proveedores</h5>
-    <table class="table table-hover table-bordered">
-      <thead class="table-dark text-center">
-        <tr>
-          <th>#</th>
-          <th>Razón Social</th>
-          <th>RUC</th>
-          <th>Dirección</th>
-          <th>Teléfono</th>
-          <th>Email</th>
-          <th>Contacto</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody class="text-center">
-        <tr *ngFor="let p of proveedores; index as i">
-          <td>{{ i + 1 }}</td>
-          <td>{{ p.razonSocial }}</td>
-          <td>{{ p.ruc }}</td>
-          <td>{{ p.direccion }}</td>
-          <td>{{ p.telefono }}</td>
-          <td>{{ p.email }}</td>
-          <td>{{ p.contacto }}</td>
-          <td>
-            <button class="btn btn-sm btn-primary me-2" (click)="editarProveedor(p)">Editar</button>
-            <button class="btn btn-sm btn-danger" (click)="eliminarProveedor(p.idProveedor)">Eliminar</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Controles de búsqueda y filtros -->
+    <div class="controls-grid">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          [(ngModel)]="busqueda" 
+          (input)="onBuscar()"
+          placeholder="Buscar por razón social o RUC..." 
+          class="search-input">
+      </div>
+      
+      <div class="filter-group">
+        <select [(ngModel)]="filtroEstado" (change)="onBuscar()" class="filter-select">
+          <option value="todos">Todos los estados</option>
+          <option value="activos">Solo Activos</option>
+          <option value="inactivos">Solo Inactivos</option>
+        </select>
+      </div>
+
+      <button class="btn-primary" (click)="abrirModalProveedor()">
+        ➕ Nuevo Proveedor
+      </button>
+
+      <button class="btn-export" (click)="exportarProveedoresPDF()">
+        📄 PDF
+      </button>
+
+      <button class="btn-export" (click)="exportarProveedoresExcel()">
+        📊 Excel
+      </button>
+    </div>
+
+    <!-- Tabla de proveedores -->
+    <div class="table-container">
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Razón Social</th>
+            <th>RUC</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Dirección</th>
+            <th>Contacto</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of proveedoresVisibles">
+            <td>{{ p.idProveedor }}</td>
+            <td class="product-name">{{ p.razonSocial }}</td>
+            <td>{{ p.ruc }}</td>
+            <td>{{ p.telefono }}</td>
+            <td>{{ p.email }}</td>
+            <td>{{ p.direccion }}</td>
+            <td>{{ p.contacto || 'N/A' }}</td>
+            <td class="status-cell">
+              <div class="status-toggle">
+                <label class="toggle-switch">
+                  <input 
+                    type="checkbox" 
+                    [checked]="p.estado"
+                    (change)="toggleEstadoProveedor(p)">
+                  <span class="slider"></span>
+                </label>
+                <span class="status-text" [class.active]="p.estado">
+                  {{ p.estado ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </td>
+            <td class="actions-cell">
+              <button 
+                class="btn-edit" 
+                (click)="editarProveedor(p)"
+                title="Editar">
+                ✏️
+              </button>
+              <button 
+                class="btn-delete" 
+                (click)="eliminarProveedor(p.idProveedor)"
+                title="Eliminar">
+                🗑️
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="proveedoresVisibles.length === 0">
+            <td colspan="9" class="no-data">No se encontraron proveedores</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="totalPaginasProveedores > 1">
+      <button 
+        class="page-btn" 
+        (click)="cambiarPaginaProveedores(paginaActualProveedores - 1)" 
+        [disabled]="paginaActualProveedores === 1">
+        ← Anterior
+      </button>
+      <span class="page-info">Página {{ paginaActualProveedores }} de {{ totalPaginasProveedores }}</span>
+      <button 
+        class="page-btn" 
+        (click)="cambiarPaginaProveedores(paginaActualProveedores + 1)" 
+        [disabled]="paginaActualProveedores === totalPaginasProveedores">
+        Siguiente →
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab 2: Productos por Proveedor -->
+  <div *ngIf="activeTab === 'productos-proveedor'" class="tab-content">
+    <div class="productos-proveedor-container">
+      <!-- Panel izquierdo: Lista de proveedores -->
+      <div class="proveedores-list-panel">
+        <h2>Seleccionar Proveedor</h2>
+        <div class="search-box">
+          <input 
+            type="text" 
+            [(ngModel)]="busquedaProveedor"
+            (input)="filtrarProveedores()"
+            placeholder="Buscar proveedor..." 
+            class="search-input">
+          <span class="search-icon">🔍</span>
+        </div>
+        <div class="proveedores-list">
+          <div 
+            *ngFor="let p of proveedoresFiltrados"
+            class="proveedor-item"
+            [class.selected]="proveedorSeleccionado?.idProveedor === p.idProveedor"
+            (click)="seleccionarProveedor(p)">
+            <h4>{{ p.razonSocial }}</h4>
+            <p>RUC: {{ p.ruc }}</p>
+            <span class="badge" [class.badge-active]="p.estado" [class.badge-inactive]="!p.estado">
+              {{ p.estado ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+          <div *ngIf="proveedoresFiltrados.length === 0" class="no-data">
+            No hay proveedores disponibles
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel derecho: Productos del proveedor seleccionado -->
+      <div class="productos-panel">
+        <div *ngIf="!proveedorSeleccionado" class="empty-state">
+          <div class="empty-icon">📦</div>
+          <h3>Selecciona un proveedor</h3>
+          <p>Selecciona un proveedor de la lista para ver sus productos</p>
+        </div>
+
+        <div *ngIf="proveedorSeleccionado" class="productos-content">
+          <div class="panel-header">
+            <h2>Productos de {{ proveedorSeleccionado.razonSocial }}</h2>
+            <div class="proveedor-info">
+              <span><strong>RUC:</strong> {{ proveedorSeleccionado.ruc }}</span>
+              <span><strong>Teléfono:</strong> {{ proveedorSeleccionado.telefono }}</span>
+              <span><strong>Email:</strong> {{ proveedorSeleccionado.email }}</span>
+            </div>
+          </div>
+
+          <div class="productos-stats">
+            <div class="stat-mini">
+              <span class="stat-label">Total Productos:</span>
+              <span class="stat-value">{{ productosProveedor.length }}</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-label">Productos Activos:</span>
+              <span class="stat-value">{{ productosProveedorActivos }}</span>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Categoría</th>
+                  <th>Precio Base</th>
+                  <th>Stock</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let producto of productosProveedor">
+                  <td>{{ producto.codigo }}</td>
+                  <td class="product-name">{{ producto.nombre }}</td>
+                  <td>{{ producto.categoria }}</td>
+                  <td>{{ producto.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</td>
+                  <td>
+                    <span 
+                      class="stock-badge"
+                      [class.stock-low]="producto.stockActual <= producto.stockMinimo"
+                      [class.stock-normal]="producto.stockActual > producto.stockMinimo">
+                      {{ producto.stockActual }} {{ producto.unidadMedida }}
+                    </span>
+                  </td>
+                  <td>
+                    <span [class]="producto.estado ? 'status-active' : 'status-inactive'">
+                      {{ producto.estado ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="productosProveedor.length === 0">
+                  <td colspan="6" class="no-data">
+                    Este proveedor no tiene productos registrados
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Reportes -->
+  <div *ngIf="activeTab === 'reportes'" class="tab-content">
+    <div class="reportes-section">
+      <!-- Barra de acciones -->
+      <div class="reportes-actions">
+        <div class="reportes-title">
+          <h2>📊 Estadísticas de Proveedores</h2>
+          <p>Análisis y métricas del módulo</p>
+        </div>
+        <div class="export-buttons">
+          <button class="btn-export excel" (click)="exportarReporteProveedoresExcel()">
+            <span class="btn-icon">📊</span>
+            Excel
+          </button>
+          <button class="btn-export pdf" (click)="exportarReporteProveedoresPDF()">
+            <span class="btn-icon">📄</span>
+            PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de estadísticas -->
+      <div class="reportes-grid" *ngIf="reporteProveedores">
+        <div class="reporte-card stat-total">
+          <div class="reporte-icon">📦</div>
+          <div class="reporte-content">
+            <h3>Total Proveedores</h3>
+            <div class="reporte-valor">{{ reporteProveedores.totalProveedores }}</div>
+            <p>Proveedores registrados</p>
+          </div>
+        </div>
+
+        <div class="reporte-card stat-activo">
+          <div class="reporte-icon">✅</div>
+          <div class="reporte-content">
+            <h3>Proveedores Activos</h3>
+            <div class="reporte-valor">{{ reporteProveedores.proveedoresActivos }}</div>
+            <p>Con estado activo ({{ calcularPorcentaje(reporteProveedores.proveedoresActivos, reporteProveedores.totalProveedores) }}%)</p>
+          </div>
+        </div>
+
+        <div class="reporte-card stat-inactivo">
+          <div class="reporte-icon">❌</div>
+          <div class="reporte-content">
+            <h3>Proveedores Inactivos</h3>
+            <div class="reporte-valor">{{ reporteProveedores.totalProveedores - reporteProveedores.proveedoresActivos }}</div>
+            <p>Con estado inactivo</p>
+          </div>
+        </div>
+
+        <div class="reporte-card stat-promedio">
+          <div class="reporte-icon">�</div>
+          <div class="reporte-content">
+            <h3>Promedio Productos</h3>
+            <div class="reporte-valor">{{ calcularPromedioProductos() }}</div>
+            <p>Productos por proveedor</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proveedor destacado -->
+      <div class="proveedor-destacado" *ngIf="reporteProveedores?.proveedorConMasProductos">
+        <div class="destacado-header">
+          <span class="destacado-icon">📈</span>
+          <h3>Proveedor con Más Productos</h3>
+        </div>
+        <div class="destacado-content">
+          <div class="destacado-info">
+            <h4>{{ reporteProveedores.proveedorConMasProductos.razonSocial }}</h4>
+            <p class="destacado-ruc">RUC: {{ reporteProveedores.proveedorConMasProductos.ruc }}</p>
+          </div>
+          <div class="destacado-cantidad">
+            <div class="cantidad-numero">{{ reporteProveedores.proveedorConMasProductos.cantidadProductos }}</div>
+            <div class="cantidad-texto">productos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos Estadísticos -->
+      <div class="charts-section" *ngIf="reporteProveedores">
+        <h2>📊 Análisis Visual</h2>
+        <div class="charts-grid">
+          <!-- Gráfico de distribución de proveedores -->
+          <div class="chart-card">
+            <h3>Distribución de Proveedores</h3>
+            <p class="chart-subtitle">Activos vs Inactivos</p>
+            <div class="chart-container">
+              <canvas #chartProveedores></canvas>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-color activo"></span>
+                <span>Activos: {{ reporteProveedores.proveedoresActivos }} ({{ calcularPorcentaje(reporteProveedores.proveedoresActivos, reporteProveedores.totalProveedores) }}%)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color inactivo"></span>
+                <span>Inactivos: {{ reporteProveedores.totalProveedores - reporteProveedores.proveedoresActivos }} ({{ calcularPorcentaje(reporteProveedores.totalProveedores - reporteProveedores.proveedoresActivos, reporteProveedores.totalProveedores) }}%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráfico de productos por proveedor -->
+          <div class="chart-card">
+            <h3>Productos por Proveedor</h3>
+            <p class="chart-subtitle">Cantidad de productos por proveedor</p>
+            <div class="chart-container">
+              <canvas #chartProductos></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!reporteProveedores" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando reportes...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Crear/Editar Proveedor -->
+<div class="modal-overlay" *ngIf="mostrarModalProveedor" (click)="cerrarModalProveedor()">
+  <div class="modal-content proveedor-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ editandoProveedor ? '✏️ Editar Proveedor' : '➕ Nuevo Proveedor' }}</h3>
+      <button class="modal-close" (click)="cerrarModalProveedor()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <form [formGroup]="proveedorForm" (ngSubmit)="guardarProveedor()">
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="razonSocial">Razón Social *</label>
+            <input 
+              type="text" 
+              id="razonSocial" 
+              formControlName="razonSocial"
+              class="form-control"
+              [class.is-invalid]="esInvalido('razonSocial')"
+              placeholder="Ingrese la razón social">
+            <div class="invalid-feedback" *ngIf="esInvalido('razonSocial')">
+              {{ obtenerMensajeError('razonSocial') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ruc">RUC *</label>
+            <input 
+              type="text" 
+              id="ruc" 
+              formControlName="ruc"
+              class="form-control"
+              [class.is-invalid]="esInvalido('ruc')"
+              placeholder="10/15/16/17/20 + 9 dígitos"
+              maxlength="11">
+            <div class="invalid-feedback" *ngIf="esInvalido('ruc')">
+              {{ obtenerMensajeError('ruc') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="telefono">Teléfono *</label>
+            <input 
+              type="text" 
+              id="telefono" 
+              formControlName="telefono"
+              class="form-control"
+              [class.is-invalid]="esInvalido('telefono')"
+              placeholder="Número de teléfono">
+            <div class="invalid-feedback" *ngIf="esInvalido('telefono')">
+              {{ obtenerMensajeError('telefono') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="email">Email *</label>
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email"
+              class="form-control"
+              [class.is-invalid]="esInvalido('email')"
+              placeholder="correo@ejemplo.com">
+            <div class="invalid-feedback" *ngIf="esInvalido('email')">
+              {{ obtenerMensajeError('email') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="direccion">Dirección *</label>
+            <textarea 
+              id="direccion" 
+              formControlName="direccion"
+              class="form-control"
+              [class.is-invalid]="esInvalido('direccion')"
+              placeholder="Dirección completa"
+              rows="2"></textarea>
+            <div class="invalid-feedback" *ngIf="esInvalido('direccion')">
+              {{ obtenerMensajeError('direccion') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="contacto">Persona de Contacto</label>
+            <input 
+              type="text" 
+              id="contacto" 
+              formControlName="contacto"
+              class="form-control"
+              placeholder="Nombre del contacto (opcional)">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="cerrarModalProveedor()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="proveedorForm.invalid">
+            {{ editandoProveedor ? 'Actualizar' : 'Crear' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
