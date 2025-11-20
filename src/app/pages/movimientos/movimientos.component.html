@@ -1,0 +1,327 @@
+<div class="movimientos-container">
+  <!-- Header -->
+  <div class="header">
+    <h1>📦 Gestión de Movimientos de Inventario</h1>
+    <p class="subtitle">Registra entradas, salidas y ajustes de inventario</p>
+  </div>
+
+  <!-- Alert -->
+  <div class="alert" *ngIf="mostrarAlerta" [ngClass]="'alert-' + tipoAlerta">
+    {{ mensajeAlerta }}
+  </div>
+
+  <!-- Tabs Navigation - Solo 2 tabs: Movimientos y Reportes -->
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'registro'" (click)="cambiarTab('registro')">
+      📝 Movimientos
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'reportes'" (click)="cambiarTab('reportes')">
+      📊 Reportes
+    </button>
+  </div>
+
+  <!-- TAB: MOVIMIENTOS (Registro + Lista Unificados) -->
+  <div class="tab-content" *ngIf="activeTab === 'registro'">
+    <div class="movimientos-unified">
+      <!-- SECCIÓN: FORMULARIO DE REGISTRO -->
+      <div class="registro-section">
+        <div class="section-header">
+          <h2>📝 Registrar Nuevo Movimiento</h2>
+        </div>
+
+        <div class="registro-container">
+          <!-- Selector de tipo de movimiento -->
+          <div class="tipo-selector">
+            <h3>Tipo de Movimiento</h3>
+            <div class="tipo-buttons">
+              <button class="tipo-btn" [class.active]="tipoMovimiento === 'SALIDA'" (click)="cambiarTipo('SALIDA')">
+                ⬇️ SALIDA
+                <span class="tipo-desc">Venta o salida de producto</span>
+              </button>
+              <button class="tipo-btn" [class.active]="tipoMovimiento === 'ENTRADA'" (click)="cambiarTipo('ENTRADA')">
+                ⬆️ ENTRADA
+                <span class="tipo-desc">Ingreso de inventario</span>
+              </button>
+              <button class="tipo-btn" [class.active]="tipoMovimiento === 'AJUSTE'" (click)="cambiarTipo('AJUSTE')">
+                🔄 AJUSTE
+                <span class="tipo-desc">Ajuste de inventario</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Formulario -->
+          <form [formGroup]="movimientoForm" (ngSubmit)="guardarMovimiento()" class="form">
+            <div class="form-grid">
+              <!-- Producto -->
+              <div class="form-group">
+                <label>Producto *</label>
+                <select formControlName="producto" (change)="onProductoSeleccionado()">
+                  <option value="">Seleccionar producto...</option>
+                  <option *ngFor="let p of productos" [value]="p.idProducto">
+                    {{ p.nombre }} (Stock: {{ p.stockActual || p.stock }})
+                  </option>
+                </select>
+              </div>
+
+              <!-- Cantidad -->
+              <div class="form-group">
+                <label>Cantidad *</label>
+                <input type="number" formControlName="cantidad" min="1" placeholder="Cantidad">
+              </div>
+
+              <!-- Precio (Automático - ReadOnly) -->
+              <div class="form-group">
+                <label>Precio Unitario (Automático)</label>
+                <div class="precio-display">
+                  <input type="text" [value]="formatearMoneda(precioActual)" readonly class="precio-input">
+                  <span class="precio-label">{{ tipoMovimiento === 'ENTRADA' ? '(compra)' : tipoMovimiento === 'SALIDA'
+                    ? '(venta)' : '(costo)' }}</span>
+                </div>
+                <small *ngIf="errorPrecio" class="error-message">{{ errorPrecio }}</small>
+              </div>
+
+              <!-- Cliente (solo para SALIDA) -->
+              <div class="form-group" *ngIf="tipoMovimiento === 'SALIDA'">
+                <label>Cliente *</label>
+                <select formControlName="cliente">
+                  <option value="">Seleccionar cliente...</option>
+                  <option *ngFor="let c of clientes" [value]="c.idCliente">
+                    {{ c.nombre }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Proveedor (solo para ENTRADA) -->
+              <div class="form-group" *ngIf="tipoMovimiento === 'ENTRADA'">
+                <label>Proveedor *</label>
+                <select formControlName="proveedor">
+                  <option value="">Seleccionar proveedor...</option>
+                  <option *ngFor="let p of proveedores" [value]="p.idProveedor">
+                    {{ p.nombre }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Motivo -->
+              <div class="form-group">
+                <label>Motivo *</label>
+                <select formControlName="motivo">
+                  <option value="">Seleccionar motivo...</option>
+                  <option *ngIf="tipoMovimiento === 'SALIDA'" value="VENTA">Venta</option>
+                  <option *ngIf="tipoMovimiento === 'SALIDA'" value="DEVOLUCION">Devolución</option>
+                  <option *ngIf="tipoMovimiento === 'ENTRADA'" value="COMPRA">Compra</option>
+                  <option *ngIf="tipoMovimiento === 'ENTRADA'" value="DEVOLUCION">Devolución</option>
+                  <option *ngIf="tipoMovimiento === 'ENTRADA'" value="ABASTECIMIENTO">Abastecimiento</option>
+                  <option *ngIf="tipoMovimiento === 'AJUSTE'" value="ROTURA">Rotura</option>
+                  <option *ngIf="tipoMovimiento === 'AJUSTE'" value="PERDIDA">Pérdida</option>
+                  <option *ngIf="tipoMovimiento === 'AJUSTE'" value="CORRECCION">Corrección</option>
+                </select>
+              </div>
+
+              <!-- Referencia -->
+              <div class="form-group">
+                <label>Referencia (Número de factura, orden, etc)</label>
+                <input type="text" formControlName="referencia" placeholder="Ej: FAC-001, OC-001">
+              </div>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="form-group full-width">
+              <label>Observaciones</label>
+              <textarea formControlName="observaciones" placeholder="Notas adicionales..." rows="3"></textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="movimientoForm.invalid || loading">
+                {{ loading ? '⏳ Registrando...' : '✅ Registrar Movimiento' }}
+              </button>
+              <button type="button" class="btn btn-secondary" (click)="movimientoForm.reset({ tipo: 'SALIDA' })">
+                🔄 Limpiar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: LISTA DE MOVIMIENTOS -->
+      <div class="lista-section">
+        <div class="section-header">
+          <h2>📋 Últimos Movimientos Registrados</h2>
+        </div>
+
+        <div class="lista-container">
+          <!-- Filtros -->
+          <div class="filtros">
+            <input type="text" placeholder="🔍 Buscar..." [(ngModel)]="busqueda" class="filtro-input">
+
+            <select [(ngModel)]="filtroTipo" class="filtro-select">
+              <option value="TODOS">Todos los tipos</option>
+              <option value="SALIDA">⬇️ Salida</option>
+              <option value="ENTRADA">⬆️ Entrada</option>
+              <option value="AJUSTE">🔄 Ajuste</option>
+            </select>
+          </div>
+
+          <!-- Tabla -->
+          <div class="tabla-container">
+            <table class="tabla" *ngIf="movimientosVisibles.length > 0; else noData">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tipo</th>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>Precio Unit.</th>
+                  <th>Total</th>
+                  <th>Referencia</th>
+                  <th>Fecha</th>
+                  <th>Motivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let mov of movimientosVisibles"
+                  [class]="'tipo-' + (mov.tipoMovimiento || mov.tipo).toLowerCase()">
+                  <td><strong>#{{ mov.idMovimiento }}</strong></td>
+                  <td>
+                    <span class="badge" [ngClass]="getTipoBadge(mov.tipoMovimiento || mov.tipo)">
+                      {{ getTipoLabel(mov.tipoMovimiento || mov.tipo) }}
+                    </span>
+                  </td>
+                  <td>{{ mov.producto?.nombre || 'Sin producto' }}</td>
+                  <td class="text-center">{{ mov.cantidad }}</td>
+                  <td class="text-right">{{ formatearMoneda(mov.precio) }}</td>
+                  <td class="text-right"><strong>{{ formatearMoneda(mov.cantidad * mov.precio) }}</strong></td>
+                  <td class="text-center">{{ mov.referencia || '-' }}</td>
+                  <td>{{ mov.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ mov.motivo }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ng-template #noData>
+              <div class="no-data">
+                <p>No hay movimientos registrados</p>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Paginación -->
+          <div class="paginacion" *ngIf="totalPaginas > 1">
+            <button class="btn btn-sm" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
+              ← Anterior
+            </button>
+            <span class="pagina-info">
+              Página {{ paginaActual }} de {{ totalPaginas }}
+            </span>
+            <button class="btn btn-sm" (click)="cambiarPagina(paginaActual + 1)"
+              [disabled]="paginaActual === totalPaginas">
+              Siguiente →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: REPORTES -->
+  <div class="tab-content" *ngIf="activeTab === 'reportes'">
+    <div class="reportes-container">
+      <!-- Título de Reportes -->
+      <div class="reportes-header">
+        <h2>📊 Reportes y Análisis</h2>
+        <p class="reportes-subtitle">Análisis completo de movimientos de inventario</p>
+      </div>
+
+      <!-- Tarjetas de Resumen -->
+      <div class="resumen-grid">
+        <div class="resumen-card salida">
+          <h3>⬇️ SALIDAS</h3>
+          <div class="count">{{ salidasCount }}</div>
+          <small>movimientos de salida</small>
+        </div>
+
+        <div class="resumen-card entrada">
+          <h3>⬆️ ENTRADAS</h3>
+          <div class="count">{{ entradasCount }}</div>
+          <small>movimientos de entrada</small>
+        </div>
+
+        <div class="resumen-card ajuste">
+          <h3>🔄 AJUSTES</h3>
+          <div class="count">{{ ajustesCount }}</div>
+          <small>movimientos de ajuste</small>
+        </div>
+
+        <div class="resumen-card total">
+          <h3>📦 TOTAL</h3>
+          <div class="count">{{ movimientos.length }}</div>
+          <small>movimientos registrados</small>
+        </div>
+      </div>
+
+      <!-- Detalles de Últimos Movimientos -->
+      <div class="detalles-grid">
+        <!-- Últimas Salidas -->
+        <div class="detalle-card">
+          <div class="detalle-header">
+            <h3>📤 Últimas Salidas</h3>
+            <span class="detalle-badge salida">{{ salidas.length }} registros</span>
+          </div>
+          <div class="detalle-content">
+            <div *ngIf="salidas.length > 0; else noSalidas" class="detalle-list">
+              <div class="detalle-item" *ngFor="let mov of salidas">
+                <div class="detalle-left">
+                  <div class="detalle-producto">{{ mov.producto?.nombre || 'Sin producto' }}</div>
+                  <div class="detalle-meta">
+                    <span class="meta-cantidad">{{ mov.cantidad }} unidades</span>
+                    <span class="meta-fecha">{{ mov.fecha | date: 'dd/MM/yyyy' }}</span>
+                  </div>
+                </div>
+                <div class="detalle-right">
+                  <div class="detalle-monto">{{ formatearMoneda(mov.cantidad * mov.precio) }}</div>
+                  <div class="detalle-precio-unit">{{ formatearMoneda(mov.precio) }}/u</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noSalidas>
+              <div class="no-data-message">
+                <p>📭 No hay salidas registradas</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- Últimas Entradas -->
+        <div class="detalle-card">
+          <div class="detalle-header">
+            <h3>📥 Últimas Entradas</h3>
+            <span class="detalle-badge entrada">{{ entradas.length }} registros</span>
+          </div>
+          <div class="detalle-content">
+            <div *ngIf="entradas.length > 0; else noEntradas" class="detalle-list">
+              <div class="detalle-item" *ngFor="let mov of entradas">
+                <div class="detalle-left">
+                  <div class="detalle-producto">{{ mov.producto?.nombre || 'Sin producto' }}</div>
+                  <div class="detalle-meta">
+                    <span class="meta-cantidad">{{ mov.cantidad }} unidades</span>
+                    <span class="meta-fecha">{{ mov.fecha | date: 'dd/MM/yyyy' }}</span>
+                  </div>
+                </div>
+                <div class="detalle-right">
+                  <div class="detalle-monto">{{ formatearMoneda(mov.cantidad * mov.precio) }}</div>
+                  <div class="detalle-precio-unit">{{ formatearMoneda(mov.precio) }}/u</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noEntradas>
+              <div class="no-data-message">
+                <p>📭 No hay entradas registradas</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

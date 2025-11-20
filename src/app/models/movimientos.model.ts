@@ -1,11 +1,21 @@
 import { Producto } from './producto.model';
+import { ClienteDTO } from './cliente.model';
+import { Proveedor } from './proveedor.model';
 
 export interface Movimiento {
   idMovimiento?: number;
-  producto: Producto;  // El producto asociado
-  tipoMovimiento: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+  tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE';
+  producto?: Producto;
+  cliente?: ClienteDTO;
+  proveedor?: Proveedor;
   cantidad: number;
-  descripcion?: string;
+  precio: number;
+  motivo: string;
+  observaciones?: string;
+  referencia?: string;
   usuarioMovimiento?: string;
-  fechaMovimiento?: string;
+  fecha?: string;
+  descripcion?: string;
+  tipoMovimiento?: 'ENTRADA' | 'SALIDA' | 'AJUSTE'; // Para compatibilidad
+  fechaMovimiento?: string; // Para compatibilidad
 }

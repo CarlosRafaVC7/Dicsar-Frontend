@@ -4,10 +4,11 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  token: string;
+  jwt: string;
   username: string;
   nombreCompleto: string;
-  rol: 'ADMIN' | 'VENDEDOR';
+  rol: 'ADMIN' | 'VENDEDOR' | 'USUARIO' | 'CLIENTE';
+  token?: string; // para compatibilidad hacia atrás
 }
 
 export interface Usuario {

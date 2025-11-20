@@ -35,7 +35,7 @@ export interface ReporteProveedores {
 export class ReporteService {
   private apiUrl = 'http://localhost:8080/api/reportes';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   obtenerReporteInventario(): Observable<ReporteInventario> {
     return this.http.get<ReporteInventario>(`${this.apiUrl}/inventario`);

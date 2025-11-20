@@ -12,7 +12,7 @@
     <div class="features-section">
       <h2 class="features-title">Potencia tu negocio con <span class="highlight">tecnología avanzada</span></h2>
       <p class="features-description">
-        Gestiona inventarios, ventas, clientes y reportes desde una plataforma integral 
+        Gestiona inventarios, ventas, clientes y reportes desde una plataforma integral
         diseñada para empresas comerciales modernas.
       </p>
 
@@ -74,12 +74,8 @@
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
         <div class="form-group">
           <label for="username">Usuario</label>
-          <input
-            type="text"
-            id="username"
-            formControlName="username"
-            [class.invalid]="f['username'].touched && f['username'].invalid"
-            placeholder="Ingresa tu usuario"
+          <input type="text" id="username" formControlName="username"
+            [class.invalid]="f['username'].touched && f['username'].invalid" placeholder="Ingresa tu usuario"
             autocomplete="username">
           <div class="error-message" *ngIf="f['username'].touched && f['username'].errors">
             <span *ngIf="f['username'].errors['required']">El usuario es obligatorio</span>
@@ -90,12 +86,8 @@
         <div class="form-group">
           <label for="password">Contraseña</label>
           <div class="password-wrapper">
-            <input
-              [type]="showPassword ? 'text' : 'password'"
-              id="password"
-              formControlName="password"
-              [class.invalid]="f['password'].touched && f['password'].invalid"
-              placeholder="Ingresa tu contraseña"
+            <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password"
+              [class.invalid]="f['password'].touched && f['password'].invalid" placeholder="Ingresa tu contraseña"
               autocomplete="current-password">
             <button type="button" class="toggle-password" (click)="showPassword = !showPassword">
               <span *ngIf="!showPassword">👁️</span>

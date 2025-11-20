@@ -6,10 +6,16 @@ export const adminGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.isLoggedIn() && authService.isAdmin()) {
+  const isLoggedIn = authService.isLoggedIn();
+  const isAdmin = authService.isAdmin();
+
+  console.log('AdminGuard - Logged in:', isLoggedIn, 'Is Admin:', isAdmin, 'User:', authService.currentUserValue);
+
+  if (isLoggedIn && isAdmin) {
     return true;
   }
 
+  console.warn('AdminGuard - Access denied. Redirecting to dashboard.');
   router.navigate(['/dashboard']);
   return false;
 };

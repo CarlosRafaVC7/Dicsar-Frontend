@@ -158,8 +158,8 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
-  box-sizing: border-box; /* 👈 AGREGAR ESTO */
-  white-space: nowrap; /* 👈 EVITA QUE EL TEXTO SE ROMPA */
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .dropdown-item:hover {
@@ -173,11 +173,22 @@
   font-size: 14px;
 }
 
+.admin-item {
+  background-color: #f0f3ff;
+  color: #0a2c8c;
+  font-weight: 500;
+}
+
+.admin-item:hover {
+  background-color: #e0e7ff;
+  color: #0855b8;
+}
+
 .dropdown-divider {
   height: 1px;
   background-color: #e5e7eb;
   margin: 4px 0;
-  width: 100%; /* 👈 AGREGAR ESTO */
+  width: 100%;
 }
 
 .logout-item {

@@ -1,0 +1,314 @@
+<div class="admin-dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div>
+      <h1>🏢 Dashboard Administrativo</h1>
+      <p class="subtitle">Vista ejecutiva de todos los módulos del sistema</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-refresh" (click)="cargarDatosCompletos()">🔄 Actualizar</button>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-navigation">
+    <button class="tab-btn" [class.active]="activeTab === 'resumen'" (click)="cambiarTab('resumen')">
+      📈 Resumen Ejecutivo
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'analisis'" (click)="cambiarTab('analisis')">
+      📊 Análisis Detallado
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'config'" (click)="cambiarTab('config')">
+      ⚙️ Configuración
+    </button>
+  </div>
+
+  <!-- TAB: Resumen Ejecutivo -->
+  <div class="tab-content" *ngIf="activeTab === 'resumen'">
+    <div *ngIf="cargando" class="loading">⏳ Cargando datos del dashboard...</div>
+
+    <div *ngIf="!cargando" class="resumen-container">
+      <!-- Fila 1: KPIs Principales (6 tarjetas) -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-info">
+            <p class="kpi-label">Total de Productos</p>
+            <p class="kpi-value">{{ totalProductos }}</p>
+            <p class="kpi-sub">{{ productosActivos }} activos</p>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-info">
+            <p class="kpi-label">Ventas Totales</p>
+            <p class="kpi-value">{{ totalVentas }}</p>
+            <p class="kpi-sub">{{ formatearMoneda(ingresosTotales) }}</p>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-info">
+            <p class="kpi-label">Total Clientes</p>
+            <p class="kpi-value">{{ totalClientes }}</p>
+            <p class="kpi-sub">{{ clientesActivos }} activos</p>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">🏢</div>
+          <div class="kpi-info">
+            <p class="kpi-label">Proveedores</p>
+            <p class="kpi-value">{{ totalProveedores }}</p>
+            <p class="kpi-sub">{{ proveedoresActivos }} activos</p>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">👤</div>
+          <div class="kpi-info">
+            <p class="kpi-label">Usuarios Sistema</p>
+            <p class="kpi-value">{{ totalUsuarios }}</p>
+            <p class="kpi-sub">Activos hoy</p>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-info">
+            <p class="kpi-label">Variación Precios</p>
+            <p class="kpi-value" [class.positive]="variacionPrecio >= 0">{{ variacionPrecio }}%</p>
+            <p class="kpi-sub">Último mes</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 2: Gráficos (Ventas e Ingresos) -->
+      <div class="graficos-row">
+        <div class="grafico-card">
+          <h3>📈 Ventas (Últimos 30 días)</h3>
+          <canvas #chartVentas></canvas>
+        </div>
+
+        <div class="grafico-card">
+          <h3>💵 Ingresos por Día</h3>
+          <canvas #chartIngresos></canvas>
+        </div>
+      </div>
+
+      <!-- Fila 3: Gráficos (Stock e Ingresos) -->
+      <div class="graficos-row">
+        <div class="grafico-card">
+          <h3>📦 Estado de Stock</h3>
+          <canvas #chartStock></canvas>
+        </div>
+
+        <div class="grafico-card">
+          <h3>🏢 Top Proveedores</h3>
+          <canvas #chartProveedores></canvas>
+        </div>
+      </div>
+
+      <!-- Fila 4: Tablas de Datos -->
+      <div class="datos-row">
+        <!-- Top Productos Vendidos -->
+        <div class="data-card">
+          <h3>🏆 Productos Más Vendidos</h3>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-center">Cantidad</th>
+                  <th class="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let prod of productosTopVendidos">
+                  <td>{{ prod[0] }}</td>
+                  <td class="text-center">{{ prod[1] }} u.</td>
+                  <td class="text-right">{{ formatearMoneda(prod[2]) }}</td>
+                </tr>
+                <tr *ngIf="productosTopVendidos.length === 0">
+                  <td colspan="3" class="text-center">Sin datos</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Top Clientes -->
+        <div class="data-card">
+          <h3>👥 Clientes Top Compras</h3>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th class="text-center">Compras</th>
+                  <th class="text-right">Gasto Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let cliente of clientesTop">
+                  <td>{{ cliente[0] }}</td>
+                  <td class="text-center">{{ cliente[1] }}</td>
+                  <td class="text-right">{{ formatearMoneda(cliente[2]) }}</td>
+                </tr>
+                <tr *ngIf="clientesTop.length === 0">
+                  <td colspan="3" class="text-center">Sin datos</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 5: Top Proveedores -->
+      <div class="datos-row">
+        <div class="data-card full-width">
+          <h3>🏢 Proveedores Registrados</h3>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Razón Social</th>
+                  <th>RUC</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th class="text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let prov of proveedoresTop">
+                  <td>{{ prov.razonSocial }}</td>
+                  <td>{{ prov.ruc }}</td>
+                  <td>{{ prov.telefono }}</td>
+                  <td>{{ prov.email }}</td>
+                  <td class="text-center">
+                    <span class="badge" [class.badge-success]="prov.estado" [class.badge-danger]="!prov.estado">
+                      {{ prov.estado ? '✅ Activo' : '❌ Inactivo' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="proveedoresTop.length === 0">
+                  <td colspan="5" class="text-center">Sin datos</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Análisis Detallado -->
+  <div class="tab-content" *ngIf="activeTab === 'analisis'">
+    <div class="analisis-container">
+      <div class="section-info">
+        <h2>📊 Análisis Detallado por Módulo</h2>
+        <p>Accede a cada módulo para ver análisis más profundos:</p>
+      </div>
+
+      <div class="modules-grid">
+        <div class="module-card">
+          <div class="module-icon">📦</div>
+          <h3>Inventario</h3>
+          <p>Stock por categoría, productos críticos, valor total</p>
+          <button class="btn-module">Ver Detalles</button>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">💰</div>
+          <h3>Ventas</h3>
+          <p>Tendencias de venta, productos estrella, ingresos</p>
+          <button class="btn-module">Ver Detalles</button>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">👥</div>
+          <h3>Clientes</h3>
+          <p>Segmentación, valor de vida, actividad reciente</p>
+          <button class="btn-module">Ver Detalles</button>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">🏢</div>
+          <h3>Proveedores</h3>
+          <p>Calidad, cumplimiento, productos ofrecidos</p>
+          <button class="btn-module">Ver Detalles</button>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">📈</div>
+          <h3>Historial Precios</h3>
+          <p>Tendencias, variaciones, análisis histórico</p>
+          <button class="btn-module">Ver Detalles</button>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">👤</div>
+          <h3>Usuarios</h3>
+          <p>Actividad, permisos, roles del sistema</p>
+          <button class="btn-module">Ver Detalles</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Configuración -->
+  <div class="tab-content" *ngIf="activeTab === 'config'">
+    <div class="config-container">
+      <div class="section-info">
+        <h2>⚙️ Configuración y Administración</h2>
+        <p>Acceso a las herramientas de administración del sistema:</p>
+      </div>
+
+      <div class="config-grid">
+        <div class="config-card">
+          <div class="config-icon">🔐</div>
+          <h3>Gestión de Usuarios</h3>
+          <p>Crear, editar y eliminar usuarios del sistema</p>
+          <button class="btn-config">Ir a Usuarios</button>
+        </div>
+
+        <div class="config-card">
+          <div class="config-icon">🛡️</div>
+          <h3>Roles y Permisos</h3>
+          <p>Configurar roles y permisos de acceso</p>
+          <button class="btn-config">Ir a Roles</button>
+        </div>
+
+        <div class="config-card">
+          <div class="config-icon">💾</div>
+          <h3>Backups</h3>
+          <p>Crear y restaurar copias de seguridad</p>
+          <button class="btn-config">Gestionar Backups</button>
+        </div>
+
+        <div class="config-card">
+          <div class="config-icon">📋</div>
+          <h3>Auditoría</h3>
+          <p>Ver registro de cambios y actividades</p>
+          <button class="btn-config">Ver Logs</button>
+        </div>
+
+        <div class="config-card">
+          <div class="config-icon">⚙️</div>
+          <h3>Configuración General</h3>
+          <p>Parámetros del sistema y empresa</p>
+          <button class="btn-config">Configurar</button>
+        </div>
+
+        <div class="config-card">
+          <div class="config-icon">📞</div>
+          <h3>Soporte</h3>
+          <p>Contactar al soporte técnico</p>
+          <button class="btn-config">Contactar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

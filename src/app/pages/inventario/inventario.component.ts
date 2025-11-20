@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Categoria } from '../../models/categoria.model';
 import { UnidadMed } from '../../models/unidad-medida.model';
 import { Producto } from '../../models/producto.model';
+import { HistorialPrecio } from '../../models/historial-precios.model';
 import { CategoriaService } from '../../services/categoria.service';
 import { UnidadMedService } from '../../services/unidad-medida.service';
 import { ProductoService } from '../../services/producto.service';
 import { ProveedorService } from '../../services/proveedor.service';
 import { ExportService } from '../../services/export.service';
+import { HistorialPrecioService } from '../../services/historial-precios.service';
 // import { DataTableComponent, TableColumn, TableAction } from '../../shared/data-table/data-table.component';
 
 interface Proveedor {
@@ -71,13 +73,20 @@ export class InventarioComponent implements OnInit {
   alertaMensaje = '';
   alertaTipo: 'exito' | 'error' | 'info' = 'info';
 
+  // === 📜 HISTORIAL DE PRECIOS (HU7) ===
+  historialPrecios: HistorialPrecio[] = [];
+  productoSeleccionadoHistorial: Producto | null = null;
+  mostrarModalHistorial = false;
+  cargandoHistorial = false;
+
   constructor(
     private categoriaService: CategoriaService,
     private unidadMedService: UnidadMedService,
     private productoService: ProductoService,
     private proveedorService: ProveedorService,
-    private exportService: ExportService
-  ) {}
+    private exportService: ExportService,
+    private historialPrecioService: HistorialPrecioService
+  ) { }
 
 
 
@@ -237,13 +246,13 @@ export class InventarioComponent implements OnInit {
       next: (data: any[]) => {
         console.log('📦 PRODUCTOS CARGADOS RAW:', data);
         console.log('📦 PRIMER PRODUCTO COMPLETO:', data[0]);
-        
+
         this.productos = data.map(producto => {
           const estadoOriginal = producto.estado;
-          
+
           // 🔧 LÓGICA MEJORADA DE NORMALIZACIÓN
           let estadoNormalizado: boolean;
-          
+
           if (estadoOriginal === undefined || estadoOriginal === null) {
             // Si no está definido, asumir ACTIVO por defecto
             estadoNormalizado = true;
@@ -265,22 +274,22 @@ export class InventarioComponent implements OnInit {
             estadoNormalizado = true;
             console.log(`❓ ${producto.nombre}: estado desconocido (${typeof estadoOriginal}) -> ACTIVO por defecto`);
           }
-          
+
           console.log(`🎯 RESULTADO: ${producto.nombre} = ${estadoNormalizado ? 'ACTIVO' : 'INACTIVO'}`);
-          
+
           return {
             ...producto,
             estado: estadoNormalizado
           };
         });
-        
+
         console.log('📦 PRODUCTOS FINALES:', this.productos);
-        
+
         // Mostrar resumen de estados
         const activos = this.productos.filter(p => p.estado).length;
         const inactivos = this.productos.filter(p => !p.estado).length;
         console.log(`📊 RESUMEN FINAL: ${activos} activos, ${inactivos} inactivos de ${this.productos.length} total`);
-        
+
         // 🚨 ALERTA SI TODOS ESTÁN INACTIVOS (SOSPECHOSO)
         if (this.productos.length > 0 && activos === 0) {
           console.error('🚨 PROBLEMA: Todos los productos están INACTIVOS - revisar backend!');
@@ -332,7 +341,11 @@ export class InventarioComponent implements OnInit {
         .subscribe({
           next: (response) => {
             console.log('✅ Producto actualizado:', response);
-            this.cargarProductos();
+            // Actualizar en la lista local en lugar de recargar todo
+            const index = this.productos.findIndex(p => p.idProducto === this.editandoProducto.idProducto);
+            if (index !== -1) {
+              this.productos[index] = { ...this.productos[index], ...response };
+            }
             this.cancelarEdicionProducto();
             this.cerrarModalProducto();
             this.mostrarAlerta('✅ Producto actualizado correctamente', 'exito');
@@ -340,7 +353,7 @@ export class InventarioComponent implements OnInit {
           error: (err) => {
             console.error('❌ Error actualizando producto:', err);
             this.mostrarAlerta(
-              `❌ Error al actualizar: ${err.error?.message || err.error?.error || err.message || 'Error desconocido'}`, 
+              `❌ Error al actualizar: ${err.error?.message || err.error?.error || err.message || 'Error desconocido'}`,
               'error'
             );
           }
@@ -349,7 +362,8 @@ export class InventarioComponent implements OnInit {
       this.productoService.crear(this.nuevoProducto).subscribe({
         next: (response) => {
           console.log('✅ Producto creado:', response);
-          this.cargarProductos();
+          // Agregar producto nuevo directamente a la lista
+          this.productos = [response, ...this.productos];
           this.nuevoProducto = this.resetProducto();
           this.cerrarModalProducto();
           this.mostrarAlerta('✅ Producto creado correctamente (Estado: Activo)', 'exito');
@@ -357,7 +371,7 @@ export class InventarioComponent implements OnInit {
         error: (err) => {
           console.error('❌ Error creando producto:', err);
           this.mostrarAlerta(
-            `❌ Error al crear: ${err.error?.message || err.error?.error || err.message || 'Error desconocido'}`, 
+            `❌ Error al crear: ${err.error?.message || err.error?.error || err.message || 'Error desconocido'}`,
             'error'
           );
         }
@@ -367,7 +381,7 @@ export class InventarioComponent implements OnInit {
 
   editarProducto(p: any) {
     this.editandoProducto = p;
-    this.nuevoProducto = { 
+    this.nuevoProducto = {
       nombre: p.nombre,
       descripcion: p.descripcion,
       codigo: p.codigo,
@@ -392,7 +406,8 @@ export class InventarioComponent implements OnInit {
     if (confirm('¿Estás seguro de eliminar este producto?')) {
       this.productoService.eliminar(id).subscribe({
         next: () => {
-          this.cargarProductos();
+          // Eliminar de la lista local en lugar de recargar
+          this.productos = this.productos.filter(p => p.idProducto !== id);
           this.mostrarAlerta('Producto eliminado correctamente', 'exito');
         },
         error: () => this.mostrarAlerta('Error al eliminar producto', 'error')
@@ -404,30 +419,30 @@ export class InventarioComponent implements OnInit {
   toggleEstadoProducto(producto: any) {
     console.log('🔄 Toggle Estado - Producto actual:', producto);
     console.log('🔄 Estado anterior:', producto.estado);
-    
+
     const nuevoEstado = !producto.estado;
     const usuario = 'admin';
-    
+
     console.log('🔄 Nuevo estado:', nuevoEstado);
     console.log('🔄 Enviando petición PATCH a backend...');
-    
+
     this.productoService.actualizarEstado(producto.idProducto, nuevoEstado, usuario)
       .subscribe({
         next: (response) => {
           console.log('✅ Respuesta del backend:', response);
-          
+
           // Actualizar en la lista local
           const index = this.productos.findIndex(p => p.idProducto === producto.idProducto);
           if (index !== -1) {
             this.productos[index].estado = nuevoEstado;
           }
           producto.estado = nuevoEstado;
-          
+
           this.mostrarAlerta(
-            `🔄 ${producto.nombre}: ${nuevoEstado ? '✅ ACTIVADO' : '❌ DESACTIVADO'}`, 
+            `🔄 ${producto.nombre}: ${nuevoEstado ? '✅ ACTIVADO' : '❌ DESACTIVADO'}`,
             'exito'
           );
-          
+
           console.log('✅ Estado actualizado exitosamente');
         },
         error: (err) => {
@@ -435,9 +450,9 @@ export class InventarioComponent implements OnInit {
           console.error('❌ Error status:', err.status);
           console.error('❌ Error message:', err.message);
           console.error('❌ Error body:', err.error);
-          
+
           this.mostrarAlerta(
-            `❌ Error al cambiar estado: ${err.error || err.message || 'Error desconocido'}`, 
+            `❌ Error al cambiar estado: ${err.error || err.message || 'Error desconocido'}`,
             'error'
           );
         }
@@ -488,7 +503,7 @@ export class InventarioComponent implements OnInit {
   // ==================== FILTRADO VISIBLE ====================
   get visibleProducts() {
     const q = (this.search || '').trim().toLowerCase();
-    
+
     // Filtrar productos según búsqueda y categoría
     const filtered = (this.productos || []).filter((p: any) => {
       const catName = p.categoria?.nombre || '';
@@ -507,7 +522,7 @@ export class InventarioComponent implements OnInit {
       // Productos activos (true) van antes que inactivos (false)
       if (a.estado === true && b.estado === false) return -1;
       if (a.estado === false && b.estado === true) return 1;
-      
+
       // Si tienen el mismo estado, ordenar por nombre alfabéticamente
       return (a.nombre || '').localeCompare(b.nombre || '');
     });
@@ -563,7 +578,7 @@ export class InventarioComponent implements OnInit {
       estado: true  // 🔧 Estado por defecto ACTIVO
     };
   }
-  
+
   esProductoVencido(fechaVencimiento: string): boolean {
     if (!fechaVencimiento) return false;
     const hoy = new Date();
@@ -571,12 +586,45 @@ export class InventarioComponent implements OnInit {
     return vencimiento < hoy;
   }
 
+  // ⏰ MÉTODO NUEVO: Verificar si está próximo a vencer (30 días)
+  esProductoProximoAVencer(fechaVencimiento: string): boolean {
+    if (!fechaVencimiento) return false;
+    const hoy = new Date();
+    const vencimiento = new Date(fechaVencimiento);
+    const diasFaltantes = Math.floor((vencimiento.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
+    return diasFaltantes > 0 && diasFaltantes <= 30;
+  }
+
+  // ⏰ MÉTODO NUEVO: Obtener días para vencimiento
+  getDiasParaVencer(fechaVencimiento: string): number {
+    if (!fechaVencimiento) return 999;
+    const hoy = new Date();
+    const vencimiento = new Date(fechaVencimiento);
+    return Math.floor((vencimiento.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
+  }
+
+  // ⏰ MÉTODO NUEVO: Obtener clase CSS para estado de vencimiento
+  getClaseVencimiento(fechaVencimiento: string): string {
+    if (this.esProductoVencido(fechaVencimiento)) return 'vencido';
+    if (this.esProductoProximoAVencer(fechaVencimiento)) return 'proximo-vencer';
+    return 'vigente';
+  }
+
+  // ⏰ MÉTODO NUEVO: Contar productos vencidos y próximos a vencer
+  get productosVencidos(): any[] {
+    return this.productos.filter(p => p.estado && this.esProductoVencido(p.fechaVencimiento));
+  }
+
+  get productosProximosAVencer(): any[] {
+    return this.productos.filter(p => p.estado && this.esProductoProximoAVencer(p.fechaVencimiento));
+  }
+
   // ==================== MÉTODOS DE EXPORTACIÓN ====================
-  
+
   exportarPDF(): void {
     // 🔥 SOLO EXPORTAR PRODUCTOS ACTIVOS (los inactivos son como eliminados)
     const productosParaExportar = this.visibleProducts.filter(p => p.estado === true);
-    
+
     const columns = [
       { header: 'Código', field: 'codigo', width: 60 },
       { header: 'Producto', field: 'nombre', width: 100 },
@@ -596,7 +644,7 @@ export class InventarioComponent implements OnInit {
     );
 
     this.mostrarAlerta(
-      `📄 PDF exportado: ${productosParaExportar.length} productos activos`, 
+      `📄 PDF exportado: ${productosParaExportar.length} productos activos`,
       'exito'
     );
   }
@@ -604,7 +652,7 @@ export class InventarioComponent implements OnInit {
   exportarExcel(): void {
     // 🔥 SOLO EXPORTAR PRODUCTOS ACTIVOS (los inactivos son como eliminados)
     const productosParaExportar = this.visibleProducts.filter(p => p.estado === true);
-    
+
     const columns = [
       { header: 'Código', field: 'codigo', width: 15 },
       { header: 'Producto', field: 'nombre', width: 25 },
@@ -627,9 +675,60 @@ export class InventarioComponent implements OnInit {
     );
 
     this.mostrarAlerta(
-      `📊 Excel exportado: ${productosParaExportar.length} productos activos`, 
+      `📊 Excel exportado: ${productosParaExportar.length} productos activos`,
       'exito'
     );
+  }
+
+  // ==================== HISTORIAL DE PRECIOS (HU7) ====================
+  abrirHistorialPrecios(producto: Producto): void {
+    this.productoSeleccionadoHistorial = producto;
+    this.mostrarModalHistorial = true;
+    this.cargarHistorialPrecios(producto.idProducto!);
+  }
+
+  cargarHistorialPrecios(productoId: number): void {
+    this.cargandoHistorial = true;
+    this.historialPrecios = [];
+
+    this.historialPrecioService.obtenerPorProducto(productoId).subscribe({
+      next: (data) => {
+        this.historialPrecios = data.sort((a, b) => new Date(b.fechaCambio).getTime() - new Date(a.fechaCambio).getTime());
+        this.cargandoHistorial = false;
+      },
+      error: (err) => {
+        console.error('Error cargando historial:', err);
+        this.mostrarAlerta('No hay historial de cambios para este producto', 'info');
+        this.cargandoHistorial = false;
+      }
+    });
+  }
+
+  cerrarHistorialPrecios(): void {
+    this.mostrarModalHistorial = false;
+    this.productoSeleccionadoHistorial = null;
+    this.historialPrecios = [];
+  }
+
+  calcularVariacion(historial: HistorialPrecio): number {
+    if (historial.precioAnterior === 0) return 0;
+    return ((historial.precioNuevo - historial.precioAnterior) / historial.precioAnterior) * 100;
+  }
+
+  obtenerClaseVariacion(variacion: number): string {
+    if (variacion > 0) return 'variacion-aumento';
+    if (variacion < 0) return 'variacion-descuento';
+    return 'variacion-igual';
+  }
+
+  get totalCambiosPrecio(): number {
+    return this.historialPrecios.length;
+  }
+
+  get precioPromedio(): number {
+    if (this.historialPrecios.length === 0) return 0;
+    const suma = this.historialPrecios.reduce((acc, h) => acc + h.precioNuevo, 0);
+    return suma / this.historialPrecios.length;
   }
 
 }

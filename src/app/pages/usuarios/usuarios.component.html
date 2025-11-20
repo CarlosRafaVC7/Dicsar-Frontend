@@ -1,85 +1,178 @@
-<div class="usuarios-container">
+﻿<div class="usuarios-container">
+  <!-- ALERTA -->
+  <div *ngIf="alertaVisible" [ngClass]="'alerta alerta-' + alertaTipo" role="alert">
+    {{ alertaMensaje }}
+  </div>
+
   <div class="header">
-    <h1>👥 Gestión de Usuarios</h1>
+    <h1>👥 Gestión de Usuarios y Roles</h1>
     <div class="header-actions">
-      <button class="btn-add" (click)="abrirModalUsuario()">
+      <button *ngIf="activeTab === 'usuarios'" class="btn-add" (click)="abrirModalUsuario()" [disabled]="loading">
         ➕ Nuevo Usuario
+      </button>
+      <button *ngIf="activeTab === 'roles'" class="btn-add" (click)="abrirModalRol()" [disabled]="loading">
+        ➕ Nuevo Rol
       </button>
     </div>
   </div>
 
-  <!-- Búsqueda -->
-  <div class="search-section">
-    <input 
-      type="text" 
-      [(ngModel)]="search" 
-      (input)="actualizarPaginacion()"
-      placeholder="🔍 Buscar por usuario o nombre..." 
-      class="search-input">
+  <!-- TABS DE NAVEGACIÓN -->
+  <div class="tabs-container">
+    <button class="tab-btn" [class.active]="activeTab === 'usuarios'" (click)="cambiarTab('usuarios')">
+      👥 Usuarios
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'roles'" (click)="cambiarTab('roles')">
+      🔑 Roles
+    </button>
   </div>
 
-  <!-- Tabla de usuarios -->
-  <div class="table-container">
-    <table class="usuarios-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Usuario</th>
-          <th>Nombre Completo</th>
-          <th>Rol</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let u of usuariosVisibles" [class.inactive]="!u.activo">
-          <td>{{ u.idUsuario }}</td>
-          <td>{{ u.username }}</td>
-          <td>{{ u.nombreCompleto }}</td>
-          <td>
-            <span class="badge-rol" [class.admin]="u.rol === 'ADMIN'">
-              {{ u.rol === 'ADMIN' ? '👑 ADMIN' : '👤 VENDEDOR' }}
-            </span>
-          </td>
-          <td class="status-cell">
-            <div class="status-toggle">
-              <label class="toggle-switch">
-                <input 
-                  type="checkbox" 
-                  [checked]="u.activo"
-                  (change)="toggleEstadoUsuario(u)">
-                <span class="slider"></span>
-              </label>
-              <span class="status-text" [class.active]="u.activo">
-                {{ u.activo ? 'Activo' : 'Inactivo' }}
+  <!-- TAB: USUARIOS -->
+  <div *ngIf="activeTab === 'usuarios'" class="tab-content">
+    <!-- Búsqueda -->
+    <div class="search-section">
+      <input type="text" [(ngModel)]="search" (input)="actualizarPaginacion()"
+        placeholder="🔍 Buscar por usuario o nombre..." class="search-input" [disabled]="loading">
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="table-container">
+      <div *ngIf="loading" class="loading">⏳ Cargando usuarios...</div>
+
+      <div *ngIf="errorCargando" class="error-message">
+        <strong>❌ Error:</strong> {{ mensajeError }}
+      </div>
+
+      <table class="usuarios-table" *ngIf="!loading && !errorCargando && usuarios.length > 0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Nombre Completo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of usuariosVisibles" [class.inactive]="!u.activo">
+            <td>#{{ u.idUsuario }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.nombreCompleto }}</td>
+            <td>
+              <span class="badge-rol" [class.admin]="u.rol === 'ADMIN'">
+                {{ u.rol === 'ADMIN' ? '👑 ADMIN' : '👤 VENDEDOR' }}
               </span>
-            </div>
-          </td>
-          <td class="actions-cell">
-            <button class="btn-edit" (click)="editarUsuario(u)" title="Editar">
-              ✏️ Editar
-            </button>
-            <button class="btn-delete" (click)="eliminarUsuario(u.idUsuario!)" title="Eliminar">
-              🗑️ Eliminar
-            </button>
-          </td>
-        </tr>
-        <tr *ngIf="usuariosVisibles.length === 0">
-          <td colspan="6" class="no-data">No se encontraron usuarios</td>
-        </tr>
-      </tbody>
-    </table>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="u.activo ? 'badge-success' : 'badge-danger'">
+                {{ u.activo ? '✅ Activo' : '❌ Inactivo' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button class="btn-sm btn-edit" (click)="editarUsuario(u)" title="Editar" [disabled]="loading">
+                ✏️
+              </button>
+              <button *ngIf="u.activo" class="btn-sm btn-warning"
+                (click)="desactivarUsuario(u.idUsuario!, u.nombreCompleto)" title="Desactivar" [disabled]="loading">
+                🔒
+              </button>
+              <button *ngIf="!u.activo" class="btn-sm btn-success"
+                (click)="activarUsuario(u.idUsuario!, u.nombreCompleto)" title="Activar" [disabled]="loading">
+                🔓
+              </button>
+              <button class="btn-sm btn-delete" (click)="eliminarUsuario(u.idUsuario!, u.nombreCompleto)"
+                title="Eliminar" [disabled]="loading">
+                🗑️
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="usuariosVisibles.length === 0">
+            <td colspan="6" class="no-data">No se encontraron usuarios</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!loading && usuarios.length === 0 && !errorCargando" class="empty-state">
+        <p>📭 No hay usuarios en el sistema</p>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="totalPaginas > 1 && !loading">
+      <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
+        ← Anterior
+      </button>
+      <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+      <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
+        Siguiente →
+      </button>
+    </div>
   </div>
 
-  <!-- Paginación -->
-  <div class="pagination" *ngIf="totalPaginas > 1">
-    <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
-      ← Anterior
-    </button>
-    <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
-    <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
-      Siguiente →
-    </button>
+  <!-- TAB: ROLES -->
+  <div *ngIf="activeTab === 'roles'" class="tab-content">
+    <!-- Búsqueda -->
+    <div class="search-section">
+      <input type="text" [(ngModel)]="searchRoles" (input)="actualizarPaginacionRoles()"
+        placeholder="🔍 Buscar por nombre o descripción..." class="search-input" [disabled]="loading">
+    </div>
+
+    <!-- Tabla de roles -->
+    <div class="table-container">
+      <div *ngIf="loading" class="loading">⏳ Cargando roles...</div>
+
+      <table class="usuarios-table" *ngIf="!loading && roles.length > 0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rolesVisibles" [class.inactive]="!r.activo">
+            <td>#{{ r.idRol }}</td>
+            <td><strong>{{ r.nombre }}</strong></td>
+            <td>{{ r.descripcion || 'Sin descripción' }}</td>
+            <td>
+              <span class="badge" [ngClass]="r.activo ? 'badge-success' : 'badge-danger'">
+                {{ r.activo ? '✅ Activo' : '❌ Inactivo' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button class="btn-sm btn-edit" (click)="editarRol(r)" title="Editar" [disabled]="loading">
+                ✏️
+              </button>
+              <button class="btn-sm btn-delete" (click)="eliminarRol(r.idRol!, r.nombre)" title="Eliminar"
+                [disabled]="loading">
+                🗑️
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="rolesVisibles.length === 0">
+            <td colspan="5" class="no-data">No se encontraron roles</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!loading && roles.length === 0" class="empty-state">
+        <p>📭 No hay roles en el sistema</p>
+      </div>
+    </div>
+
+    <!-- Paginación Roles -->
+    <div class="pagination" *ngIf="totalPaginasRoles > 1 && !loading">
+      <button class="page-btn" [disabled]="paginaRolesActual === 1" (click)="cambiarPaginaRoles(paginaRolesActual - 1)">
+        ← Anterior
+      </button>
+      <span class="page-info">Página {{ paginaRolesActual }} de {{ totalPaginasRoles }}</span>
+      <button class="page-btn" [disabled]="paginaRolesActual === totalPaginasRoles"
+        (click)="cambiarPaginaRoles(paginaRolesActual + 1)">
+        Siguiente →
+      </button>
+    </div>
   </div>
 </div>
 
@@ -90,11 +183,11 @@
       <h2>{{ editandoUsuario ? '✏️ Editar Usuario' : '➕ Nuevo Usuario' }}</h2>
       <button class="btn-close" (click)="cerrarModalUsuario()">✖</button>
     </div>
-    
+
     <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
       <div class="form-group">
         <label>Usuario *</label>
-        <input type="text" formControlName="username" [readonly]="editandoUsuario">
+        <input type="text" formControlName="username" [readonly]="!!editandoUsuario">
         <small *ngIf="usuarioForm.get('username')?.hasError('required') && usuarioForm.get('username')?.touched">
           El usuario es requerido
         </small>
@@ -103,6 +196,14 @@
       <div class="form-group" *ngIf="!editandoUsuario">
         <label>Contraseña *</label>
         <input type="password" formControlName="password">
+        <small *ngIf="usuarioForm.get('password')?.hasError('minlength')">
+          Mínimo 6 caracteres
+        </small>
+      </div>
+
+      <div class="form-group" *ngIf="editandoUsuario">
+        <label>Contraseña (opcional - dejar en blanco para no cambiar)</label>
+        <input type="password" formControlName="password" placeholder="Nueva contraseña...">
         <small *ngIf="usuarioForm.get('password')?.hasError('minlength')">
           Mínimo 6 caracteres
         </small>
@@ -130,7 +231,7 @@
 
       <div class="modal-actions">
         <button type="button" class="btn-cancel" (click)="cerrarModalUsuario()">Cancelar</button>
-        <button type="submit" class="btn-save" [disabled]="usuarioForm.invalid">
+        <button type="submit" class="btn-save" [disabled]="usuarioForm.invalid || loading">
           {{ editandoUsuario ? 'Actualizar' : 'Crear' }}
         </button>
       </div>
@@ -145,7 +246,7 @@
       <h2>🔒 Cambiar Contraseña</h2>
       <button class="btn-close" (click)="cerrarModalPassword()">✖</button>
     </div>
-    
+
     <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
       <div class="form-group">
         <label>Contraseña Actual *</label>
@@ -167,8 +268,51 @@
 
       <div class="modal-actions">
         <button type="button" class="btn-cancel" (click)="cerrarModalPassword()">Cancelar</button>
-        <button type="submit" class="btn-save" [disabled]="passwordForm.invalid">
+        <button type="submit" class="btn-save" [disabled]="passwordForm.invalid || loading">
           Cambiar Contraseña
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Crear/Editar Rol -->
+<div class="modal-overlay" *ngIf="mostrarModalRol" (click)="cerrarModalRol()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editandoRol ? '✏️ Editar Rol' : '➕ Nuevo Rol' }}</h2>
+      <button class="btn-close" (click)="cerrarModalRol()">✖</button>
+    </div>
+
+    <form [formGroup]="rolForm" (ngSubmit)="guardarRol()">
+      <div class="form-group">
+        <label>Nombre del Rol *</label>
+        <input type="text" formControlName="nombre" placeholder="Ej: GERENTE, SUPERVISOR...">
+        <small *ngIf="rolForm.get('nombre')?.hasError('required') && rolForm.get('nombre')?.touched">
+          El nombre es requerido
+        </small>
+        <small *ngIf="rolForm.get('nombre')?.hasError('minlength')">
+          Mínimo 3 caracteres
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción (opcional)</label>
+        <textarea formControlName="descripcion"
+          placeholder="Describe los permisos o responsabilidades de este rol..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="activo">
+          <span>Rol Activo</span>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModalRol()">Cancelar</button>
+        <button type="submit" class="btn-save" [disabled]="rolForm.invalid || loading">
+          {{ editandoRol ? 'Actualizar' : 'Crear' }}
         </button>
       </div>
     </form>

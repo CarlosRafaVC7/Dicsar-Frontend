@@ -24,19 +24,20 @@ export class LoginComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) { }
 
   ngOnInit(): void {
+    // Inicializar siempre el formulario (antes de chequear login)
+    this.loginForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+
     // Si ya está logueado, redirigir al dashboard
     if (this.authService.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
       return;
     }
-
-    this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
 
     // Obtener la URL de retorno
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';

@@ -3,12 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { LoginRequest, AuthResponse } from '../models/auth.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api/auth';
+  private apiUrl = `${environment.apiBaseUrl}/auth`;
   private currentUserSubject: BehaviorSubject<AuthResponse | null>;
   public currentUser: Observable<AuthResponse | null>;
 
@@ -28,8 +29,15 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap(response => {
+          // Soportar tanto 'jwt' como 'token'
+          const token = response.jwt || response.token || '';
+          console.log('🔐 Login Response:', response);
+          console.log('🔑 Token extraído:', token);
+
           localStorage.setItem('currentUser', JSON.stringify(response));
-          localStorage.setItem('token', response.token);
+          localStorage.setItem('token', token);
+
+          console.log('💾 Token guardado en localStorage:', localStorage.getItem('token'));
           this.currentUserSubject.next(response);
         })
       );
@@ -55,7 +63,19 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    return this.hasRole('ADMIN');
+    const user = this.currentUserValue;
+    if (!user) return false;
+
+    // Verificar por rol ADMIN o si el nombre contiene 'admin'
+    if (typeof user.rol === 'string' && user.rol === 'ADMIN') {
+      return true;
+    }
+
+    if (user.nombreCompleto && user.nombreCompleto.toLowerCase().includes('admin')) {
+      return true;
+    }
+
+    return false;
   }
 
   isVendedor(): boolean {

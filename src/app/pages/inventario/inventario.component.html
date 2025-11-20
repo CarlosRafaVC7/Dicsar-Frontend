@@ -7,16 +7,10 @@
   <!-- Tabs principales -->
   <div class="tabs-container">
     <div class="tabs">
-      <button 
-        [class.active]="activeTab === 'productos'" 
-        (click)="cambiarTab('productos')"
-        class="tab-button">
+      <button [class.active]="activeTab === 'productos'" (click)="cambiarTab('productos')" class="tab-button">
         📦 Productos
       </button>
-      <button 
-        [class.active]="activeTab === 'reportes'" 
-        (click)="cambiarTab('reportes')"
-        class="tab-button">
+      <button [class.active]="activeTab === 'reportes'" (click)="cambiarTab('reportes')" class="tab-button">
         📊 Reportes
       </button>
     </div>
@@ -47,6 +41,39 @@
 
   <!-- ========================== 🛒 TAB PRODUCTOS ========================== -->
   <div *ngIf="activeTab === 'productos'" class="tab-content">
+
+    <!-- ⚠️ ALERTAS DE VENCIMIENTO -->
+    <div class="alerta-vencimiento-section" *ngIf="productosVencidos.length > 0 || productosProximosAVencer.length > 0">
+      <div class="alertas-container">
+        <!-- Productos Vencidos -->
+        <div class="alerta-vencido" *ngIf="productosVencidos.length > 0">
+          <div class="alerta-header">
+            <span class="alerta-icon">🚫</span>
+            <span class="alerta-titulo">{{ productosVencidos.length }} Producto(s) Vencido(s)</span>
+          </div>
+          <div class="alerta-items">
+            <div class="alerta-item" *ngFor="let p of productosVencidos">
+              <strong>{{ p.nombre }}</strong> - Vencimiento: {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos Próximos a Vencer -->
+        <div class="alerta-proximo" *ngIf="productosProximosAVencer.length > 0">
+          <div class="alerta-header">
+            <span class="alerta-icon">⏰</span>
+            <span class="alerta-titulo">{{ productosProximosAVencer.length }} Producto(s) Próximo(s) a Vencer</span>
+          </div>
+          <div class="alerta-items">
+            <div class="alerta-item" *ngFor="let p of productosProximosAVencer">
+              <strong>{{ p.nombre }}</strong> - Vence en {{ getDiasParaVencer(p.fechaVencimiento) }} días ({{
+              p.fechaVencimiento | date:'dd/MM/yyyy' }})
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Controles superiores -->
     <div class="controls-panel">
       <!-- Estadísticas de productos -->
@@ -66,11 +93,8 @@
       </div>
 
       <div class="controls-grid">
-        <input 
-          class="search-input" 
-          placeholder="🔍 Buscar producto, categoría o código..." 
-          [(ngModel)]="search" />
-        
+        <input class="search-input" placeholder="🔍 Buscar producto, categoría o código..." [(ngModel)]="search" />
+
         <select class="category-select" [(ngModel)]="selectedCategory">
           <option>Todas las categorías</option>
           <option *ngFor="let c of categorias">{{ c.nombre }}</option>
@@ -79,7 +103,7 @@
         <button class="btn-secondary" (click)="abrirModalUnidad()">
           ⚖️ Unidades
         </button>
-        
+
         <button class="btn-secondary" (click)="abrirModalCategoria()">
           📂 Categorías
         </button>
@@ -113,44 +137,40 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of visibleProducts" 
-              [class.expired]="esProductoVencido(p.fechaVencimiento)"
-              [class.low-stock]="p.stockActual <= p.stockMinimo"
-              [class.inactive]="!p.estado">
-            
+          <tr *ngFor="let p of visibleProducts" [class.expired]="esProductoVencido(p.fechaVencimiento)"
+            [class.low-stock]="p.stockActual <= p.stockMinimo" [class.inactive]="!p.estado">
+
             <!-- Columna Producto -->
             <td class="product-info">
               <div class="product-name">{{ p.nombre }}</div>
               <div class="product-code">{{ p.codigo }}</div>
               <div *ngIf="p.descripcion" class="product-desc">{{ p.descripcion }}</div>
-              <div *ngIf="p.fechaVencimiento" class="expiry-date" 
-                   [class.expired]="esProductoVencido(p.fechaVencimiento)">
+              <div *ngIf="p.fechaVencimiento" class="expiry-date"
+                [class.expired]="esProductoVencido(p.fechaVencimiento)">
                 Vence: {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
               </div>
             </td>
-            
+
             <!-- Columna Categoría -->
             <td>
               <span class="category-badge">{{ p.categoria?.nombre || '-' }}</span>
             </td>
-            
+
             <!-- Columna Unidad -->
             <td>
               <span class="unit-badge">{{ p.unidadMedida?.abreviatura || p.unidadMedida?.nombre || '-' }}</span>
             </td>
-            
+
             <!-- Columna Precio CON BOTÓN DE EDITAR -->
             <td class="price-cell">
               <div class="price-content">
                 <strong>{{ p.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</strong>
-                <button class="btn-edit-price" 
-                        (click)="abrirModalPrecio(p)"
-                        title="Editar precio">
+                <button class="btn-edit-price" (click)="abrirModalPrecio(p)" title="Editar precio">
                   ✏️
                 </button>
               </div>
             </td>
-            
+
             <!-- Columna Stock -->
             <td class="stock-cell">
               <div [class]="p.stockActual <= p.stockMinimo ? 'stock-low' : 'stock-ok'">
@@ -158,15 +178,12 @@
                 <small>/ {{ p.stockMinimo }}</small>
               </div>
             </td>
-            
+
             <!-- Columna Estado CON TOGGLE -->
             <td class="status-cell">
               <div class="status-toggle">
                 <label class="toggle-switch">
-                  <input 
-                    type="checkbox" 
-                    [checked]="p.estado" 
-                    (change)="toggleEstadoProducto(p)">
+                  <input type="checkbox" [checked]="p.estado" (change)="toggleEstadoProducto(p)">
                   <span class="slider"></span>
                 </label>
                 <span class="status-text" [class.active]="p.estado">
@@ -174,22 +191,24 @@
                 </span>
               </div>
             </td>
-            
+
             <!-- Columna Acciones -->
             <td class="actions-cell">
               <div class="action-buttons">
                 <button class="btn-edit" (click)="editarProducto(p)" title="Editar producto">
                   ✏️ Editar
                 </button>
-                <button class="btn-delete" (click)="eliminarProducto(p.idProducto)" 
-                        title="Eliminar producto">
+                <button class="btn-history" (click)="abrirHistorialPrecios(p)" title="Ver historial de precios (HU7)">
+                  📊 Historial
+                </button>
+                <button class="btn-delete" (click)="eliminarProducto(p.idProducto)" title="Eliminar producto">
                   🗑️ Eliminar
                 </button>
               </div>
             </td>
           </tr>
 
-              <!-- Mensaje cuando no hay productos -->
+          <!-- Mensaje cuando no hay productos -->
           <tr *ngIf="visibleProducts.length === 0">
             <td colspan="7" class="no-data">
               <div class="no-data-content">
@@ -234,7 +253,8 @@
               </div>
               <div class="info-item">
                 <label>Precio Actual:</label>
-                <span class="current-price">{{ productoEditandoPrecio?.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</span>
+                <span class="current-price">{{ productoEditandoPrecio?.precioBase | currency:'PEN':'S/ ':'1.2-2'
+                  }}</span>
               </div>
             </div>
           </div>
@@ -242,24 +262,14 @@
           <div class="price-inputs">
             <div class="form-group">
               <label for="nuevoPrecio">Nuevo Precio *</label>
-              <input 
-                type="number" 
-                id="nuevoPrecio"
-                [(ngModel)]="nuevoPrecio" 
-                step="0.01" 
-                min="0.01"
-                placeholder="0.00"
+              <input type="number" id="nuevoPrecio" [(ngModel)]="nuevoPrecio" step="0.01" min="0.01" placeholder="0.00"
                 class="price-input">
             </div>
 
             <div class="form-group">
               <label for="motivoCambio">Motivo del Cambio (Opcional)</label>
-              <textarea 
-                id="motivoCambio"
-                [(ngModel)]="motivoCambioPrecio" 
-                placeholder="Ej: Ajuste por inflación, promoción, etc."
-                rows="3"
-                class="reason-textarea"></textarea>
+              <textarea id="motivoCambio" [(ngModel)]="motivoCambioPrecio"
+                placeholder="Ej: Ajuste por inflación, promoción, etc." rows="3" class="reason-textarea"></textarea>
             </div>
           </div>
         </div>
@@ -284,18 +294,16 @@
         <h3>⚖️ Gestión de Unidades de Medida</h3>
         <button class="modal-close" (click)="cerrarModalUnidad()">×</button>
       </div>
-      
+
       <form class="modal-form" (ngSubmit)="guardarUnidad()">
         <div class="form-row">
           <div class="form-group">
             <label>Nombre *</label>
-            <input type="text" [(ngModel)]="nuevaUnidad.nombre" name="nombre" required 
-                   placeholder="Ej: Kilogramos">
+            <input type="text" [(ngModel)]="nuevaUnidad.nombre" name="nombre" required placeholder="Ej: Kilogramos">
           </div>
           <div class="form-group">
             <label>Abreviatura</label>
-            <input type="text" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviatura"
-                   placeholder="Ej: kg">
+            <input type="text" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviatura" placeholder="Ej: kg">
           </div>
         </div>
 
@@ -303,8 +311,7 @@
           <button type="submit" class="btn-primary">
             {{ editandoUnidad ? '🔄 Actualizar' : '➕ Agregar' }}
           </button>
-          <button type="button" *ngIf="editandoUnidad" 
-                  (click)="cancelarEdicionUnidad()" class="btn-cancel">
+          <button type="button" *ngIf="editandoUnidad" (click)="cancelarEdicionUnidad()" class="btn-cancel">
             ❌ Cancelar
           </button>
         </div>
@@ -335,25 +342,23 @@
         <h3>📂 Gestión de Categorías</h3>
         <button class="modal-close" (click)="cerrarModalCategoria()">×</button>
       </div>
-      
+
       <form class="modal-form" (ngSubmit)="guardarCategoria()">
         <div class="form-group">
           <label>Nombre *</label>
-          <input type="text" [(ngModel)]="nuevaCategoria.nombre" name="nombre" required 
-                 placeholder="Ej: Bebidas">
+          <input type="text" [(ngModel)]="nuevaCategoria.nombre" name="nombre" required placeholder="Ej: Bebidas">
         </div>
         <div class="form-group">
           <label>Descripción</label>
           <textarea [(ngModel)]="nuevaCategoria.descripcion" name="descripcion"
-                    placeholder="Descripción de la categoría"></textarea>
+            placeholder="Descripción de la categoría"></textarea>
         </div>
 
         <div class="form-actions">
           <button type="submit" class="btn-primary">
             {{ editandoCategoria ? '🔄 Actualizar' : '➕ Agregar' }}
           </button>
-          <button type="button" *ngIf="editandoCategoria" 
-                  (click)="cancelarEdicionCategoria()" class="btn-cancel">
+          <button type="button" *ngIf="editandoCategoria" (click)="cancelarEdicionCategoria()" class="btn-cancel">
             ❌ Cancelar
           </button>
         </div>
@@ -389,14 +394,13 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre del Producto *</label>
-            <input type="text" [(ngModel)]="nuevoProducto.nombre" name="modalNombre" required 
-                   placeholder="Ej: Aceite Cocinero 12L">
+            <input type="text" [(ngModel)]="nuevoProducto.nombre" name="modalNombre" required
+              placeholder="Ej: Aceite Cocinero 12L">
           </div>
 
           <div class="form-group">
             <label>Código</label>
-            <input type="text" [(ngModel)]="nuevoProducto.codigo" name="modalCodigo"
-                   placeholder="Ej: ACE-12">
+            <input type="text" [(ngModel)]="nuevoProducto.codigo" name="modalCodigo" placeholder="Ej: ACE-12">
           </div>
 
           <div class="form-group">
@@ -421,26 +425,24 @@
 
           <div class="form-group">
             <label>Precio Base (S/)</label>
-            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioBase" 
-                   name="modalPrecio" placeholder="0.00">
+            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioBase" name="modalPrecio"
+              placeholder="0.00">
           </div>
 
           <div class="form-group">
             <label>Precio de Compra (S/)</label>
-            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioCompra" 
-                   name="modalPrecioCompra" placeholder="0.00">
+            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioCompra" name="modalPrecioCompra"
+              placeholder="0.00">
           </div>
 
           <div class="form-group">
             <label>Stock Actual</label>
-            <input type="number" [(ngModel)]="nuevoProducto.stockActual" 
-                   name="modalStock" placeholder="0">
+            <input type="number" [(ngModel)]="nuevoProducto.stockActual" name="modalStock" placeholder="0">
           </div>
 
           <div class="form-group">
             <label>Stock Mínimo</label>
-            <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" 
-                   name="modalStockMin" placeholder="0">
+            <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" name="modalStockMin" placeholder="0">
           </div>
 
           <div class="form-group">
@@ -455,24 +457,20 @@
 
           <div class="form-group">
             <label>Fecha de Vencimiento</label>
-            <input type="date" [(ngModel)]="nuevoProducto.fechaVencimiento" 
-                   name="modalFecha" [min]="minDate">
+            <input type="date" [(ngModel)]="nuevoProducto.fechaVencimiento" name="modalFecha" [min]="minDate">
           </div>
 
           <div class="form-group">
             <label class="estado-label">
-              <input type="checkbox" 
-                     [(ngModel)]="nuevoProducto.estado" 
-                     name="modalEstado"
-                     class="estado-checkbox">
+              <input type="checkbox" [(ngModel)]="nuevoProducto.estado" name="modalEstado" class="estado-checkbox">
               <span class="estado-text">Estado Activo</span>
             </label>
           </div>
 
           <div class="form-group full-width">
             <label>Descripción</label>
-            <textarea [(ngModel)]="nuevoProducto.descripcion" name="modalDescripcion" 
-                      placeholder="Descripción del producto..." rows="3"></textarea>
+            <textarea [(ngModel)]="nuevoProducto.descripcion" name="modalDescripcion"
+              placeholder="Descripción del producto..." rows="3"></textarea>
           </div>
         </div>
 
@@ -485,6 +483,96 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ========================== 📊 MODAL HISTORIAL DE PRECIOS (HU7) ========================== -->
+  <div class="modal-overlay" *ngIf="mostrarModalHistorial" (click)="cerrarHistorialPrecios()">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2>📊 Historial de Cambios de Precios</h2>
+        <button class="btn-close" (click)="cerrarHistorialPrecios()">✕</button>
+      </div>
+
+      <div class="modal-body" *ngIf="productoSeleccionadoHistorial">
+        <!-- Información del Producto -->
+        <div class="historial-header">
+          <div class="header-info">
+            <h3>{{ productoSeleccionadoHistorial.nombre }}</h3>
+            <p class="codigo">Código: {{ productoSeleccionadoHistorial.codigo }}</p>
+          </div>
+          <div class="header-stats">
+            <div class="stat-box">
+              <span class="stat-label">Total Cambios</span>
+              <span class="stat-value">{{ totalCambiosPrecio }}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Precio Actual</span>
+              <span class="stat-value">S/ {{ productoSeleccionadoHistorial.precioBase | number:'1.2-2' }}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Precio Promedio</span>
+              <span class="stat-value">S/ {{ precioPromedio | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Listado de Cambios -->
+        <div class="historial-content" *ngIf="!cargandoHistorial">
+          <div *ngIf="historialPrecios.length > 0" class="historial-list">
+            <div class="historial-item" *ngFor="let item of historialPrecios; let i = index">
+              <div class="item-header">
+                <div class="item-date">
+                  📅 {{ item.fechaCambio | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+                <div class="item-user">
+                  👤 {{ item.usuario || 'Sistema' }}
+                </div>
+              </div>
+
+              <div class="item-prices">
+                <div class="price-box anterior">
+                  <label>Precio Anterior</label>
+                  <span class="price">S/ {{ item.precioAnterior | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="price-arrow">→</div>
+
+                <div class="price-box nuevo">
+                  <label>Precio Nuevo</label>
+                  <span class="price">S/ {{ item.precioNuevo | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="variacion-badge" [class]="obtenerClaseVariacion(calcularVariacion(item))">
+                  <span *ngIf="calcularVariacion(item) > 0">
+                    📈 +{{ calcularVariacion(item) | number:'1.2-2' }}%
+                  </span>
+                  <span *ngIf="calcularVariacion(item) < 0">
+                    📉 {{ calcularVariacion(item) | number:'1.2-2' }}%
+                  </span>
+                  <span *ngIf="calcularVariacion(item) === 0">
+                    ➡️ 0%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="historialPrecios.length === 0" class="empty-state">
+            <p>📭 No hay cambios de precio registrados para este producto</p>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="cargandoHistorial" class="loading-state">
+          <div class="spinner"></div>
+          <p>Cargando historial...</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" (click)="cerrarHistorialPrecios()">Cerrar</button>
+      </div>
     </div>
   </div>
 

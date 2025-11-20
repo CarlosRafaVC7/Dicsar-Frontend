@@ -6,7 +6,8 @@ import { InventarioComponent } from './pages/inventario/inventario.component';
 import { ClientesComponent } from './pages/clientes/clientes.component';
 import { ProveedoresComponent } from './pages/proveedores/proveedores.component';
 import { ProductosProveedorComponent } from './pages/proveedores/productos-proveedor.component';
-import { VentasComponent } from './pages/ventas/ventas.component';
+import { VentasPanelComponent } from './pages/ventas/ventas-panel.component';
+import { MovimientosComponent } from './pages/movimientos/movimientos.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { MiperfilComponent } from './seguridad/navbar/miperfil/miperfil.component';
 import { CambiarcontrasenaComponent } from './seguridad/navbar/cambiarcontrasena/cambiarcontrasena.component';
@@ -17,56 +18,65 @@ import { adminGuard } from './guards/admin.guard';
 export const appRoutes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { 
-    path: 'dashboard', 
+  {
+    path: 'dashboard',
     component: DashboardComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'inventario', 
+  {
+    path: 'inventario',
     component: InventarioComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'historial-precios', 
+  {
+    path: 'historial-precios',
     component: HistorialPreciosComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'clientes', 
+  {
+    path: 'admin/clientes',
     component: ClientesComponent,
-    canActivate: [authGuard, adminGuard]
+    canActivate: [authGuard]
   },
-  { 
-    path: 'proveedores', 
+  {
+    path: 'clientes',
+    component: ClientesComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'proveedores',
     component: ProveedoresComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'productos-proveedor', 
+  {
+    path: 'productos-proveedor',
     component: ProductosProveedorComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'ventas', 
-    component: VentasComponent,
+  {
+    path: 'movimientos',
+    component: MovimientosComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'usuarios', 
+  {
+    path: 'ventas',
+    component: VentasPanelComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'usuarios',
     component: UsuariosComponent,
     canActivate: [authGuard, adminGuard]
   },
-  { 
-    path: 'mi-perfil', 
+  {
+    path: 'mi-perfil',
     component: MiperfilComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'cambiar-contrasena', 
+  {
+    path: 'cambiar-contrasena',
     component: CambiarcontrasenaComponent,
     canActivate: [authGuard]
   },
   { path: '**', redirectTo: '/login' },
 ];
-
