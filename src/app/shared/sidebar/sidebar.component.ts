@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+import { AuthResponse } from '../../models/auth.model';
 
 interface NavItem {
   label: string;
@@ -44,11 +46,34 @@ export class SidebarComponent {
       icon: 'fa-solid fa-people-group', 
       route: '/clientes' 
     }
+    ,
+    {
+      label: 'Usuarios',
+      icon: 'fa-solid fa-user-group',
+      route: '/usuarios'
+    }
   ];
+
+  currentUser: AuthResponse | null = null;
+
+  constructor(private authService: AuthService) {
+    this.authService.currentUser.subscribe(user => {
+      this.currentUser = user;
+    });
+  }
 
   toggleSubmenu(item: NavItem): void {
     if (item.submenu) {
       item.expanded = !item.expanded;
     }
+  }
+
+  getRoleName(): string {
+    return this.currentUser?.rol === 'ADMIN' ? 'Administrador' : 'Vendedor';
+  }
+
+  logout(): void {
+    this.authService.logout();
+    window.location.href = '/login';
   }
 }

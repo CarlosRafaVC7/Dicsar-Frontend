@@ -188,65 +188,74 @@
   font-weight: 400;
 }
 
-/* ========================== SIDEBAR FOOTER ========================== */
+/* --- FOOTER DEL SIDEBAR --- */
 .sidebar-footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
+  padding: 22px 18px 18px 18px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e0e7ff 100%);
+  border-top: 1px solid #e5e7eb;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  background: #2563eb;
+  color: #fff;
   border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: white;
+  font-size: 1.5rem;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
 }
 
 .user-name {
-  font-size: 13px;
   font-weight: 600;
-  color: white;
+  color: #1e293b;
+  font-size: 1rem;
 }
 
 .user-role {
-  font-size: 11px;
+  font-size: 0.85rem;
   color: #64748b;
+  font-weight: 500;
 }
 
-.logout-btn {
-  background: none;
+.btn-logout {
+  background: linear-gradient(135deg, #ef4444 0%, #fca5a5 100%);
+  color: #fff;
   border: none;
-  color: #ef4444;
-  font-size: 16px;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+  transition: background 0.2s;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  transform: scale(1.1);
+.btn-logout:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
 }
 
 /* ========================== SCROLLBAR PERSONALIZADA ========================== */
