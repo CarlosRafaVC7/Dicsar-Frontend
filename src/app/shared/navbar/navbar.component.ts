@@ -7,11 +7,13 @@ import { Notificacion, NotificacionService } from '../../services/notificacion.s
 import { AuthService } from '../../services/auth.service';
 import { AuthResponse } from '../../models/auth.model';
 import { UsuarioService } from '../../services/usuario.service';
+import { ThemeToggleComponent } from '../components/theme-toggle/theme-toggle.component';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterModule, HttpClientModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, HttpClientModule, FormsModule, ReactiveFormsModule, ThemeToggleComponent],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
@@ -30,7 +32,8 @@ export class NavbarComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private usuarioService: UsuarioService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private toastService: ToastService
   ) {
     this.passwordForm = this.fb.group({
       passwordActual: ['', [Validators.required, Validators.minLength(6)]],
@@ -141,18 +144,18 @@ export class NavbarComponent implements OnInit {
     const { passwordActual, passwordNueva, passwordConfirmar } = this.passwordForm.value;
 
     if (passwordNueva !== passwordConfirmar) {
-      alert('Las contraseñas no coinciden');
+      this.toastService.error('Las contraseñas no coinciden');
       return;
     }
 
     this.usuarioService.cambiarPassword(passwordActual, passwordNueva).subscribe({
       next: () => {
-        alert('Contraseña cambiada exitosamente');
+        this.toastService.success('Contraseña cambiada exitosamente');
         this.cerrarModalPassword();
       },
       error: (err: any) => {
         console.error('Error al cambiar contraseña:', err);
-        alert('Error al cambiar contraseña. Verifica tu contraseña actual.');
+        this.toastService.error('Error al cambiar contraseña. Verifica tu contraseña actual.');
       }
     });
   }

@@ -1,11 +1,16 @@
-<aside class="sidebar">
+<aside class="sidebar" [class.collapsed]="!sidebarExpanded" [class.mobile-open]="sidebarExpanded && isMobile">
+  <!-- BOTÓN DE TOGGLE -->
+  <button class="sidebar-toggle" (click)="toggleSidebar()" [title]="sidebarExpanded ? 'Contraer sidebar' : 'Expandir sidebar'">
+    <i class="fa-solid" [class.fa-chevron-left]="sidebarExpanded" [class.fa-chevron-right]="!sidebarExpanded"></i>
+  </button>
+
   <!-- ENCABEZADO CON LOGO -->
   <div class="brand">
     <div class="brand-logo">
       <i class="fa-solid fa-clipboard-list"></i>
     </div>
     <div class="brand-info">
-      <span class="brand-title">DICSAR S.A.C.</span>
+      <span class="brand-title">DICSAR</span>
       <span class="brand-subtitle">Sistema de Gestión</span>
     </div>
   </div>
@@ -27,6 +32,7 @@
            class="menu-link">
           <i [class]="item.icon + ' menu-icon'"></i>
           <span class="menu-label">{{ item.label }}</span>
+          <span *ngIf="item.badge" class="menu-badge">{{ item.badge }}</span>
         </a>
 
         <div *ngIf="item.submenu" class="menu-link submenu-toggle">
@@ -37,8 +43,8 @@
         </div>
       </div>
 
-      <!-- Submenú -->
-      <div *ngIf="item.submenu && item.expanded" class="submenu">
+      <!-- Submenú - Visible tanto expandido como contraído -->
+      <div *ngIf="item.submenu && (item.expanded || isCollapsed)" class="submenu">
         <a *ngFor="let subitem of item.submenu"
            [routerLink]="subitem.route"
            routerLinkActive="active"
@@ -52,5 +58,20 @@
     </div>
   </nav>
 
-  <!-- FOOTER DEL SIDEBAR ELIMINADO -->
+  <!-- FOOTER CON USUARIO Y LOGOUT -->
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div class="user-details">
+        <span class="user-name">{{ currentUser?.nombreCompleto || 'Usuario' }}</span>
+        <span class="user-role">{{ getRoleName() }}</span>
+      </div>
+    </div>
+    <button class="btn-logout" (click)="logout()">
+      <i class="fa-solid fa-right-from-bracket logout-icon"></i>
+      <span class="logout-text">Cerrar Sesión</span>
+    </button>
+  </div>
 </aside>

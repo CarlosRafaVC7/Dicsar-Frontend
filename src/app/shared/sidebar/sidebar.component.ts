@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -10,6 +10,7 @@ interface NavItem {
   route?: string;
   submenu?: NavItem[];
   expanded?: boolean;
+  badge?: number | string;
 }
 
 @Component({
@@ -17,9 +18,19 @@ interface NavItem {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css']  // ojo: debe ser "styleUrls" (plural)
+  styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent {
+  // Estado del sidebar: expandido o colapsado
+  sidebarExpanded = true;
+  
+  // Evento para notificar al componente padre sobre el cambio de estado
+  @Output() sidebarToggle = new EventEmitter<boolean>();
+  
+  // Breakpoint para responsive (1024px)
+  private readonly MOBILE_BREAKPOINT = 1024;
+  isMobile = false;
+  
   items: NavItem[] = [
     { 
       label: 'Dashboard', 
@@ -60,12 +71,52 @@ export class SidebarComponent {
     this.authService.currentUser.subscribe(user => {
       this.currentUser = user;
     });
+    
+    // Verificar si estamos en mobile al iniciar
+    this.checkMobile();
+  }
+
+  // Listener para resize de ventana
+  @HostListener('window:resize')
+  onResize(): void {
+    this.checkMobile();
+  }
+
+  private checkMobile(): void {
+    this.isMobile = window.innerWidth < this.MOBILE_BREAKPOINT;
+    
+    // En móvil, el sidebar empieza cerrado
+    if (this.isMobile && this.sidebarExpanded) {
+      this.sidebarExpanded = false;
+    }
+    // En desktop, el sidebar empieza abierto
+    if (!this.isMobile && !this.sidebarExpanded) {
+      this.sidebarExpanded = true;
+    }
+  }
+
+  toggleSidebar(): void {
+    this.sidebarExpanded = !this.sidebarExpanded;
+    this.sidebarToggle.emit(this.sidebarExpanded);
+    
+    // Cuando el sidebar está contraído, mantener el submenú de Inventario visible
+    if (!this.sidebarExpanded) {
+      const inventarioItem = this.items.find(item => item.label === 'Inventario');
+      if (inventarioItem) {
+        inventarioItem.expanded = true;
+      }
+    }
   }
 
   toggleSubmenu(item: NavItem): void {
     if (item.submenu) {
       item.expanded = !item.expanded;
     }
+  }
+
+  // Getter para verificar si el sidebar está contraído
+  get isCollapsed(): boolean {
+    return !this.sidebarExpanded;
   }
 
   getRoleName(): string {

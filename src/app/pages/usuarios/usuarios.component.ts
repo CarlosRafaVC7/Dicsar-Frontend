@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { UsuarioService } from '../../services/usuario.service';
+import { ToastService } from '../../services/toast.service';
 
 interface Usuario {
   idUsuario?: number;
@@ -35,6 +36,10 @@ export class UsuariosComponent implements OnInit {
   // Búsqueda
   search = '';
   
+  // Ordenación
+  sortField = 'idUsuario';
+  sortDirection: 'asc' | 'desc' = 'asc';
+  
   // Cambio de contraseña
   passwordForm!: FormGroup;
   currentUser: any;
@@ -42,7 +47,8 @@ export class UsuariosComponent implements OnInit {
   constructor(
     private usuarioService: UsuarioService,
     private authService: AuthService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private toastService: ToastService
   ) {
     this.initForms();
   }
@@ -170,18 +176,18 @@ export class UsuariosComponent implements OnInit {
     const { passwordActual, passwordNueva, passwordConfirmar } = this.passwordForm.value;
 
     if (passwordNueva !== passwordConfirmar) {
-      alert('Las contraseñas no coinciden');
+      this.toastService.error('Las contraseñas no coinciden');
       return;
     }
 
     this.usuarioService.cambiarPassword(passwordActual, passwordNueva).subscribe({
       next: () => {
-        alert('Contraseña cambiada exitosamente');
+        this.toastService.success('Contraseña cambiada exitosamente');
         this.cerrarModalPassword();
       },
       error: (err: any) => {
         console.error('Error al cambiar contraseña:', err);
-        alert('Error al cambiar contraseña. Verifica tu contraseña actual.');
+        this.toastService.error('Error al cambiar contraseña. Verifica tu contraseña actual.');
       }
     });
   }
@@ -212,9 +218,30 @@ export class UsuariosComponent implements OnInit {
 
   get usuariosVisibles(): Usuario[] {
     const filtered = this.usuariosFiltrados;
-    this.totalPaginas = Math.ceil(filtered.length / this.itemsPorPagina);
+    
+    // Aplicar ordenación
+    const sorted = [...filtered].sort((a, b) => {
+      const aVal = a[this.sortField as keyof Usuario] ?? '';
+      const bVal = b[this.sortField as keyof Usuario] ?? '';
+      
+      if (aVal === bVal) return 0;
+      
+      const comparison = aVal < bVal ? -1 : 1;
+      return this.sortDirection === 'asc' ? comparison : -comparison;
+    });
+    
+    this.totalPaginas = Math.ceil(sorted.length / this.itemsPorPagina);
     const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
     const fin = inicio + this.itemsPorPagina;
-    return filtered.slice(inicio, fin);
+    return sorted.slice(inicio, fin);
+  }
+
+  ordenar(campo: string): void {
+    if (this.sortField === campo) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = campo;
+      this.sortDirection = 'asc';
+    }
   }
 }

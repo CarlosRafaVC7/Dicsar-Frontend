@@ -2,6 +2,9 @@
   <div class="navbar-left"></div>
 
   <div class="navbar-right">
+    <!-- Theme Toggle -->
+    <app-theme-toggle></app-theme-toggle>
+
     <!-- Botón de notificaciones -->
     <button class="notification-btn" (click)="toggleNotifications()">
       <i class="fa-solid fa-bell"></i>
@@ -9,72 +12,70 @@
     </button>
 
     <!-- Modal de notificaciones -->
-    <div class="notifications-modal" *ngIf="isNotificationsOpen">
-      <div class="notifications-header">
-        <h3>🔔 Centro de Notificaciones</h3>
-        <button class="close-btn" (click)="toggleNotifications()">×</button>
-      </div>
-      
-      <!-- Filtros -->
-      <div class="notifications-filters">
-        <select [(ngModel)]="filtroProducto" (change)="filtrarPorProducto(filtroProducto)" class="filter-select">
-          <option [ngValue]="null">📦 Todos los productos</option>
-          <option *ngFor="let producto of productosConNotificaciones" [ngValue]="producto.idProducto">
-            {{ producto.nombre }}
-          </option>
-        </select>
-        <button class="refresh-btn" (click)="cargarNotificaciones()" title="Actualizar">
-          🔄
-        </button>
-      </div>
-
-      <!-- Lista de notificaciones -->
-      <div class="notifications-list">
-        <div *ngFor="let noti of notificaciones" 
-             class="notification-card" 
-             [ngClass]="getTipoClass(noti.tipo)">
-          
-          <!-- Icono y tipo -->
-          <div class="notification-icon">
-            <i class="fa-solid" [ngClass]="getTipoIcon(noti.tipo)"></i>
-          </div>
-          
-          <!-- Contenido -->
-          <div class="notification-content">
-            <div class="notification-header">
-              <span class="notification-type">{{ noti.tipo }}</span>
-              <button class="delete-btn" 
-                      (click)="eliminarNotificacion(noti.id)"
-                      title="Eliminar notificación">
-                🗑️
-              </button>
-            </div>
-            
-            <div class="notification-product">
-              📦 {{ noti.producto.nombre }}
-            </div>
-            
-            <div class="notification-description">
-              {{ noti.descripcion }}
-            </div>
-            
-            <div class="notification-footer">
-              <span class="notification-date">
-                📅 {{ noti.fechaHora | date:'dd/MM/yyyy HH:mm' }}
-              </span>
-              <span class="notification-user">
-                👤 {{ noti.usuario }}
-              </span>
-            </div>
-          </div>
+    <div class="notifications-modal-overlay" *ngIf="isNotificationsOpen" (click)="toggleNotifications()">
+      <div class="notifications-modal" (click)="$event.stopPropagation()">
+        <div class="notifications-header">
+          <h3>🔔 Centro de Notificaciones</h3>
+          <button class="close-btn" (click)="toggleNotifications()">×</button>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="notifications-filters">
+          <select [(ngModel)]="filtroProducto" (change)="filtrarPorProducto(filtroProducto)" class="filter-select">
+            <option [ngValue]="null">📦 Todos los productos</option>
+            <option *ngFor="let producto of productosConNotificaciones" [ngValue]="producto.idProducto">
+              {{ producto.nombre }}
+            </option>
+          </select>
+          <button class="refresh-btn" (click)="cargarNotificaciones()" title="Actualizar">
+            🔄
+          </button>
         </div>
 
-        <!-- Mensaje cuando no hay notificaciones -->
-        <div *ngIf="notificaciones.length === 0" class="no-notifications">
-          <div class="no-notifications-content">
-            <i class="fa-solid fa-bell-slash"></i>
-            <h4>No hay notificaciones</h4>
-            <p>No tienes notificaciones {{ filtroProducto ? 'para este producto' : 'en este momento' }}</p>
+        <!-- Lista de notificaciones -->
+        <div class="notifications-list">
+          <div *ngFor="let noti of notificaciones" 
+               class="notification-card" 
+               [ngClass]="getTipoClass(noti.tipo)">
+            
+            <!-- Icono y tipo -->
+            <div class="notification-icon">
+              <i class="fa-solid" [ngClass]="getTipoIcon(noti.tipo)"></i>
+            </div>
+            
+            <!-- Contenido -->
+            <div class="notification-content">
+              <div class="notification-header">
+                <span class="notification-type">{{ noti.tipo }}</span>
+                <button class="delete-btn" (click)="eliminarNotificacion(noti.id)" title="Eliminar">🗑️</button>
+              </div>
+              
+              <div class="notification-product">
+                📦 {{ noti.producto.nombre }}
+              </div>
+              
+              <div class="notification-description">
+                {{ noti.descripcion }}
+              </div>
+              
+              <div class="notification-footer">
+                <span class="notification-date">
+                  📅 {{ noti.fechaHora | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+                <span class="notification-user">
+                  👤 {{ noti.usuario }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mensaje cuando no hay notificaciones -->
+          <div *ngIf="notificaciones.length === 0" class="no-notifications">
+            <div class="no-notifications-content">
+              <i class="fa-solid fa-bell-slash"></i>
+              <h4>No hay notificaciones</h4>
+              <p>No tienes notificaciones {{ filtroProducto ? 'para este producto' : 'en este momento' }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -102,7 +103,7 @@
 </nav>
 
 <!-- Modal Cambiar Contraseña -->
-<div class="modal-overlay" *ngIf="mostrarModalPassword" (click)="cerrarModalPassword()">
+<div class="modal-overlay" *ngIf="mostrarModalPassword">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>🔒 Cambiar Contraseña</h2>

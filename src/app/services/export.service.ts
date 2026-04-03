@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { ToastService } from './toast.service';
 
 export interface ExportColumn {
   header: string;
@@ -17,7 +18,7 @@ export interface ExportColumn {
 })
 export class ExportService {
 
-  constructor() {}
+  constructor(private toastService: ToastService) {}
 
   /**
    * Exporta datos a PDF con logo de DICSAR
@@ -107,7 +108,7 @@ export class ExportService {
             
     } catch (error) {
       console.error('Error exportando a PDF:', error);
-      alert('Error al exportar a PDF: ' + error);
+      this.toastService.error('Error al exportar a PDF');
     }
   }
 
@@ -176,7 +177,7 @@ export class ExportService {
             
     } catch (error) {
       console.error('Error exportando a Excel:', error);
-      alert('Error al exportar a Excel: ' + error);
+      this.toastService.error('Error al exportar a Excel');
     }
   }
 
@@ -215,7 +216,7 @@ export class ExportService {
       
     } catch (error) {
       console.error('Error exportando a CSV:', error);
-      alert('Error al exportar a CSV');
+      this.toastService.error('Error al exportar a CSV');
     }
   }
 

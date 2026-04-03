@@ -1,8 +1,3 @@
-<!-- ⚠️ ALERTA -->
-<div *ngIf="alertaVisible" class="alerta" [ngClass]="alertaTipo">
-  {{ alertaMensaje }}
-</div>
-
 <div class="historial-container">
 
   <!-- 🧭 HEADER -->
@@ -23,13 +18,21 @@
   <!-- 🎛️ FILTROS -->
   <div class="filtros-container">
     <div class="filtro-group">
+      <label>Categoría:</label>
+      <select [(ngModel)]="filtroCategoriaId">
+        <option [ngValue]="null">Todas las categorías</option>
+        <option *ngFor="let c of categorias" [ngValue]="c.idCategoria">{{ c.nombre }}</option>
+      </select>
+    </div>
+
+    <div class="filtro-group">
       <label> Seleccionar Producto:</label>
       <select 
         [(ngModel)]="productoSeleccionadoId" 
         (change)="cargarHistorialPrecios()"
         [disabled]="cargando">
         <option [value]="null">-- Seleccione un producto --</option>
-        <option *ngFor="let p of productos" [value]="p.idProducto">
+        <option *ngFor="let p of productosFiltrados" [value]="p.idProducto">
           {{ p.nombre }} - {{ p.codigo }} (S/ {{ p.precioBase | number:'1.2-2' }})
         </option>
       </select>

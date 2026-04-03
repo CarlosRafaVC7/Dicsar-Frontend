@@ -29,13 +29,12 @@
     </div>
   </div>
 
-  <!-- Barra de controles: pestañas (opcional), búsqueda y filtro -->
+  <!-- Barra de controles: pestañas, búsqueda y filtro tipo -->
   <div class="controls-row-ventas">
     <div class="tabs pills">
       <button [class.active]="activeTab === 'salidas'" (click)="cambiarTab('salidas')">Movimientos</button>
       <button [class.active]="activeTab === 'historial'" (click)="cambiarTab('historial')">Reportes</button>
     </div>
-
 
     <div class="search-filter">
       <input class="search" placeholder="Buscar por producto, código o descripción..." [(ngModel)]="searchMov" />
@@ -49,7 +48,7 @@
   </div>
 
   <!-- Modal: Nuevo Movimiento -->
-  <div class="modal-overlay" *ngIf="mostrarModalMovimiento" (click)="cerrarModalMovimiento()">
+  <div class="modal-overlay" *ngIf="mostrarModalMovimiento">
     <div class="modal product-modal" (click)="$event.stopPropagation()">
       <header class="modal-head">
         <h3>Nuevo Movimiento</h3>
@@ -58,10 +57,18 @@
 
       <form class="product-modal-form" (ngSubmit)="registrarMovimiento()">
         <div class="field">
+          <label>Categoría</label>
+          <select [(ngModel)]="filtroCategoriaId" name="filtroCategoriaId">
+            <option [ngValue]="null">Todas las categorías</option>
+            <option *ngFor="let c of categorias" [ngValue]="c.idCategoria">{{ c.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="field">
           <label>Producto</label>
           <select [(ngModel)]="nuevoMovimiento.producto" name="producto" required>
             <option [ngValue]="null">Seleccione un producto</option>
-            <option *ngFor="let p of productos" [ngValue]="p">{{ p.nombre }} (Stock: {{p.stockActual}})</option>
+            <option *ngFor="let p of productosFiltradosModal" [ngValue]="p">{{ p.nombre }} ({{ p.codigo }}) - Stock: {{p.stockActual}}</option>
           </select>
         </div>
 
@@ -127,7 +134,7 @@
             </td>
             <td>{{ m.usuarioMovimiento || '---' }}</td>
             <td>
-              <button class="icon-btn" title="Ver" (click)="verMovimiento(m)">𓁹</button>
+              <button class="icon-btn" title="Nuevo movimiento similar" (click)="verMovimiento(m)">🔄</button>
             </td>
           </tr>
 
@@ -150,23 +157,10 @@
     </div>
   </section>
 
-  <div *ngIf="activeTab === 'historial'" class="filtro-fechas">
-    <h3>Filtrar Reportes por Fecha</h3>
-    <div class="fecha-inputs">
-      <div class="field-date">
-        <label>Fecha inicio</label>
-        <input type="date" [(ngModel)]="fechaInicio" />
-      </div>
-      <div class="field-date">
-        <label>Fecha fin</label>
-        <input type="date" [(ngModel)]="fechaFin" />
-      </div>
-      <button class="btn btn-primario" (click)="filtrarPorFecha()">Filtrar</button>
-    </div>
+  <!-- Pestaña Reportes -->
+  <div *ngIf="activeTab === 'historial'" class="export-buttons">
+    <button class="btn btn-pdf" (click)="exportarPDF()">Exportar PDF</button>
   </div>
-<div class="export-buttons" *ngIf="activeTab === 'historial' && movimientosFiltrados.length > 0">
-      <button class="btn btn-pdf" (click)="exportarPDF()">Exportar PDF</button>
-    </div>
 
   <!-- Tabla Reportes -->
   <section class="historial-container" *ngIf="activeTab === 'historial' && movimientosFiltrados.length > 0">

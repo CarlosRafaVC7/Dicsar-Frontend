@@ -1,0 +1,16 @@
+<div class="toast-container">
+  @for (toast of toasts; track trackById($index, toast)) {
+    <div 
+      class="toast toast-{{ toast.type }}" 
+      (click)="dismiss(toast.id)"
+      [style.--duration.ms]="toast.duration">
+      <div class="toast-icon">
+        <span class="icon">{{ getIcon(toast.type) }}</span>
+      </div>
+      <div class="toast-content">
+        <span class="toast-message">{{ toast.message }}</span>
+      </div>
+      <button class="toast-close" (click)="dismiss(toast.id); $event.stopPropagation()">×</button>
+    </div>
+  }
+</div>

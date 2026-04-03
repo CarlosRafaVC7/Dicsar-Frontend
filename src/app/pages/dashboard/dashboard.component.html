@@ -1,1 +1,116 @@
-<p>dashboard works!</p>
+<div class="dashboard-shell">
+  <!-- Hero Header -->
+  <div class="dashboard-hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>¡Bienvenido de nuevo, {{ currentUser?.nombreCompleto || 'Usuario' }}! 👋</h1>
+        <p>Aquí está todo lo que necesitas saber sobre tu inventario hoy</p>
+      </div>
+      <div class="hero-clock">
+        <div class="clock-time">{{ horaActual }}</div>
+        <div class="clock-date">{{ actualDate }}</div>
+      </div>
+    </div>
+    <div class="hero-decoration"></div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card" *ngFor="let stat of stats; let i = index" [style.--accent-color]="stat.color" [style.animation-delay]="i * 0.1 + 's'">
+      <div class="stat-icon">{{ stat.icono }}</div>
+      <div class="stat-info">
+        <span class="stat-title">{{ stat.titulo }}</span>
+        <span class="stat-value">{{ stat.valor }}</span>
+      </div>
+      <div class="stat-glow" [style.background]="stat.color"></div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-grid">
+    <!-- Movimientos Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>📊 Movimientos</h3>
+        <span class="card-subtitle">Entradas vs Salidas</span>
+      </div>
+      <div class="chart-container">
+        <canvas #chartMovimientos></canvas>
+      </div>
+    </div>
+
+    <!-- Categorías Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>🏷️ Productos por Categoría</h3>
+        <span class="card-subtitle">Distribución de inventarios</span>
+      </div>
+      <div class="chart-container">
+        <canvas #chartCategorias></canvas>
+      </div>
+    </div>
+
+    <!-- Estado Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>✅ Estado de Productos</h3>
+        <span class="card-subtitle">Activos vs Inactivos</span>
+      </div>
+      <div class="chart-container">
+        <canvas #chartEstado></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="bottom-grid">
+    <!-- Recent Movements -->
+    <div class="movimientos-card">
+      <div class="card-header">
+        <h3>📜 Movimientos Recientes</h3>
+        <a routerLink="/ventas" class="view-all">Ver todos →</a>
+      </div>
+      <div class="movimientos-list">
+        <div class="movimiento-item" *ngFor="let m of movimientosRecientes" [class]="getTipoClass(m.tipo)">
+          <div class="movimiento-icon">{{ getTipoIcon(m.tipo) }}</div>
+          <div class="movimiento-info">
+            <span class="movimiento-producto">{{ m.producto }}</span>
+            <span class="movimiento-meta">{{ m.cantidad }} unidades • {{ formatearFecha(m.fecha) }}</span>
+          </div>
+          <div class="movimiento-tipo">{{ m.tipo }}</div>
+        </div>
+        <div class="empty-state" *ngIf="movimientosRecientes.length === 0">
+          <span>📭</span>
+          <p>No hay movimientos recientes</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Alerts -->
+    <div class="alertas-card">
+      <div class="card-header">
+        <h3>⚠️ Alertas de Stock</h3>
+        <span class="alert-count" *ngIf="alertasStock.length > 0">{{ alertasStock.length }}</span>
+      </div>
+      <div class="alertas-list">
+        <div class="alerta-item" *ngFor="let alerta of alertasStock" [class]="getStockClass(alerta)">
+          <div class="alerta-info">
+            <span class="alerta-nombre">{{ alerta.nombre }}</span>
+            <span class="alerta-stock">
+              Stock: <strong>{{ alerta.stockActual }}</strong> / {{ alerta.stockMinimo }} min
+            </span>
+          </div>
+          <div class="alerta-badge">
+            <span *ngIf="alerta.stockActual === 0">AGOTADO</span>
+            <span *ngIf="alerta.stockActual > 0 && alerta.stockActual <= alerta.stockMinimo * 0.5">CRÍTICO</span>
+            <span *ngIf="alerta.stockActual > alerta.stockMinimo * 0.5">BAJO</span>
+          </div>
+        </div>
+        <div class="empty-state success" *ngIf="alertasStock.length === 0">
+          <span>✅</span>
+          <p>¡Todo el stock está saludable!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

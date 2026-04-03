@@ -13,9 +13,10 @@ import { CambiarcontrasenaComponent } from './seguridad/navbar/cambiarcontrasena
 import { HistorialPreciosComponent } from './pages/historial-precios/historial-precios.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { noAuthGuard } from './guards/no-auth.guard';
 
 export const appRoutes: Routes = [
-  { path: 'login', component: LoginComponent },
+  { path: 'login', component: LoginComponent, canActivate: [noAuthGuard] },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { 
     path: 'dashboard', 

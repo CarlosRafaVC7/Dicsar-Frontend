@@ -1,40 +1,54 @@
-<div class="usuarios-container">
-  <div class="header">
+<div class="usuarios-shell">
+  <!-- Encabezado del módulo -->
+  <div class="module-header">
     <h1>👥 Gestión de Usuarios</h1>
-    <div class="header-actions">
-      <button class="btn-add" (click)="abrirModalUsuario()">
-        ➕ Nuevo Usuario
-      </button>
-    </div>
+    <p>Administra los usuarios del sistema</p>
   </div>
 
-  <!-- Búsqueda -->
-  <div class="search-section">
-    <input 
-      type="text" 
-      [(ngModel)]="search" 
-      (input)="actualizarPaginacion()"
-      placeholder="🔍 Buscar por usuario o nombre..." 
-      class="search-input">
+  <!-- Controles de búsqueda y acciones -->
+  <div class="controls-grid">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        [(ngModel)]="search" 
+        (input)="actualizarPaginacion()"
+        placeholder="Buscar por usuario o nombre..." 
+        class="search-input">
+    </div>
+    
+    <button class="btn-primary" (click)="abrirModalUsuario()">
+      ➕ Nuevo Usuario
+    </button>
   </div>
 
   <!-- Tabla de usuarios -->
   <div class="table-container">
-    <table class="usuarios-table">
+    <table class="products-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Usuario</th>
-          <th>Nombre Completo</th>
-          <th>Rol</th>
-          <th>Estado</th>
+          <th (click)="ordenar('idUsuario')" class="sortable">
+            ID <span class="sort-icon">{{ sortField === 'idUsuario' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕' }}</span>
+          </th>
+          <th (click)="ordenar('username')" class="sortable">
+            Usuario <span class="sort-icon">{{ sortField === 'username' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕' }}</span>
+          </th>
+          <th (click)="ordenar('nombreCompleto')" class="sortable">
+            Nombre Completo <span class="sort-icon">{{ sortField === 'nombreCompleto' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕' }}</span>
+          </th>
+          <th (click)="ordenar('rol')" class="sortable">
+            Rol <span class="sort-icon">{{ sortField === 'rol' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕' }}</span>
+          </th>
+          <th (click)="ordenar('activo')" class="sortable">
+            Estado <span class="sort-icon">{{ sortField === 'activo' ? (sortDirection === 'asc' ? '↑' : '↓') : '↕' }}</span>
+          </th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let u of usuariosVisibles" [class.inactive]="!u.activo">
+        <tr *ngFor="let u of usuariosVisibles">
           <td>{{ u.idUsuario }}</td>
-          <td>{{ u.username }}</td>
+          <td class="product-name">{{ u.username }}</td>
           <td>{{ u.nombreCompleto }}</td>
           <td>
             <span class="badge-rol" [class.admin]="u.rol === 'ADMIN'">
@@ -57,10 +71,7 @@
           </td>
           <td class="actions-cell">
             <button class="btn-edit" (click)="editarUsuario(u)" title="Editar">
-              ✏️ Editar
-            </button>
-            <button class="btn-delete" (click)="eliminarUsuario(u.idUsuario!)" title="Eliminar">
-              🗑️ Eliminar
+              ✏️
             </button>
           </td>
         </tr>
@@ -84,93 +95,145 @@
 </div>
 
 <!-- Modal Crear/Editar Usuario -->
-<div class="modal-overlay" *ngIf="mostrarModalUsuario" (click)="cerrarModalUsuario()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+<div class="modal-overlay" *ngIf="mostrarModalUsuario">
+  <div class="modal-content proveedor-modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ editandoUsuario ? '✏️ Editar Usuario' : '➕ Nuevo Usuario' }}</h2>
-      <button class="btn-close" (click)="cerrarModalUsuario()">✖</button>
+      <h3>{{ editandoUsuario ? '✏️ Editar Usuario' : '➕ Nuevo Usuario' }}</h3>
+      <button class="modal-close" (click)="cerrarModalUsuario()">&times;</button>
     </div>
     
-    <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
-      <div class="form-group">
-        <label>Usuario *</label>
-        <input type="text" formControlName="username" [readonly]="editandoUsuario">
-        <small *ngIf="usuarioForm.get('username')?.hasError('required') && usuarioForm.get('username')?.touched">
-          El usuario es requerido
-        </small>
-      </div>
+    <div class="modal-body">
+      <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="username">Usuario</label>
+            <input 
+              type="text" 
+              id="username" 
+              formControlName="username"
+              class="form-control"
+              [class.is-invalid]="usuarioForm.get('username')?.invalid && usuarioForm.get('username')?.touched"
+              [readonly]="editandoUsuario"
+              placeholder="Ingrese nombre de usuario">
+            <div class="invalid-feedback" *ngIf="usuarioForm.get('username')?.hasError('required') && usuarioForm.get('username')?.touched">
+              El usuario es requerido
+            </div>
+          </div>
 
-      <div class="form-group" *ngIf="!editandoUsuario">
-        <label>Contraseña *</label>
-        <input type="password" formControlName="password">
-        <small *ngIf="usuarioForm.get('password')?.hasError('minlength')">
-          Mínimo 6 caracteres
-        </small>
-      </div>
+          <div class="form-group" *ngIf="!editandoUsuario">
+            <label for="password">Contraseña</label>
+            <input 
+              type="password" 
+              id="password" 
+              formControlName="password"
+              class="form-control"
+              [class.is-invalid]="usuarioForm.get('password')?.invalid && usuarioForm.get('password')?.touched"
+              placeholder="Mínimo 6 caracteres">
+            <div class="invalid-feedback" *ngIf="usuarioForm.get('password')?.hasError('minlength')">
+              Mínimo 6 caracteres
+            </div>
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label>Nombre Completo *</label>
-        <input type="text" formControlName="nombreCompleto">
-      </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="nombreCompleto">Nombre Completo</label>
+            <input 
+              type="text" 
+              id="nombreCompleto" 
+              formControlName="nombreCompleto"
+              class="form-control"
+              [class.is-invalid]="usuarioForm.get('nombreCompleto')?.invalid && usuarioForm.get('nombreCompleto')?.touched"
+              placeholder="Ingrese nombre completo">
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label>Rol *</label>
-        <select formControlName="rol">
-          <option value="VENDEDOR">👤 VENDEDOR</option>
-          <option value="ADMIN">👑 ADMIN</option>
-        </select>
-      </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rol">Rol</label>
+            <select id="rol" formControlName="rol" class="form-control">
+              <option value="VENDEDOR">👤 VENDEDOR</option>
+              <option value="ADMIN">👑 ADMIN</option>
+            </select>
+          </div>
 
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" formControlName="activo">
-          <span>Usuario Activo</span>
-        </label>
-      </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="activo">
+              <span>Usuario Activo</span>
+            </label>
+          </div>
+        </div>
 
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" (click)="cerrarModalUsuario()">Cancelar</button>
-        <button type="submit" class="btn-save" [disabled]="usuarioForm.invalid">
-          {{ editandoUsuario ? 'Actualizar' : 'Crear' }}
-        </button>
-      </div>
-    </form>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="cerrarModalUsuario()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="usuarioForm.invalid">
+            {{ editandoUsuario ? 'Actualizar' : 'Crear' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
 <!-- Modal Cambiar Contraseña -->
-<div class="modal-overlay" *ngIf="mostrarModalPassword" (click)="cerrarModalPassword()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+<div class="modal-overlay" *ngIf="mostrarModalPassword">
+  <div class="modal-content proveedor-modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>🔒 Cambiar Contraseña</h2>
-      <button class="btn-close" (click)="cerrarModalPassword()">✖</button>
+      <h3>🔒 Cambiar Contraseña</h3>
+      <button class="modal-close" (click)="cerrarModalPassword()">&times;</button>
     </div>
     
-    <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
-      <div class="form-group">
-        <label>Contraseña Actual *</label>
-        <input type="password" formControlName="passwordActual">
-      </div>
+    <div class="modal-body">
+      <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="passwordActual">Contraseña Actual</label>
+            <input 
+              type="password" 
+              id="passwordActual" 
+              formControlName="passwordActual"
+              class="form-control"
+              placeholder="Ingrese contraseña actual">
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label>Contraseña Nueva *</label>
-        <input type="password" formControlName="passwordNueva">
-        <small *ngIf="passwordForm.get('passwordNueva')?.hasError('minlength')">
-          Mínimo 6 caracteres
-        </small>
-      </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="passwordNueva">Contraseña Nueva</label>
+            <input 
+              type="password" 
+              id="passwordNueva" 
+              formControlName="passwordNueva"
+              class="form-control"
+              placeholder="Mínimo 6 caracteres">
+            <div class="invalid-feedback" *ngIf="passwordForm.get('passwordNueva')?.hasError('minlength')">
+              Mínimo 6 caracteres
+            </div>
+          </div>
 
-      <div class="form-group">
-        <label>Confirmar Contraseña *</label>
-        <input type="password" formControlName="passwordConfirmar">
-      </div>
+          <div class="form-group">
+            <label for="passwordConfirmar">Confirmar Contraseña</label>
+            <input 
+              type="password" 
+              id="passwordConfirmar" 
+              formControlName="passwordConfirmar"
+              class="form-control"
+              placeholder="Repita la nueva contraseña">
+          </div>
+        </div>
 
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" (click)="cerrarModalPassword()">Cancelar</button>
-        <button type="submit" class="btn-save" [disabled]="passwordForm.invalid">
-          Cambiar Contraseña
-        </button>
-      </div>
-    </form>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="cerrarModalPassword()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="passwordForm.invalid">
+            Cambiar Contraseña
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

@@ -6,8 +6,11 @@ import { Router } from '@angular/router';
 // Models
 import { Producto } from '../../models/producto.model';
 import { HistorialPrecio } from '../../models/historial-precios.model';
+import { Categoria } from '../../models/categoria.model';
 import { ProductoService } from '../../services/producto.service';
+import { CategoriaService } from '../../services/categoria.service';
 import { HistorialPrecioService } from '../../services/historial-precios.service';
+import { ToastService } from '../../services/toast.service';
 
 
 @Component({
@@ -21,27 +24,36 @@ export class HistorialPreciosComponent implements OnInit {
 
   // === 📊 DATOS ===
   productos: Producto[] = [];
+  categorias: Categoria[] = [];
   historialPrecios: HistorialPrecio[] = [];
   
   // === 🎛️ FILTROS ===
   productoSeleccionadoId: number | null = null;
   fechaInicio: string = '';
   fechaFin: string = '';
+  filtroCategoriaId: number | null = null;
   
   // === ⚠️ ESTADOS ===
   cargando: boolean = false;
-  alertaVisible: boolean = false;
-  alertaMensaje: string = '';
-  alertaTipo: 'exito' | 'error' | 'info' = 'info';
 
   constructor(
     private productoService: ProductoService,
+    private categoriaService: CategoriaService,
     private historialPrecioService: HistorialPrecioService,
-    private router: Router
+    private router: Router,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
     this.cargarProductos();
+    this.cargarCategorias();
+  }
+
+  cargarCategorias(): void {
+    this.categoriaService.listar().subscribe({
+      next: data => this.categorias = data.filter((c: Categoria) => c.estado !== false),
+      error: () => this.mostrarAlerta('Error al cargar categorías', 'error')
+    });
   }
 
   // === 📥 CARGAR DATOS ===
@@ -49,7 +61,7 @@ export class HistorialPreciosComponent implements OnInit {
     this.cargando = true;
     this.productoService.listar().subscribe({
       next: (data) => {
-        this.productos = data;
+        this.productos = data.filter((p: Producto) => p.estado === true);
         this.cargando = false;
       },
       error: (err) => {
@@ -58,6 +70,16 @@ export class HistorialPreciosComponent implements OnInit {
         this.cargando = false;
       }
     });
+  }
+
+  get productosFiltrados(): Producto[] {
+    let resultado = this.productos;
+    
+    if (this.filtroCategoriaId) {
+      resultado = resultado.filter(p => p.categoriaId === this.filtroCategoriaId);
+    }
+    
+    return resultado.slice(0, 10);
   }
 
   cargarHistorialPrecios(): void {
@@ -146,12 +168,14 @@ export class HistorialPreciosComponent implements OnInit {
 
   // === ⚠️ ALERTAS ===
   mostrarAlerta(mensaje: string, tipo: 'exito' | 'error' | 'info' = 'info'): void {
-    this.alertaVisible = true;
-    this.alertaMensaje = mensaje;
-    this.alertaTipo = tipo;
-    setTimeout(() => {
-      this.alertaVisible = false;
-    }, 4000);
+    const toastType: 'success' | 'error' | 'info' = tipo === 'exito' ? 'success' : tipo as 'error' | 'info';
+    if (toastType === 'success') {
+      this.toastService.success(mensaje);
+    } else if (toastType === 'error') {
+      this.toastService.error(mensaje);
+    } else {
+      this.toastService.info(mensaje);
+    }
   }
 
   // === 🧭 NAVEGACIÓN ===

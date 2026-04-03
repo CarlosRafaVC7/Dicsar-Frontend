@@ -1,16 +1,22 @@
-/* ========================== SIDEBAR PROFESIONAL ========================== */
+/* ========================== SIDEBAR HERO UI STYLE ========================== */
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   width: 280px;
-  background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+  background: linear-gradient(180deg, var(--primary-800) 0%, var(--primary-900) 100%);
   display: flex;
   flex-direction: column;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   z-index: 1000;
-  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: background var(--transition-normal), width 0.3s ease;
+}
+
+/* En modo claro, oscurecer un poco más el sidebar para contraste */
+.light .sidebar {
+  background: linear-gradient(180deg, var(--primary-900) 0%, var(--gray-900) 100%);
 }
 
 /* ========================== BRAND HEADER ========================== */
@@ -25,14 +31,24 @@
 .brand-logo {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(59, 130, 246, 0.6);
+  }
 }
 
 .brand-info {
@@ -46,12 +62,14 @@
   font-size: 18px;
   color: white;
   letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .brand-subtitle {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: 11px;
+  color: var(--secondary-400);
   font-weight: 500;
+  letter-spacing: 0.3px;
 }
 
 /* ========================== MENÚ PRINCIPAL ========================== */
@@ -62,7 +80,7 @@
 }
 
 .menu-group {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .menu-item {
@@ -74,30 +92,54 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border-radius: 10px;
+  border-radius: 12px;
   text-decoration: none;
-  color: #cbd5e1;
+  color: var(--gray-300);
   font-weight: 500;
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   position: relative;
+  overflow: hidden;
+}
+
+.menu-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--secondary-500);
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .menu-link:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
   transform: translateX(4px);
 }
 
+.menu-link:hover::before {
+  opacity: 1;
+}
+
 .menu-link.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  transform: translateX(4px);
+}
+
+.menu-link.active::before {
+  opacity: 1;
+  background: var(--secondary-500);
 }
 
 .menu-icon {
   font-size: 16px;
-  width: 20px;
+  width: 22px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -109,13 +151,18 @@
 
 /* ========================== SUBMENÚ ========================== */
 .submenu-toggle {
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+.submenu-toggle .menu-label {
+  flex: 1;
 }
 
 .chevron-icon {
-  font-size: 12px;
+  font-size: 11px;
   transition: transform 0.3s ease;
-  color: #64748b;
+  color: var(--gray-400);
+  margin-left: auto;
 }
 
 .chevron-icon.rotated {
@@ -123,27 +170,27 @@
 }
 
 .menu-item.has-submenu .menu-link:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
-.menu-item.expanded .menu-link {
+.menu-item.expanded > .menu-link {
   background: rgba(255, 255, 255, 0.05);
   color: white;
 }
 
 .submenu {
-  margin-left: 20px;
+  margin-left: 12px;
   padding-left: 16px;
   border-left: 2px solid rgba(255, 255, 255, 0.1);
-  margin-top: 8px;
-  animation: slideDown 0.3s ease-out;
+  margin-top: 6px;
+  animation: slideDown 0.25s ease-out;
 }
 
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -156,106 +203,143 @@
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   text-decoration: none;
-  color: #94a3b8;
+  color: var(--gray-400);
   font-weight: 400;
   font-size: 13px;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   margin-bottom: 4px;
+  position: relative;
+}
+
+.submenu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background: var(--gray-500);
+  border-radius: 50%;
+  transition: all 0.25s ease;
 }
 
 .submenu-item:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
+  color: var(--gray-100);
   transform: translateX(6px);
+}
+
+.submenu-item:hover::before {
+  background: var(--secondary-500);
+  width: 8px;
+  height: 8px;
 }
 
 .submenu-item.active {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border-left: 3px solid #3b82f6;
+  color: var(--secondary-400);
+}
+
+.submenu-item.active::before {
+  background: var(--secondary-500);
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
 .submenu-icon {
-  font-size: 14px;
+  font-size: 13px;
   width: 16px;
   text-align: center;
   flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .submenu-label {
   font-weight: 400;
 }
 
-/* --- FOOTER DEL SIDEBAR --- */
+/* ========================== FOOTER SIDEBAR ========================== */
 .sidebar-footer {
   margin-top: auto;
-  padding: 22px 18px 18px 18px;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e0e7ff 100%);
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  padding: 20px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
 .user-avatar {
-  background: #2563eb;
-  color: #fff;
-  border-radius: 50%;
-  width: 38px;
-  height: 38px;
+  background: linear-gradient(135deg, var(--secondary-500) 0%, var(--secondary-600) 100%);
+  color: white;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 2px;
 }
 
 .user-name {
   font-weight: 600;
-  color: #1e293b;
-  font-size: 1rem;
+  color: white;
+  font-size: 14px;
 }
 
 .user-role {
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: 12px;
+  color: var(--secondary-400);
   font-weight: 500;
 }
 
 .btn-logout {
-  background: linear-gradient(135deg, #ef4444 0%, #fca5a5 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-size: 15px;
-  font-weight: 600;
+  width: 100%;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
-  transition: background 0.2s;
-  margin-top: 8px;
+  transition: all 0.25s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
 }
 
 .btn-logout:hover {
-  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-logout:active {
+  transform: scale(0.98);
+}
+
+.logout-icon {
+  font-size: 16px;
 }
 
 /* ========================== SCROLLBAR PERSONALIZADA ========================== */
@@ -268,15 +352,282 @@
 }
 
 .menu::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
 }
 
 .menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.logout-icon {
+/* ========================== BADGE PARA NOTIFICACIONES ========================== */
+.menu-badge {
+  background: var(--danger-color);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: auto;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* ========================== ANIMACIONES ADICIONALES ========================== */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sidebar {
+  animation: fadeInScale 0.3s ease-out;
+}
+
+/* ========================== RESPONSIVE ========================== */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
+  }
+  
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ========================== SIDEBAR EXPANDIBLE ========================== */
+
+/* Estado contraído del sidebar */
+.sidebar.collapsed {
+  width: 72px;
+}
+
+/* Ocultar textos cuando está contraído (excepto submenús que se mostrarán como iconos) */
+.sidebar.collapsed .brand-info,
+.sidebar.collapsed .menu-label,
+.sidebar.collapsed .user-details,
+.sidebar.collapsed .logout-text,
+.sidebar.collapsed .brand-subtitle {
+  display: none !important;
+}
+
+/* Submenú en modo contraído - mostrar como lista de iconos verticales */
+.sidebar.collapsed .submenu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+  position: absolute;
+  left: 72px;
+  top: 0;
+  background: var(--primary-800);
+  min-width: 200px;
+  padding: 8px 0;
+  border-radius: 0 12px 12px 0;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed .menu-item.has-submenu:hover .submenu,
+.sidebar.collapsed .menu-item.has-submenu.expanded .submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.sidebar.collapsed .submenu-label {
+  display: block !important;
+  font-size: 12px;
+  color: var(--gray-300);
+  margin-top: 4px;
+}
+
+.sidebar.collapsed .submenu-item {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.sidebar.collapsed .submenu-item::before {
+  display: none;
+}
+
+.sidebar.collapsed .submenu-icon {
+  margin-left: 0;
   font-size: 18px;
 }
 
+/* Indicador visual para submenús en modo contraído */
+.sidebar.collapsed .menu-item.has-submenu {
+  position: relative;
+}
+
+.sidebar.collapsed .menu-item.has-submenu::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid var(--gray-500);
+  opacity: 0.7;
+}
+
+/* Ocultar chevron en modo contraído */
+.sidebar.collapsed .chevron-icon {
+  display: none;
+}
+
+/* Centrar logo cuando está contraído */
+.sidebar.collapsed .brand {
+  justify-content: center;
+  padding: 20px 12px;
+}
+
+/* Centrar items del menú cuando está contraído */
+.sidebar.collapsed .menu-link {
+  justify-content: center;
+  padding: 14px;
+}
+
+.sidebar.collapsed .menu-link::before {
+  display: none;
+}
+
+.sidebar.collapsed .menu-link:hover,
+.sidebar.collapsed .menu-link.active {
+  transform: translateX(0);
+}
+
+.sidebar.collapsed .menu-icon {
+  margin: 0;
+}
+
+/* Footer centrado cuando está contraído */
+.sidebar.collapsed .sidebar-footer {
+  padding: 16px 8px;
+}
+
+.sidebar.collapsed .user-info {
+  justify-content: center;
+}
+
+.sidebar.collapsed .btn-logout {
+  padding: 12px;
+}
+
+.sidebar.collapsed .btn-logout .logout-icon {
+  margin: 0;
+}
+
+/* Chevron del submenú oculto cuando contraído */
+.sidebar.collapsed .chevron-icon {
+  display: none;
+}
+
+/* Botón de toggle del sidebar */
+.sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
+  background: var(--primary-600);
+  border: 2px solid var(--gray-700);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-toggle:hover {
+  background: var(--primary-500);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.sidebar-toggle:active {
+  transform: scale(0.95);
+}
+
+.sidebar-toggle i {
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+/* Animación suave para la transición de ancho */
+.sidebar {
+  transition: width 0.3s ease, transform 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+  .sidebar.collapsed {
+    width: 280px;
+  }
+  
+  .sidebar-toggle {
+    display: flex;
+  }
+  
+  /* En móvil, el toggle se posiciona diferente */
+  .sidebar.collapsed .sidebar-toggle {
+    right: -40px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .sidebar-toggle {
+    display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .brand {
+    padding: 20px 16px;
+  }
+  
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+  }
+  
+  .brand-title {
+    font-size: 16px;
+  }
+  
+  .menu-link {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  
+  .submenu-item {
+    padding: 9px 14px;
+    font-size: 12px;
+  }
+}
