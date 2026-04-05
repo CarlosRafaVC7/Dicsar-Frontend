@@ -77,7 +77,7 @@ export class ProductoService {
     );
   }
 
-  actualizar(id: number, producto: Producto): Observable<any> {
+  actualizar(id: number, producto: Producto, username: string): Observable<any> {
     const productoFormateado = {
       nombre: producto.nombre,
       descripcion: producto.descripcion,
@@ -91,12 +91,12 @@ export class ProductoService {
       precioCompra: producto.precioCompra,
       fechaVencimiento: producto.fechaVencimiento ? 
         `${producto.fechaVencimiento}T00:00:00` : null,
-      estado: producto.estado !== undefined ? producto.estado : true  // 🔧 AGREGADO: incluir estado
+      estado: producto.estado !== undefined ? producto.estado : true
     };
     
     console.log('📤 ACTUALIZANDO PRODUCTO EN BACKEND:', productoFormateado);
     
-    return this.http.put<any>(`${this.apiUrl}/${id}`, productoFormateado).pipe(
+    return this.http.put<any>(`${this.apiUrl}/${id}?usuario=${username}`, productoFormateado).pipe(
       map(res => res.producto)
     );
   }

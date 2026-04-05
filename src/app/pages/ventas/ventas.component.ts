@@ -10,7 +10,7 @@ import { Movimiento } from '../../models/movimientos.model';
 import { Categoria } from '../../models/categoria.model';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-ventas',
   standalone: true,
@@ -105,26 +105,100 @@ movimientoAEliminar: Movimiento | null = null;
     });
   }
   exportarPDF() {
-  const doc = new jsPDF();
-  (doc as any).autoTable({
-    head: [['ID', 'Fecha', 'Producto', 'Código', 'Tipo', 'Cantidad', 'Usuario']],
-    body: this.movimientosFiltrados.map(m => [
-      m.idMovimiento,
-      m.fechaMovimiento ? new Date(m.fechaMovimiento).toLocaleString() : '-',
-      m.producto?.nombre,
-      m.producto?.codigo || '-',
-      m.tipoMovimiento,
-      m.cantidad,
-      m.usuarioMovimiento || '---'
-    ]),
-    theme: 'grid',
-    headStyles: { fillColor: [41, 128, 185] },
-    startY: 20
-  });
-
-  doc.text('Reporte de Movimientos', 14, 15);
-  doc.save('reporte_movimientos.pdf');
-}
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Reporte de Movimientos de Inventario', pageWidth / 2, 20, { align: 'center' });
+    
+    // Fecha de generación
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    const fechaReporte = new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.text(`Generado el: ${fechaReporte}`, pageWidth / 2, 28, { align: 'center' });
+    
+    // Rango de fechas del filtro
+    if (this.fechaInicio && this.fechaFin) {
+      const fechaInicioFmt = new Date(this.fechaInicio).toLocaleDateString('es-PE');
+      const fechaFinFmt = new Date(this.fechaFin).toLocaleDateString('es-PE');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`Período: ${fechaInicioFmt} al ${fechaFinFmt}`, pageWidth / 2, 35, { align: 'center' });
+    } else if (this.fechaInicio) {
+      const fechaInicioFmt = new Date(this.fechaInicio).toLocaleDateString('es-PE');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`Desde: ${fechaInicioFmt}`, pageWidth / 2, 35, { align: 'center' });
+    } else if (this.fechaFin) {
+      const fechaFinFmt = new Date(this.fechaFin).toLocaleDateString('es-PE');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`Hasta: ${fechaFinFmt}`, pageWidth / 2, 35, { align: 'center' });
+    }
+    
+    // Resumen
+    const totalEntradas = this.totalEntradas;
+    const totalSalidas = this.totalSalidas;
+    const totalAjustes = this.totalAjustes;
+    const ingresoGenerado = this.ingresoGenerado;
+    
+    const tieneRangoFechas = (this.fechaInicio || this.fechaFin);
+    const resumenY = tieneRangoFechas ? 48 : 40;
+    
+    doc.setFillColor(245, 245, 245);
+    doc.rect(14, resumenY, pageWidth - 28, 25, 'F');
+    
+    doc.setFontSize(11);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Resumen del Período', 18, resumenY + 8);
+    
+    doc.setFontSize(10);
+    doc.text(`Total: ${this.movimientosFiltrados.length}`, 18, resumenY + 16);
+    doc.text(`Entradas: ${totalEntradas}`, 60, resumenY + 16);
+    doc.text(`Salidas: ${totalSalidas}`, 100, resumenY + 16);
+    doc.text(`Ajustes: ${totalAjustes}`, 140, resumenY + 16);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(34, 197, 94);
+    doc.text(`Ingreso: S/ ${ingresoGenerado.toFixed(2)}`, 18, resumenY + 23);
+    
+    // Tabla
+    const startY = resumenY + 35;
+    autoTable(doc, {
+      head: [['ID', 'Fecha', 'Producto', 'Código', 'Tipo', 'Cantidad', 'Usuario', 'Valor (S/)']],
+      body: this.movimientosFiltrados.map(m => {
+        const precio = m.producto?.precioBase || m.producto?.precio || 0;
+        const valor = m.tipoMovimiento === 'SALIDA' ? (m.cantidad * precio).toFixed(2) : '-';
+        return [
+          m.idMovimiento || 0,
+          m.fechaMovimiento ? new Date(m.fechaMovimiento).toLocaleDateString('es-PE') : '-',
+          (m.producto?.nombre || '-').substring(0, 25),
+          m.producto?.codigo || '-',
+          m.tipoMovimiento || '-',
+          m.cantidad || 0,
+          (m.usuario?.nombreCompleto || '---').substring(0, 15),
+          valor
+        ];
+      }),
+      theme: 'striped',
+      headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      startY: startY,
+      margin: { left: 14, right: 14 }
+    });
+    
+    // Pie
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Sistema DICSAR - Gestión de Inventario', pageWidth / 2, finalY, { align: 'center' });
+    
+    const filename = `reporte_movimientos_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
+  }
 
   // ==================== CRUD MOVIMIENTOS ====================
   registrarMovimiento(): void {
@@ -289,26 +363,22 @@ limpiarFiltros() {
   }
 
   get totalEntradas(): number {
-    if (!this.movimientos || this.movimientos.length === 0) return 0;
-    const total = this.movimientos
+    if (!this.movimientosFiltrados || this.movimientosFiltrados.length === 0) return 0;
+    return this.movimientosFiltrados
       .filter(m => m.tipoMovimiento?.toUpperCase() === 'ENTRADA')
       .reduce((s, m) => s + (Number(m.cantidad) || 0), 0);
-    console.log('📊 Total Entradas calculado:', total, 'de', this.movimientos.length, 'movimientos');
-    return total;
   }
 
   get totalSalidas(): number {
-    if (!this.movimientos || this.movimientos.length === 0) return 0;
-    const total = this.movimientos
+    if (!this.movimientosFiltrados || this.movimientosFiltrados.length === 0) return 0;
+    return this.movimientosFiltrados
       .filter(m => m.tipoMovimiento?.toUpperCase() === 'SALIDA')
       .reduce((s, m) => s + (Number(m.cantidad) || 0), 0);
-    console.log('📊 Total Salidas calculado:', total);
-    return total;
   }
 
   get totalAjustes(): number {
-    if (!this.movimientos || this.movimientos.length === 0) return 0;
-    return this.movimientos
+    if (!this.movimientosFiltrados || this.movimientosFiltrados.length === 0) return 0;
+    return this.movimientosFiltrados
       .filter(m => m.tipoMovimiento?.toUpperCase() === 'AJUSTE')
       .reduce((s, m) => s + Math.abs(Number(m.cantidad) || 0), 0);
   }
@@ -346,5 +416,31 @@ limpiarFiltros() {
       salidas: this.salidas.length,
       ajustes: this.ajustes.length
     });
+  }
+
+  // Métodos para el模板
+  get ingresoGenerado(): number {
+    return this.movimientosFiltrados
+      .filter(m => m.tipoMovimiento === 'SALIDA')
+      .reduce((s, m) => s + (Number(m.cantidad) * Number(m.producto?.precioBase || m.producto?.precio || 0)), 0);
+  }
+
+  get productosUnicos(): number {
+    const ids = new Set(this.movimientosFiltrados.map(m => m.producto?.idProducto));
+    return ids.size;
+  }
+
+  get ultimaEntrada(): string {
+    const entradas = this.movimientosFiltrados.filter(m => m.tipoMovimiento === 'ENTRADA');
+    if (!entradas.length) return '-';
+    const masReciente = entradas.reduce((a, b) => new Date(a.fechaMovimiento || 0) > new Date(b.fechaMovimiento || 0) ? a : b);
+    return masReciente.fechaMovimiento ? new Date(masReciente.fechaMovimiento).toLocaleDateString() : '-';
+  }
+
+  get ultimaSalida(): string {
+    const salidas = this.movimientosFiltrados.filter(m => m.tipoMovimiento === 'SALIDA');
+    if (!salidas.length) return '-';
+    const masReciente = salidas.reduce((a, b) => new Date(a.fechaMovimiento || 0) > new Date(b.fechaMovimiento || 0) ? a : b);
+    return masReciente.fechaMovimiento ? new Date(masReciente.fechaMovimiento).toLocaleDateString() : '-';
   }
 }

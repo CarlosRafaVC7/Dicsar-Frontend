@@ -500,6 +500,21 @@
   background-color: rgba(59, 130, 246, 0.15);
 }
 
+/* PRECIO - Verde/Dorado */
+.tipo-PRECIO {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left-color: #f59e0b;
+}
+
+.tipo-PRECIO .notification-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.tipo-PRECIO .notification-type {
+  color: #d97706;
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
 /* ========================== SIN NOTIFICACIONES ========================== */
 .no-notifications {
   padding: 50px 30px;

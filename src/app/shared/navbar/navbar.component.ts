@@ -106,6 +106,10 @@ export class NavbarComponent implements OnInit {
       case 'ADVERTENCIA': return 'tipo-ADVERTENCIA';
       case 'CRITICA': return 'tipo-CRITICA';
       case 'INFORMACION': return 'tipo-INFORMACION';
+      case 'PRECIO': return 'tipo-PRECIO';
+      case 'ALERTA_PRECIO': return 'tipo-PRECIO';
+      case 'ALERTA_VENCIMIENTO': return 'tipo-VENCIMIENTO';
+      case 'STOCK_BAJO': return 'tipo-STOCK';
       default: return '';
     }
   }
@@ -115,6 +119,10 @@ export class NavbarComponent implements OnInit {
       case 'ADVERTENCIA': return 'fa-triangle-exclamation';
       case 'CRITICA': return 'fa-circle-exclamation';
       case 'INFORMACION': return 'fa-circle-info';
+      case 'PRECIO': return 'fa-dollar-sign';
+      case 'ALERTA_PRECIO': return 'fa-dollar-sign';
+      case 'ALERTA_VENCIMIENTO': return 'fa-calendar-exclamation';
+      case 'STOCK_BAJO': return 'fa-box-exclamation';
       default: return 'fa-bell';
     }
   }

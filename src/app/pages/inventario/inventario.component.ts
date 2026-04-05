@@ -10,6 +10,7 @@ import { ProductoService } from '../../services/producto.service';
 import { ProveedorService } from '../../services/proveedor.service';
 import { ExportService } from '../../services/export.service';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 // import { DataTableComponent, TableColumn, TableAction } from '../../shared/data-table/data-table.component';
 
 interface Proveedor {
@@ -81,7 +82,8 @@ export class InventarioComponent implements OnInit {
     private productoService: ProductoService,
     private proveedorService: ProveedorService,
     private exportService: ExportService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private authService: AuthService
   ) {}
 
 
@@ -370,7 +372,8 @@ export class InventarioComponent implements OnInit {
 
     if (this.editandoProducto) {
       console.log('🔄 Actualizando producto ID:', this.editandoProducto.idProducto);
-      this.productoService.actualizar(this.editandoProducto.idProducto!, this.nuevoProducto)
+      const username = this.authService.currentUserValue?.username || 'admin';
+      this.productoService.actualizar(this.editandoProducto.idProducto!, this.nuevoProducto, username)
         .subscribe({
           next: (response) => {
             console.log('✅ Producto actualizado:', response);
@@ -540,7 +543,8 @@ export class InventarioComponent implements OnInit {
       precioBase: this.nuevoPrecio
     };
 
-    this.productoService.actualizar(this.productoEditandoPrecio.idProducto, productoActualizado)
+    const username = this.authService.currentUserValue?.username || 'admin';
+    this.productoService.actualizar(this.productoEditandoPrecio.idProducto, productoActualizado, username)
       .subscribe({
         next: () => {
           this.productoEditandoPrecio.precioBase = this.nuevoPrecio;

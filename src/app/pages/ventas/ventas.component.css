@@ -819,3 +819,250 @@ textarea.field {
     flex-wrap: wrap;
   }
 }
+
+/* ===== REPORTES ===== */
+.reportes-container {
+  padding: 1.5rem;
+}
+
+.reportes-filtros {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.reportes-filtros h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.filtros-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filtro-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.filtro-group input,
+.filtro-group select {
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.filtro-group input:focus,
+.filtro-group select:focus {
+  outline: none;
+  border-color: var(--secondary-500);
+}
+
+.btn-limpiar {
+  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-limpiar:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+/* Reportes Stats */
+.reportes-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.reportes-stats .stat-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.reportes-stats .stat-card.entrada {
+  border-left: 4px solid #10b981;
+}
+
+.reportes-stats .stat-card.salida {
+  border-left: 4px solid #ef4444;
+}
+
+.reportes-stats .stat-card.ajuste {
+  border-left: 4px solid #8b5cf6;
+}
+
+.reportes-stats .stat-card.ingreso {
+  border-left: 4px solid var(--secondary-500);
+}
+
+.reportes-stats .stat-icon {
+  font-size: 2rem;
+}
+
+.reportes-stats .stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.reportes-stats .stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.reportes-stats .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reportes-stats .stat-units {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Resumen Financiero */
+.resumen-financiero {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.resumen-financiero h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.resumen-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.resumen-item .label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.resumen-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* No Data */
+.no-data {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+}
+
+.no-data .icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.no-data h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.no-data p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.no-data .btn-limpiar {
+  margin-top: 1.5rem;
+}
+
+/* Badge styles */
+.badge-in {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-out {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-ajuste {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .reportes-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .resumen-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .filtros-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filtro-group input,
+  .filtro-group select {
+    width: 100%;
+  }
+}

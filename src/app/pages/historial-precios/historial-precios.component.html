@@ -107,7 +107,7 @@
               {{ calcularVariacion(historial) | number:'1.2-2' }}%
             </td>
             <td class="usuario">
-              <span class="badge-usuario">{{ historial.usuario || 'Sistema' }}</span>
+              <span class="badge-usuario">{{ historial.usuario?.nombreCompleto || 'Sistema' }}</span>
             </td>
           </tr>
         </tbody>
