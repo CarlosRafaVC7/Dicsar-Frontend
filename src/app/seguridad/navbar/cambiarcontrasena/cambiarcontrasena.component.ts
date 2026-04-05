@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cambiarcontrasena',
@@ -13,9 +14,10 @@ export class CambiarcontrasenaComponent {
   passwordNueva = '';
   passwordConfirmar = '';
 
+  constructor(private router: Router) {}
+
   cerrarModal() {
-    // Aquí puedes ocultar el modal si lo controlas con una variable
-    alert('Modal cerrado (implementa lógica real)');
+    window.history.back();
   }
 
   cambiarContrasena() {
