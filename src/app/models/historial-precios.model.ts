@@ -3,7 +3,11 @@ export interface HistorialPrecio {
   precioAnterior: number;
   precioNuevo: number;
   fechaCambio: string;
-  usuario: string;
+  usuario?: {
+    idUsuario?: number;
+    username: string;
+    nombreCompleto: string;
+  };
   producto?: {
     idProducto?: number;
     nombre?: string;

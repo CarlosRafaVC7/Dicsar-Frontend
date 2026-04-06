@@ -1,7 +1,9 @@
+<app-toast></app-toast>
+
 <div class="app-container" *ngIf="showLayout">
-  <app-sidebar></app-sidebar>
+  <app-sidebar (sidebarToggle)="onSidebarToggle($event)"></app-sidebar>
   
-  <div class="main-content">
+  <div class="main-content" [class.sidebar-collapsed]="!sidebarExpanded">
     <app-navbar></app-navbar>
     <div class="content-area">
       <router-outlet></router-outlet>

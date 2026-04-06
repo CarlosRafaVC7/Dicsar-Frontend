@@ -1,1 +1,62 @@
-<p>miperfil works!</p>
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="avatar">
+      {{ user ? getInitials(user.nombreCompleto) : '?' }}
+    </div>
+    <div class="user-info">
+      <h1>{{ user?.nombreCompleto }}</h1>
+      <span class="badge" [ngClass]="getRolBadgeClass(user?.rol || '')">
+        {{ getRolLabel(user?.rol || '') }}
+      </span>
+    </div>
+  </div>
+
+  <div class="profile-details">
+    <div class="detail-card">
+      <div class="detail-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="detail-content">
+        <label>Usuario</label>
+        <span>{{ user?.username }}</span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="detail-content">
+        <label>Rol</label>
+        <span>{{ getRolLabel(user?.rol || '') }}</span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <div class="detail-content">
+        <label>Nombre Completo</label>
+        <span>{{ user?.nombreCompleto }}</span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="detail-content">
+        <label>Sesión</label>
+        <span class="status-active">Activa</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-actions">
+    <button class="btn-action" routerLink="/cambiar-contrasena">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Cambiar Contraseña
+    </button>
+  </div>
+</div>

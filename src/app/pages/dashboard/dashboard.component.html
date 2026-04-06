@@ -1,259 +1,129 @@
-<div class="dashboard-container">
-  <!-- Header -->
-  <div class="dashboard-header">
-    <div>
-      <h1>📊 Dashboard Administrativo</h1>
-      <p class="subtitle">Sistema de Gestión Integral DICSAR</p>
+<div class="dashboard-shell">
+  <!-- Hero Header -->
+  <div class="dashboard-hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>¡Bienvenido de nuevo, {{ currentUser?.nombreCompleto || 'Usuario' }}! 👋</h1>
+        <p>Aquí está todo lo que necesitas saber sobre tu inventario hoy</p>
+      </div>
+      <div class="hero-clock">
+        <div class="clock-time">{{ horaActual }}</div>
+        <div class="clock-date">{{ actualDate }}</div>
+      </div>
+    </div>
+    <div class="hero-decoration"></div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card" *ngFor="let stat of stats; let i = index" [style.--accent-color]="stat.color"
+      [style.animation-delay]="i * 0.1 + 's'">
+      <div class="stat-icon">{{ stat.icono }}</div>
+      <div class="stat-info">
+        <span class="stat-title">{{ stat.titulo }}</span>
+        <span class="stat-value">{{ stat.valor }}</span>
+      </div>
+      <div class="stat-glow" [style.background]="stat.color"></div>
     </div>
   </div>
 
-  <!-- KPI Cards - Resumen General -->
-  <div class="kpi-grid">
-    <div class="kpi-card sistema">
-      <div class="kpi-icon">👥</div>
-      <div class="kpi-content">
-        <div class="kpi-label">Usuarios Activos</div>
-        <div class="kpi-value">{{ usuariosActivos }}/{{ totalUsuarios }}</div>
-        <div class="kpi-meta">del total de usuarios</div>
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <a routerLink="/ventas" class="action-btn movimientos-btn">
+      <div class="action-icon">📦</div>
+      <div class="action-text">
+        <span class="action-title">Movimientos de Inventario</span>
+        <span class="action-subtitle">Registrar entradas, salidas y ajustes</span>
       </div>
-    </div>
-
-    <div class="kpi-card inventario">
-      <div class="kpi-icon">📦</div>
-      <div class="kpi-content">
-        <div class="kpi-label">Productos</div>
-        <div class="kpi-value">{{ productosTotal }}</div>
-        <div class="kpi-meta">en inventario</div>
-      </div>
-    </div>
-
-    <div class="kpi-card movimientos">
-      <div class="kpi-icon">📋</div>
-      <div class="kpi-content">
-        <div class="kpi-label">Movimientos</div>
-        <div class="kpi-value">{{ movimientos.length }}</div>
-        <div class="kpi-meta">registrados</div>
-      </div>
-    </div>
-
-    <div class="kpi-card ventas">
-      <div class="kpi-icon">💰</div>
-      <div class="kpi-content">
-        <div class="kpi-label">Ventas</div>
-        <div class="kpi-value">{{ salidasCount }}</div>
-        <div class="kpi-meta">movimientos de salida</div>
-      </div>
-    </div>
+      <div class="action-arrow">→</div>
+    </a>
   </div>
 
-  <!-- Gráficos Principales -->
-  <div class="charts-section" *ngIf="!loading">
-    <div class="chart-grid">
-      <!-- Gráfico de Movimientos -->
-      <div class="card chart-card">
-        <div class="card-header">
-          <h3>📊 Distribución de Movimientos</h3>
-        </div>
-        <div class="card-body chart-body">
-          <canvas baseChart [type]="'bar'" [data]="chartMovimientosConfig.data"
-            [options]="chartMovimientosConfig.options">
-          </canvas>
-        </div>
+  <!-- Charts Row -->
+  <div class="charts-grid">
+    <!-- Movimientos Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>📊 Movimientos</h3>
+        <span class="card-subtitle">Entradas vs Salidas</span>
       </div>
-
-      <!-- Gráfico de Ventas Mensuales -->
-      <div class="card chart-card">
-        <div class="card-header">
-          <h3>📈 Ventas Mensuales</h3>
-        </div>
-        <div class="card-body chart-body">
-          <canvas baseChart [type]="'line'" [data]="chartVentasMensualesConfig.data"
-            [options]="chartVentasMensualesConfig.options">
-          </canvas>
-        </div>
+      <div class="chart-container">
+        <canvas #chartMovimientos></canvas>
       </div>
+    </div>
 
-      <!-- Gráfico de Productos -->
-      <div class="card chart-card">
-        <div class="card-header">
-          <h3>🏆 Productos Más Vendidos</h3>
-        </div>
-        <div class="card-body chart-body">
-          <canvas baseChart [type]="'doughnut'" [data]="chartProductosConfig.data"
-            [options]="chartProductosConfig.options">
-          </canvas>
-        </div>
+    <!-- Categorías Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>🏷️ Productos por Categoría</h3>
+        <span class="card-subtitle">Distribución de inventarios</span>
+      </div>
+      <div class="chart-container">
+        <canvas #chartCategorias></canvas>
+      </div>
+    </div>
+
+    <!-- Estado Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>✅ Estado de Productos</h3>
+        <span class="card-subtitle">Activos vs Inactivos</span>
+      </div>
+      <div class="chart-container">
+        <canvas #chartEstado></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Main Content Grid -->
-  <div class="main-grid" *ngIf="!loading">
-    <!-- Left Column -->
-    <div class="left-column">
-      <!-- Resumen de Movimientos -->
-      <div class="card">
-        <div class="card-header">
-          <h3>📦 Resumen de Movimientos</h3>
-        </div>
-        <div class="card-body">
-          <div class="movement-summary">
-            <div class="movement-item salida">
-              <div class="movement-icon">⬇️</div>
-              <div class="movement-info">
-                <div class="movement-label">Salidas</div>
-                <div class="movement-count">{{ salidasCount }}</div>
-              </div>
-            </div>
-            <div class="movement-item entrada">
-              <div class="movement-icon">⬆️</div>
-              <div class="movement-info">
-                <div class="movement-label">Entradas</div>
-                <div class="movement-count">{{ entradasCount }}</div>
-              </div>
-            </div>
-            <div class="movement-item ajuste">
-              <div class="movement-icon">🔄</div>
-              <div class="movement-info">
-                <div class="movement-label">Ajustes</div>
-                <div class="movement-count">{{ ajustesCount }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <!-- Bottom Row -->
+  <div class="bottom-grid">
+    <!-- Recent Movements -->
+    <div class="movimientos-card">
+      <div class="card-header">
+        <h3>📜 Movimientos Recientes</h3>
+        <a routerLink="/ventas" class="view-all">Ver todos →</a>
       </div>
-
-      <!-- Productos con Stock Bajo -->
-      <div class="card">
-        <div class="card-header">
-          <h3>⚠️ Productos con Stock Bajo</h3>
+      <div class="movimientos-list">
+        <div class="movimiento-item" *ngFor="let m of movimientosRecientes" [class]="getTipoClass(m.tipo)">
+          <div class="movimiento-icon">{{ getTipoIcon(m.tipo) }}</div>
+          <div class="movimiento-info">
+            <span class="movimiento-producto">{{ m.producto }}</span>
+            <span class="movimiento-meta">{{ m.cantidad }} unidades • {{ formatearFecha(m.fecha) }}</span>
+          </div>
+          <div class="movimiento-tipo">{{ m.tipo }}</div>
         </div>
-        <div class="card-body">
-          <div *ngIf="stockBajo.length > 0" class="stock-list">
-            <div class="stock-item" *ngFor="let producto of stockBajo">
-              <div class="stock-info">
-                <div class="stock-nombre">{{ producto.nombre }}</div>
-                <div class="stock-meta">Stock: {{ producto.stockActual || producto.stock || 0 }} unidades</div>
-              </div>
-              <div class="stock-badge">⚠️</div>
-            </div>
-          </div>
-          <div *ngIf="stockBajo.length === 0" class="empty-state">
-            <p>✅ Todos los productos tienen stock adecuado</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 🆕 Productos con Problemas de Vencimiento -->
-      <div class="card alert-card-section" *ngIf="productosVencidos.length > 0 || productosProximosAVencer.length > 0">
-        <div class="card-header">
-          <h3>📌 Alertas de Vencimiento</h3>
-        </div>
-        <div class="card-body">
-          <!-- Productos Vencidos -->
-          <div class="alert-vencimiento-dashboard" *ngIf="productosVencidos.length > 0">
-            <div class="alert-header-vencimiento">
-              <span class="alert-icon">🚫</span>
-              <span class="alert-titulo">{{ productosVencidos.length }} Producto(s) Vencido(s)</span>
-            </div>
-            <div class="alert-items-vencimiento">
-              <div class="alert-item-vencimiento" *ngFor="let p of productosVencidos">
-                <strong>{{ p.nombre }}</strong> - Vencimiento: {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Productos Próximos a Vencer -->
-          <div class="alert-proximo-dashboard" *ngIf="productosProximosAVencer.length > 0">
-            <div class="alert-header-vencimiento">
-              <span class="alert-icon">⏰</span>
-              <span class="alert-titulo">{{ productosProximosAVencer.length }} Producto(s) Próximo(s) a Vencer</span>
-            </div>
-            <div class="alert-items-vencimiento">
-              <div class="alert-item-vencimiento" *ngFor="let p of productosProximosAVencer">
-                <strong>{{ p.nombre }}</strong> - Vence en {{ getDiasParaVencer(p.fechaVencimiento) }} días
-              </div>
-            </div>
-          </div>
+        <div class="empty-state" *ngIf="movimientosRecientes.length === 0">
+          <span>📭</span>
+          <p>No hay movimientos recientes</p>
         </div>
       </div>
     </div>
 
-    <!-- Right Column -->
-    <div class="right-column">
-      <!-- Productos Más Vendidos -->
-      <div class="card">
-        <div class="card-header">
-          <h3>🏆 Top 5 Productos</h3>
-        </div>
-        <div class="card-body">
-          <div *ngIf="productosMasVendidos.length > 0" class="table-responsive">
-            <table class="table-compact">
-              <tbody>
-                <tr *ngFor="let producto of productosMasVendidos.slice(0, 5); let i = index" class="table-row">
-                  <td class="rank">{{ i + 1 }}</td>
-                  <td class="name">{{ producto[0] }}</td>
-                  <td class="value">{{ producto[1] }} unidades</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div *ngIf="productosMasVendidos.length === 0" class="empty-state">
-            <p>🏪 Sin ventas de productos registradas</p>
-          </div>
-        </div>
+    <!-- Stock Alerts -->
+    <div class="alertas-card">
+      <div class="card-header">
+        <h3>⚠️ Alertas de Stock</h3>
+        <span class="alert-count" *ngIf="alertasStock.length > 0">{{ alertasStock.length }}</span>
       </div>
-
-      <!-- Clientes Top -->
-      <div class="card">
-        <div class="card-header">
-          <h3>👥 Clientes Principales</h3>
-        </div>
-        <div class="card-body">
-          <div *ngIf="clientesTopCompras.length > 0" class="table-responsive">
-            <table class="table-compact">
-              <tbody>
-                <tr *ngFor="let cliente of clientesTopCompras.slice(0, 5); let i = index" class="table-row">
-                  <td class="rank">{{ i + 1 }}</td>
-                  <td class="name">{{ cliente[0] }}</td>
-                  <td class="value">{{ formatearMoneda(cliente[2]) }}</td>
-                </tr>
-              </tbody>
-            </table>
+      <div class="alertas-list">
+        <div class="alerta-item" *ngFor="let alerta of alertasStock" [class]="getStockClass(alerta)">
+          <div class="alerta-info">
+            <span class="alerta-nombre">{{ alerta.nombre }}</span>
+            <span class="alerta-stock">
+              Stock: <strong>{{ alerta.stockActual }}</strong> / {{ alerta.stockMinimo }} min
+            </span>
           </div>
-          <div *ngIf="clientesTopCompras.length === 0" class="empty-state">
-            <p>📭 Sin datos de compras registradas</p>
+          <div class="alerta-badge">
+            <span *ngIf="alerta.stockActual === 0">AGOTADO</span>
+            <span *ngIf="alerta.stockActual > 0 && alerta.stockActual <= alerta.stockMinimo * 0.5">CRÍTICO</span>
+            <span *ngIf="alerta.stockActual > alerta.stockMinimo * 0.5">BAJO</span>
           </div>
         </div>
-      </div>
-
-      <!-- Totales Mensuales -->
-      <div class="card">
-        <div class="card-header">
-          <h3>📅 Ventas por Mes</h3>
-        </div>
-        <div class="card-body">
-          <div *ngIf="totalesMensuales.length > 0" class="table-responsive">
-            <table class="table-compact">
-              <tbody>
-                <tr *ngFor="let mes of totalesMensuales; let i = index" class="table-row">
-                  <td class="name">{{ mes[0] }}-{{ mes[1] < 10 ? '0' + mes[1] : mes[1] }}</td>
-                  <td class="value">{{ formatearMoneda(mes[2]) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div *ngIf="totalesMensuales.length === 0" class="empty-state">
-            <p>📅 Sin ventas registradas en el período válido</p>
-          </div>
+        <div class="empty-state success" *ngIf="alertasStock.length === 0">
+          <span>✅</span>
+          <p>¡Todo el stock está saludable!</p>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner"></div>
-    <p>⏳ Cargando datos del sistema...</p>
   </div>
 </div>

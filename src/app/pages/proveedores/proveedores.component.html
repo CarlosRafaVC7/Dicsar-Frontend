@@ -1,10 +1,4 @@
 <div class="proveedores-shell">
-  <!-- Mensajes de alerta -->
-  <div class="alert" *ngIf="alertaVisible" [ngClass]="'alert-' + alertaTipo">
-    <span>{{ alertaMensaje }}</span>
-    <button class="alert-close" (click)="alertaVisible = false">&times;</button>
-  </div>
-
   <!-- Encabezado del módulo -->
   <div class="module-header">
     <h1>📦 Módulo de Proveedores</h1>
@@ -139,12 +133,6 @@
                 title="Editar">
                 ✏️
               </button>
-              <button 
-                class="btn-delete" 
-                (click)="eliminarProveedor(p.idProveedor)"
-                title="Eliminar">
-                🗑️
-              </button>
             </td>
           </tr>
           <tr *ngIf="proveedoresVisibles.length === 0">
@@ -169,6 +157,67 @@
         [disabled]="paginaActualProveedores === totalPaginasProveedores">
         Siguiente →
       </button>
+    </div>
+
+    <!-- Botón mostrar/ocultar inactivos -->
+    <div class="toggle-inactivos" *ngIf="proveedoresInactivos.length > 0">
+      <button class="btn-toggle-inactivos" (click)="toggleMostrarInactivos()">
+        {{ mostrarInactivos ? '▲ Ocultar Inactivos' : '▼ Ver Inactivos (' + proveedoresInactivos.length + ')' }}
+      </button>
+    </div>
+
+    <!-- Tabla de Proveedores Inactivos -->
+    <div *ngIf="mostrarInactivos && proveedoresInactivos.length > 0" class="inactivos-section">
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Razón Social</th>
+            <th>RUC</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Dirección</th>
+            <th>Contacto</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of proveedoresInactivosPaginados">
+            <td>{{ p.idProveedor }}</td>
+            <td class="product-name">{{ p.razonSocial }}</td>
+            <td>{{ p.ruc }}</td>
+            <td>{{ p.telefono }}</td>
+            <td>{{ p.email }}</td>
+            <td>{{ p.direccion }}</td>
+            <td>{{ p.contacto || 'N/A' }}</td>
+            <td class="status-cell">
+              <span class="status-inactive">Inactivo</span>
+            </td>
+            <td class="actions-cell">
+              <button class="btn-edit" (click)="editarProveedor(p)" title="Editar">✏️</button>
+              <button class="btn-activate" (click)="toggleEstadoProveedor(p)" title="Activar">✅</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Paginación inactivos -->
+      <div class="pagination" *ngIf="totalPaginasInactivos > 1">
+        <button 
+          class="page-btn" 
+          (click)="cambiarPaginaInactivos(paginaActualInactivos - 1)" 
+          [disabled]="paginaActualInactivos === 1">
+          ← Anterior
+        </button>
+        <span class="page-info">Página {{ paginaActualInactivos }} de {{ totalPaginasInactivos }}</span>
+        <button 
+          class="page-btn" 
+          (click)="cambiarPaginaInactivos(paginaActualInactivos + 1)" 
+          [disabled]="paginaActualInactivos === totalPaginasInactivos">
+          Siguiente →
+        </button>
+      </div>
     </div>
   </div>
 
@@ -250,14 +299,14 @@
                 <tr *ngFor="let producto of productosProveedor">
                   <td>{{ producto.codigo }}</td>
                   <td class="product-name">{{ producto.nombre }}</td>
-                  <td>{{ producto.categoria }}</td>
+                  <td>{{ producto.categoriaNombre || producto.categoria?.nombre || producto.categoria || '-' }}</td>
                   <td>{{ producto.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</td>
                   <td>
-                    <span 
+                    <span
                       class="stock-badge"
                       [class.stock-low]="producto.stockActual <= producto.stockMinimo"
                       [class.stock-normal]="producto.stockActual > producto.stockMinimo">
-                      {{ producto.stockActual }} {{ producto.unidadMedida }}
+                      {{ producto.stockActual }} {{ producto.unidadMedidaAbreviatura || producto.unidadMedida?.abreviatura || producto.unidadMedida }}
                     </span>
                   </td>
                   <td>
@@ -330,7 +379,7 @@
         </div>
 
         <div class="reporte-card stat-promedio">
-          <div class="reporte-icon">�</div>
+          <div class="reporte-icon">%</div>
           <div class="reporte-content">
             <h3>Promedio Productos</h3>
             <div class="reporte-valor">{{ calcularPromedioProductos() }}</div>
@@ -400,7 +449,7 @@
 </div>
 
 <!-- Modal para Crear/Editar Proveedor -->
-<div class="modal-overlay" *ngIf="mostrarModalProveedor" (click)="cerrarModalProveedor()">
+<div class="modal-overlay" *ngIf="mostrarModalProveedor">
   <div class="modal-content proveedor-modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>{{ editandoProveedor ? '✏️ Editar Proveedor' : '➕ Nuevo Proveedor' }}</h3>

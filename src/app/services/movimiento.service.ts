@@ -37,12 +37,12 @@ export class MovimientoService {
 
   /**
    * ➕ Crea un nuevo movimiento.
-   * @param movimiento Datos del movimiento (puede ser formato DTO o interface Movimiento)
-   * @param usuario Usuario que realiza el movimiento
+   * @param movimiento Datos del movimiento
+   * @param username Username del usuario que realiza el movimiento
    */
-  crear(movimiento: any, usuario: string = 'admin'): Observable<any> {
-    const params = new HttpParams().set('usuario', usuario);
-    return this.http.post<any>(this.baseUrl, movimiento, { params });
+  crear(movimiento: Movimiento, username: string = 'admin'): Observable<Movimiento> {
+    const params = new HttpParams().set('username', username);
+    return this.http.post<Movimiento>(this.baseUrl, movimiento, { params });
   }
 
   /**

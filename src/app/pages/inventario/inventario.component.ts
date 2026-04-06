@@ -4,13 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Categoria } from '../../models/categoria.model';
 import { UnidadMed } from '../../models/unidad-medida.model';
 import { Producto } from '../../models/producto.model';
-import { HistorialPrecio } from '../../models/historial-precios.model';
 import { CategoriaService } from '../../services/categoria.service';
 import { UnidadMedService } from '../../services/unidad-medida.service';
 import { ProductoService } from '../../services/producto.service';
 import { ProveedorService } from '../../services/proveedor.service';
 import { ExportService } from '../../services/export.service';
-import { HistorialPrecioService } from '../../services/historial-precios.service';
+import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 // import { DataTableComponent, TableColumn, TableAction } from '../../shared/data-table/data-table.component';
 
 interface Proveedor {
@@ -68,16 +68,13 @@ export class InventarioComponent implements OnInit {
   search: string = '';
   selectedCategory: string = 'Todas las categorías';
 
-  // === ⚠️ ALERTAS ===
-  alertaVisible = false;
-  alertaMensaje = '';
-  alertaTipo: 'exito' | 'error' | 'info' = 'info';
+  // === 📄 PAGINACIÓN ===
+  paginaActualActivos = 1;
+  paginaActualInactivos = 1;
+  itemsPorPagina = 10;
 
-  // === 📜 HISTORIAL DE PRECIOS (HU7) ===
-  historialPrecios: HistorialPrecio[] = [];
-  productoSeleccionadoHistorial: Producto | null = null;
-  mostrarModalHistorial = false;
-  cargandoHistorial = false;
+  // === 👁️ MOSTRAR TABLA INACTIVOS ===
+  mostrarInactivos = false;
 
   constructor(
     private categoriaService: CategoriaService,
@@ -85,7 +82,8 @@ export class InventarioComponent implements OnInit {
     private productoService: ProductoService,
     private proveedorService: ProveedorService,
     private exportService: ExportService,
-    private historialPrecioService: HistorialPrecioService
+    private toastService: ToastService,
+    private authService: AuthService
   ) { }
 
 
@@ -103,21 +101,25 @@ export class InventarioComponent implements OnInit {
 
   // ==================== REPORTES ====================
   get totalProductos(): number {
-    return this.productos.length;
+    return this.productos.filter(p => p.estado === true).length;
   }
 
   get valorTotalInventario(): number {
-    return this.productos.reduce((total, producto) => {
+    return this.productos.filter(p => p.estado === true).reduce((total, producto) => {
       return total + (producto.precioBase * producto.stockActual);
     }, 0);
   }
 
   // ==================== ALERTAS ====================
   mostrarAlerta(mensaje: string, tipo: 'exito' | 'error' | 'info' = 'info') {
-    this.alertaVisible = true;
-    this.alertaMensaje = mensaje;
-    this.alertaTipo = tipo;
-    setTimeout(() => (this.alertaVisible = false), 3500);
+    const toastType: 'success' | 'error' | 'info' = tipo === 'exito' ? 'success' : tipo as 'error' | 'info';
+    if (toastType === 'success') {
+      this.toastService.success(mensaje);
+    } else if (toastType === 'error') {
+      this.toastService.error(mensaje);
+    } else {
+      this.toastService.info(mensaje);
+    }
   }
 
   // ==================== CAMBIO DE TABS ====================
@@ -285,6 +287,27 @@ export class InventarioComponent implements OnInit {
 
         console.log('📦 PRODUCTOS FINALES:', this.productos);
 
+        // 🔄 AUTO-DESACTIVAR productos vencidos o sin stock
+        this.productos.forEach(producto => {
+          if (producto.estado === true) {
+            const vencido = this.esProductoVencido(producto.fechaVencimiento);
+            const sinStock = producto.stockActual <= 0;
+
+            if (vencido || sinStock) {
+              const motivo = vencido ? 'venció' : 'quedó sin stock';
+              console.log(`🔄 Auto-desactivando: ${producto.nombre} (${motivo})`);
+              this.productoService.actualizarEstado(producto.idProducto, false, 'sistema').subscribe({
+                next: () => {
+                  producto.estado = false;
+                  this.toastService.warning(`⚠️ "${producto.nombre}" se desactivó porque ${motivo}`, 7000);
+                  console.log(`✅ ${producto.nombre} desactivado automáticamente`);
+                },
+                error: (err) => console.error(`❌ Error desactivando ${producto.nombre}:`, err)
+              });
+            }
+          }
+        });
+
         // Mostrar resumen de estados
         const activos = this.productos.filter(p => p.estado).length;
         const inactivos = this.productos.filter(p => !p.estado).length;
@@ -322,8 +345,19 @@ export class InventarioComponent implements OnInit {
   }
 
   guardarProducto() {
-    if (!this.nuevoProducto.categoriaId || !this.nuevoProducto.unidadMedidaId) {
-      this.mostrarAlerta('Categoría y Unidad de Medida son obligatorios', 'error');
+    console.log('💾 Intentando guardar producto:', this.nuevoProducto);
+    console.log('💾 Modo edición:', this.editandoProducto ? 'SÍ' : 'NO');
+
+    if (!this.nuevoProducto.categoriaId || this.nuevoProducto.categoriaId === 0) {
+      this.mostrarAlerta('❌ La Categoría es obligatoria', 'error');
+      return;
+    }
+    if (!this.nuevoProducto.unidadMedidaId || this.nuevoProducto.unidadMedidaId === 0) {
+      this.mostrarAlerta('❌ La Unidad de Medida es obligatoria', 'error');
+      return;
+    }
+    if (!this.nuevoProducto.nombre || this.nuevoProducto.nombre.trim() === '') {
+      this.mostrarAlerta('❌ El Nombre del producto es obligatorio', 'error');
       return;
     }
 
@@ -333,37 +367,34 @@ export class InventarioComponent implements OnInit {
       console.log('🔧 Estado establecido por defecto a true');
     }
 
-    console.log('💾 Guardando producto:', this.nuevoProducto);
+    console.log('💾 Datos validados, procediendo a guardar...');
     console.log('💾 Estado del producto:', this.nuevoProducto.estado);
 
     if (this.editandoProducto) {
-      this.productoService.actualizar(this.editandoProducto.idProducto!, this.nuevoProducto)
+      console.log('🔄 Actualizando producto ID:', this.editandoProducto.idProducto);
+      const username = this.authService.currentUserValue?.username || 'admin';
+      this.productoService.actualizar(this.editandoProducto.idProducto!, this.nuevoProducto, username)
         .subscribe({
           next: (response) => {
             console.log('✅ Producto actualizado:', response);
-            // Actualizar en la lista local en lugar de recargar todo
-            const index = this.productos.findIndex(p => p.idProducto === this.editandoProducto.idProducto);
-            if (index !== -1) {
-              this.productos[index] = { ...this.productos[index], ...response };
-            }
+            this.cargarProductos();
             this.cancelarEdicionProducto();
             this.cerrarModalProducto();
             this.mostrarAlerta('✅ Producto actualizado correctamente', 'exito');
           },
           error: (err) => {
-            console.error('❌ Error actualizando producto:', err);
-            this.mostrarAlerta(
-              `❌ Error al actualizar: ${err.error?.message || err.error?.error || err.message || 'Error desconocido'}`,
-              'error'
-            );
+            console.error('❌ Error completo:', err);
+            console.error('❌ Error status:', err.status);
+            console.error('❌ Error body:', err.error);
+            const mensaje = err.error?.message || err.error?.error || err.message || 'Error desconocido';
+            this.mostrarAlerta(`❌ Error al actualizar: ${mensaje}`, 'error');
           }
         });
     } else {
       this.productoService.crear(this.nuevoProducto).subscribe({
         next: (response) => {
           console.log('✅ Producto creado:', response);
-          // Agregar producto nuevo directamente a la lista
-          this.productos = [response, ...this.productos];
+          this.cargarProductos();
           this.nuevoProducto = this.resetProducto();
           this.cerrarModalProducto();
           this.mostrarAlerta('✅ Producto creado correctamente (Estado: Activo)', 'exito');
@@ -380,6 +411,14 @@ export class InventarioComponent implements OnInit {
   }
 
   editarProducto(p: any) {
+    console.log('✏️ Editando producto:', p);
+
+    // 🔒 REGLA DE NEGOCIO: No se puede editar un producto vencido
+    if (this.esProductoVencido(p.fechaVencimiento)) {
+      this.mostrarAlerta('❌ No se puede editar un producto vencido. Por favor, elimine el producto o actualice su fecha de vencimiento.', 'error');
+      return;
+    }
+
     this.editandoProducto = p;
     this.nuevoProducto = {
       nombre: p.nombre,
@@ -388,12 +427,14 @@ export class InventarioComponent implements OnInit {
       precioBase: p.precioBase,
       stockActual: p.stockActual,
       stockMinimo: p.stockMinimo,
-      categoriaId: p.categoria?.idCategoria || p.categoriaId,
-      unidadMedidaId: p.unidadMedida?.idUnidadMed || p.unidadMedidaId,
-      proveedorId: p.proveedor?.idProveedor || p.proveedorId,
+      categoriaId: p.categoriaId || p.categoria?.idCategoria || 0,
+      unidadMedidaId: p.unidadMedidaId || p.unidadMedida?.idUnidadMed || 0,
+      proveedorId: p.proveedorId || p.proveedor?.idProveedor || null,
       precioCompra: p.precioCompra || 0,
-      fechaVencimiento: p.fechaVencimiento ? p.fechaVencimiento.split('T')[0] : ''
+      fechaVencimiento: p.fechaVencimiento ? p.fechaVencimiento.split('T')[0] : '',
+      estado: p.estado !== undefined ? p.estado : true
     };
+    console.log('✏️ Datos mapeados para edición:', this.nuevoProducto);
     this.abrirModalProducto();
   }
 
@@ -406,8 +447,7 @@ export class InventarioComponent implements OnInit {
     if (confirm('¿Estás seguro de eliminar este producto?')) {
       this.productoService.eliminar(id).subscribe({
         next: () => {
-          // Eliminar de la lista local en lugar de recargar
-          this.productos = this.productos.filter(p => p.idProducto !== id);
+          this.cargarProductos();
           this.mostrarAlerta('Producto eliminado correctamente', 'exito');
         },
         error: () => this.mostrarAlerta('Error al eliminar producto', 'error')
@@ -417,6 +457,18 @@ export class InventarioComponent implements OnInit {
 
   // ==================== TOGGLE ESTADO PRODUCTO ====================
   toggleEstadoProducto(producto: any) {
+    // 🔒 REGLA DE NEGOCIO: No se puede cambiar estado de un producto vencido
+    if (this.esProductoVencido(producto.fechaVencimiento)) {
+      this.mostrarAlerta('❌ No se puede cambiar el estado de un producto vencido.', 'error');
+      return;
+    }
+
+    // 🔒 REGLA DE NEGOCIO: No se puede activar un producto sin stock
+    if (!producto.estado && producto.stockActual <= 0) {
+      this.mostrarAlerta('❌ No se puede activar un producto sin stock.', 'error');
+      return;
+    }
+
     console.log('🔄 Toggle Estado - Producto actual:', producto);
     console.log('🔄 Estado anterior:', producto.estado);
 
@@ -461,6 +513,12 @@ export class InventarioComponent implements OnInit {
 
   // ==================== EDITAR PRECIO ====================
   abrirModalPrecio(producto: any) {
+    // 🔒 REGLA DE NEGOCIO: No se puede editar precio de un producto vencido
+    if (this.esProductoVencido(producto.fechaVencimiento)) {
+      this.mostrarAlerta('❌ No se puede editar el precio de un producto vencido.', 'error');
+      return;
+    }
+
     this.productoEditandoPrecio = producto;
     this.nuevoPrecio = producto.precioBase || 0;
     this.motivoCambioPrecio = '';
@@ -485,7 +543,8 @@ export class InventarioComponent implements OnInit {
       precioBase: this.nuevoPrecio
     };
 
-    this.productoService.actualizar(this.productoEditandoPrecio.idProducto, productoActualizado)
+    const username = this.authService.currentUserValue?.username || 'admin';
+    this.productoService.actualizar(this.productoEditandoPrecio.idProducto, productoActualizado, username)
       .subscribe({
         next: () => {
           this.productoEditandoPrecio.precioBase = this.nuevoPrecio;
@@ -501,12 +560,14 @@ export class InventarioComponent implements OnInit {
   }
 
   // ==================== FILTRADO VISIBLE ====================
-  get visibleProducts() {
+  get filteredActiveProducts() {
     const q = (this.search || '').trim().toLowerCase();
 
-    // Filtrar productos según búsqueda y categoría
+    // Filtrar SOLO productos activos según búsqueda y categoría
     const filtered = (this.productos || []).filter((p: any) => {
-      const catName = p.categoria?.nombre || '';
+      if (p.estado !== true) return false; // Solo activos
+
+      const catName = p.categoriaNombre || p.categoria?.nombre || '';
       const matchesCategory =
         this.selectedCategory === 'Todas las categorías' || catName === this.selectedCategory;
       const matchesSearch =
@@ -517,15 +578,80 @@ export class InventarioComponent implements OnInit {
       return matchesCategory && matchesSearch;
     });
 
-    // 🗂️ ORDENAR: ACTIVOS PRIMERO, INACTIVOS AL FONDO (como eliminados suaves)
-    return filtered.sort((a, b) => {
-      // Productos activos (true) van antes que inactivos (false)
-      if (a.estado === true && b.estado === false) return -1;
-      if (a.estado === false && b.estado === true) return 1;
+    // Ordenar alfabéticamente
+    return filtered.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  }
 
-      // Si tienen el mismo estado, ordenar por nombre alfabéticamente
-      return (a.nombre || '').localeCompare(b.nombre || '');
-    });
+  // ==================== PRODUCTOS ACTIVOS PAGINADOS ====================
+  get productosActivosPaginados() {
+    const inicio = (this.paginaActualActivos - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return this.filteredActiveProducts.slice(inicio, fin);
+  }
+
+  get totalPaginasActivos() {
+    return Math.ceil(this.filteredActiveProducts.length / this.itemsPorPagina);
+  }
+
+  get paginasArrayActivos(): number[] {
+    return Array.from({ length: this.totalPaginasActivos }, (_, i) => i + 1);
+  }
+
+  cambiarPaginaActivos(pagina: number) {
+    if (pagina >= 1 && pagina <= this.totalPaginasActivos) {
+      this.paginaActualActivos = pagina;
+    }
+  }
+
+  // ==================== PRODUCTOS INACTIVOS ====================
+  get productosInactivos() {
+    const q = (this.search || '').trim().toLowerCase();
+
+    // Filtrar SOLO productos inactivos
+    return (this.productos || []).filter((p: any) => {
+      if (p.estado !== true) {
+        const catName = p.categoriaNombre || p.categoria?.nombre || '';
+        const matchesCategory =
+          this.selectedCategory === 'Todas las categorías' || catName === this.selectedCategory;
+        const matchesSearch =
+          !q ||
+          (p.nombre || '').toLowerCase().includes(q) ||
+          catName.toLowerCase().includes(q) ||
+          (p.codigo || '').toLowerCase().includes(q);
+        return matchesCategory && matchesSearch;
+      }
+      return false;
+    }).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  }
+
+  // ==================== PRODUCTOS INACTIVOS PAGINADOS ====================
+  get productosInactivosPaginados() {
+    const inicio = (this.paginaActualInactivos - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    return this.productosInactivos.slice(inicio, fin);
+  }
+
+  get totalPaginasInactivos() {
+    return Math.ceil(this.productosInactivos.length / this.itemsPorPagina);
+  }
+
+  get paginasArrayInactivos(): number[] {
+    return Array.from({ length: this.totalPaginasInactivos }, (_, i) => i + 1);
+  }
+
+  cambiarPaginaInactivos(pagina: number) {
+    if (pagina >= 1 && pagina <= this.totalPaginasInactivos) {
+      this.paginaActualInactivos = pagina;
+    }
+  }
+
+  toggleMostrarInactivos() {
+    this.mostrarInactivos = !this.mostrarInactivos;
+  }
+
+  // ==================== METADATA PARA COMPATIBILIDAD ====================
+  get visibleProducts() {
+    return this.filteredActiveProducts;
   }
 
   // ==================== PRODUCTOS ACTIVOS PARA MOVIMIENTOS ====================
@@ -584,39 +710,6 @@ export class InventarioComponent implements OnInit {
     const hoy = new Date();
     const vencimiento = new Date(fechaVencimiento);
     return vencimiento < hoy;
-  }
-
-  // ⏰ MÉTODO NUEVO: Verificar si está próximo a vencer (30 días)
-  esProductoProximoAVencer(fechaVencimiento: string): boolean {
-    if (!fechaVencimiento) return false;
-    const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
-    const diasFaltantes = Math.floor((vencimiento.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
-    return diasFaltantes > 0 && diasFaltantes <= 30;
-  }
-
-  // ⏰ MÉTODO NUEVO: Obtener días para vencimiento
-  getDiasParaVencer(fechaVencimiento: string): number {
-    if (!fechaVencimiento) return 999;
-    const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
-    return Math.floor((vencimiento.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
-  }
-
-  // ⏰ MÉTODO NUEVO: Obtener clase CSS para estado de vencimiento
-  getClaseVencimiento(fechaVencimiento: string): string {
-    if (this.esProductoVencido(fechaVencimiento)) return 'vencido';
-    if (this.esProductoProximoAVencer(fechaVencimiento)) return 'proximo-vencer';
-    return 'vigente';
-  }
-
-  // ⏰ MÉTODO NUEVO: Contar productos vencidos y próximos a vencer
-  get productosVencidos(): any[] {
-    return this.productos.filter(p => p.estado && this.esProductoVencido(p.fechaVencimiento));
-  }
-
-  get productosProximosAVencer(): any[] {
-    return this.productos.filter(p => p.estado && this.esProductoProximoAVencer(p.fechaVencimiento));
   }
 
   // ==================== MÉTODOS DE EXPORTACIÓN ====================
@@ -678,57 +771,6 @@ export class InventarioComponent implements OnInit {
       `📊 Excel exportado: ${productosParaExportar.length} productos activos`,
       'exito'
     );
-  }
-
-  // ==================== HISTORIAL DE PRECIOS (HU7) ====================
-  abrirHistorialPrecios(producto: Producto): void {
-    this.productoSeleccionadoHistorial = producto;
-    this.mostrarModalHistorial = true;
-    this.cargarHistorialPrecios(producto.idProducto!);
-  }
-
-  cargarHistorialPrecios(productoId: number): void {
-    this.cargandoHistorial = true;
-    this.historialPrecios = [];
-
-    this.historialPrecioService.obtenerPorProducto(productoId).subscribe({
-      next: (data) => {
-        this.historialPrecios = data.sort((a, b) => new Date(b.fechaCambio).getTime() - new Date(a.fechaCambio).getTime());
-        this.cargandoHistorial = false;
-      },
-      error: (err) => {
-        console.error('Error cargando historial:', err);
-        this.mostrarAlerta('No hay historial de cambios para este producto', 'info');
-        this.cargandoHistorial = false;
-      }
-    });
-  }
-
-  cerrarHistorialPrecios(): void {
-    this.mostrarModalHistorial = false;
-    this.productoSeleccionadoHistorial = null;
-    this.historialPrecios = [];
-  }
-
-  calcularVariacion(historial: HistorialPrecio): number {
-    if (historial.precioAnterior === 0) return 0;
-    return ((historial.precioNuevo - historial.precioAnterior) / historial.precioAnterior) * 100;
-  }
-
-  obtenerClaseVariacion(variacion: number): string {
-    if (variacion > 0) return 'variacion-aumento';
-    if (variacion < 0) return 'variacion-descuento';
-    return 'variacion-igual';
-  }
-
-  get totalCambiosPrecio(): number {
-    return this.historialPrecios.length;
-  }
-
-  get precioPromedio(): number {
-    if (this.historialPrecios.length === 0) return 0;
-    const suma = this.historialPrecios.reduce((acc, h) => acc + h.precioNuevo, 0);
-    return suma / this.historialPrecios.length;
   }
 
 }

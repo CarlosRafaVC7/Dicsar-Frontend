@@ -41,39 +41,6 @@
 
   <!-- ========================== 🛒 TAB PRODUCTOS ========================== -->
   <div *ngIf="activeTab === 'productos'" class="tab-content">
-
-    <!-- ⚠️ ALERTAS DE VENCIMIENTO -->
-    <div class="alerta-vencimiento-section" *ngIf="productosVencidos.length > 0 || productosProximosAVencer.length > 0">
-      <div class="alertas-container">
-        <!-- Productos Vencidos -->
-        <div class="alerta-vencido" *ngIf="productosVencidos.length > 0">
-          <div class="alerta-header">
-            <span class="alerta-icon">🚫</span>
-            <span class="alerta-titulo">{{ productosVencidos.length }} Producto(s) Vencido(s)</span>
-          </div>
-          <div class="alerta-items">
-            <div class="alerta-item" *ngFor="let p of productosVencidos">
-              <strong>{{ p.nombre }}</strong> - Vencimiento: {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Productos Próximos a Vencer -->
-        <div class="alerta-proximo" *ngIf="productosProximosAVencer.length > 0">
-          <div class="alerta-header">
-            <span class="alerta-icon">⏰</span>
-            <span class="alerta-titulo">{{ productosProximosAVencer.length }} Producto(s) Próximo(s) a Vencer</span>
-          </div>
-          <div class="alerta-items">
-            <div class="alerta-item" *ngFor="let p of productosProximosAVencer">
-              <strong>{{ p.nombre }}</strong> - Vence en {{ getDiasParaVencer(p.fechaVencimiento) }} días ({{
-              p.fechaVencimiento | date:'dd/MM/yyyy' }})
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Controles superiores -->
     <div class="controls-panel">
       <!-- Estadísticas de productos -->
@@ -122,8 +89,11 @@
       </div>
     </div>
 
-    <!-- Tabla de productos ORIGINAL CON COLORES Y BOTONES -->
+    <!-- Tabla de productos ACTIVOS -->
     <div class="table-container">
+      <div class="table-section-header">
+        <h3>📦 Productos Activos ({{ filteredActiveProducts.length }})</h3>
+      </div>
       <table class="products-table">
         <thead>
           <tr>
@@ -137,8 +107,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of visibleProducts" [class.expired]="esProductoVencido(p.fechaVencimiento)"
-            [class.low-stock]="p.stockActual <= p.stockMinimo" [class.inactive]="!p.estado">
+          <tr *ngFor="let p of productosActivosPaginados" [class.expired]="esProductoVencido(p.fechaVencimiento)"
+            [class.low-stock]="p.stockActual <= p.stockMinimo">
 
             <!-- Columna Producto -->
             <td class="product-info">
@@ -153,12 +123,13 @@
 
             <!-- Columna Categoría -->
             <td>
-              <span class="category-badge">{{ p.categoria?.nombre || '-' }}</span>
+              <span class="category-badge">{{ p.categoriaNombre || p.categoria?.nombre || '-' }}</span>
             </td>
 
             <!-- Columna Unidad -->
             <td>
-              <span class="unit-badge">{{ p.unidadMedida?.abreviatura || p.unidadMedida?.nombre || '-' }}</span>
+              <span class="unit-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura ||
+                p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
             </td>
 
             <!-- Columna Precio CON BOTÓN DE EDITAR -->
@@ -186,9 +157,7 @@
                   <input type="checkbox" [checked]="p.estado" (change)="toggleEstadoProducto(p)">
                   <span class="slider"></span>
                 </label>
-                <span class="status-text" [class.active]="p.estado">
-                  {{ p.estado ? 'Activo' : 'Inactivo' }}
-                </span>
+                <span class="status-text active">Activo</span>
               </div>
             </td>
 
@@ -198,40 +167,149 @@
                 <button class="btn-edit" (click)="editarProducto(p)" title="Editar producto">
                   ✏️ Editar
                 </button>
-                <button class="btn-history" (click)="abrirHistorialPrecios(p)" title="Ver historial de precios (HU7)">
-                  📊 Historial
-                </button>
-                <button class="btn-delete" (click)="eliminarProducto(p.idProducto)" title="Eliminar producto">
-                  🗑️ Eliminar
-                </button>
               </div>
             </td>
           </tr>
 
-          <!-- Mensaje cuando no hay productos -->
-          <tr *ngIf="visibleProducts.length === 0">
+          <!-- Mensaje cuando no hay productos activos -->
+          <tr *ngIf="productosActivosPaginados.length === 0">
             <td colspan="7" class="no-data">
               <div class="no-data-content">
-                <span>📭 No hay productos que coincidan con tu búsqueda</span>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Mensaje informativo sobre productos inactivos -->
-          <tr *ngIf="visibleProducts.length > 0 && (productos.length - productosActivos.length) > 0">
-            <td colspan="7" class="inactive-info">
-              <div class="inactive-info-content">
-                <span>ℹ️ Los productos inactivos aparecen al final (son como eliminados suaves)</span>
+                <span>📭 No hay productos activos que coincidan con tu búsqueda</span>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Paginación para productos activos -->
+      <div class="pagination" *ngIf="totalPaginasActivos > 1">
+        <button class="page-btn" [disabled]="paginaActualActivos === 1"
+          (click)="cambiarPaginaActivos(paginaActualActivos - 1)">
+          ← Anterior
+        </button>
+
+        <button *ngFor="let p of paginasArrayActivos" class="page-btn" [class.active]="p === paginaActualActivos"
+          (click)="cambiarPaginaActivos(p)">
+          {{ p }}
+        </button>
+
+        <button class="page-btn" [disabled]="paginaActualActivos === totalPaginasActivos"
+          (click)="cambiarPaginaActivos(paginaActualActivos + 1)">
+          Siguiente →
+        </button>
+      </div>
+
+      <div class="pagination-info" *ngIf="totalPaginasActivos > 1">
+        Página {{ paginaActualActivos }} de {{ totalPaginasActivos }}
+        ({{ filteredActiveProducts.length }} productos)
+      </div>
+    </div>
+
+    <!-- Tabla de productos INACTIVOS (colapsible) -->
+    <div class="table-container inactive-products" *ngIf="productosInactivos.length > 0">
+      <div class="table-section-header inactive-header" (click)="toggleMostrarInactivos()" style="cursor: pointer;">
+        <h3>📦 Productos Inactivos ({{ productosInactivos.length }})</h3>
+        <span class="inactive-hint">
+          {{ mostrarInactivos ? '▲ Ocultar' : '▼ Ver productos deshabilitados' }}
+        </span>
+      </div>
+
+      <div *ngIf="mostrarInactivos">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Unidad</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of productosInactivosPaginados" class="inactive-row">
+
+              <!-- Columna Producto -->
+              <td class="product-info">
+                <div class="product-name inactive-text">{{ p.nombre }}</div>
+                <div class="product-code">{{ p.codigo }}</div>
+                <div *ngIf="p.descripcion" class="product-desc inactive-text">{{ p.descripcion }}</div>
+              </td>
+
+              <!-- Columna Categoría -->
+              <td>
+                <span class="category-badge inactive-badge">{{ p.categoriaNombre || p.categoria?.nombre || '-' }}</span>
+              </td>
+
+              <!-- Columna Unidad -->
+              <td>
+                <span class="unit-badge inactive-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura ||
+                  p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
+              </td>
+
+              <!-- Columna Precio -->
+              <td class="price-cell inactive-text">
+                <strong>{{ p.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</strong>
+              </td>
+
+              <!-- Columna Stock -->
+              <td class="stock-cell">
+                <div class="stock-inactive">{{ p.stockActual }}</div>
+              </td>
+
+              <!-- Columna Estado -->
+              <td class="status-cell">
+                <div class="status-toggle">
+                  <label class="toggle-switch">
+                    <input type="checkbox" [checked]="p.estado" (change)="toggleEstadoProducto(p)">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="status-text">Inactivo</span>
+                </div>
+              </td>
+
+              <!-- Columna Acciones -->
+              <td class="actions-cell">
+                <div class="action-buttons">
+                  <button class="btn-reactivate" (click)="toggleEstadoProducto(p)" title="Reactivar producto">
+                    🔄 Reactivar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Paginación para productos inactivos -->
+        <div class="pagination" *ngIf="totalPaginasInactivos > 1">
+          <button class="page-btn" [disabled]="paginaActualInactivos === 1"
+            (click)="cambiarPaginaInactivos(paginaActualInactivos - 1)">
+            ← Anterior
+          </button>
+
+          <button *ngFor="let p of paginasArrayInactivos" class="page-btn" [class.active]="p === paginaActualInactivos"
+            (click)="cambiarPaginaInactivos(p)">
+            {{ p }}
+          </button>
+
+          <button class="page-btn" [disabled]="paginaActualInactivos === totalPaginasInactivos"
+            (click)="cambiarPaginaInactivos(paginaActualInactivos + 1)">
+            Siguiente →
+          </button>
+        </div>
+
+        <div class="pagination-info" *ngIf="totalPaginasInactivos > 1">
+          Página {{ paginaActualInactivos }} de {{ totalPaginasInactivos }}
+          ({{ productosInactivos.length }} productos)
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- ========================== 💰 MODAL EDITAR PRECIO ========================== -->
-  <div class="modal-overlay" *ngIf="mostrarModalPrecio" (click)="cerrarModalPrecio()">
+  <div class="modal-overlay" *ngIf="mostrarModalPrecio">
     <div class="modal-content price-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>💰 Cambiar Precio del Producto</h3>
@@ -288,7 +366,7 @@
 
   <!-- Los otros modales (Unidades, Categorías, Producto) se mantienen igual -->
   <!-- ========================== ⚖️ MODAL UNIDADES ========================== -->
-  <div class="modal-overlay" *ngIf="mostrarModalUnidad" (click)="cerrarModalUnidad()">
+  <div class="modal-overlay" *ngIf="mostrarModalUnidad">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>⚖️ Gestión de Unidades de Medida</h3>
@@ -327,7 +405,6 @@
             </div>
             <div class="item-actions">
               <button class="btn-edit-small" (click)="editarUnidad(u)">✏️</button>
-              <button class="btn-delete-small" (click)="eliminarUnidad(u.idUnidadMed!)">🗑️</button>
             </div>
           </div>
         </div>
@@ -336,7 +413,7 @@
   </div>
 
   <!-- ========================== 📂 MODAL CATEGORÍAS ========================== -->
-  <div class="modal-overlay" *ngIf="mostrarModalCategoria" (click)="cerrarModalCategoria()">
+  <div class="modal-overlay" *ngIf="mostrarModalCategoria">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>📂 Gestión de Categorías</h3>
@@ -374,7 +451,6 @@
             </div>
             <div class="item-actions">
               <button class="btn-edit-small" (click)="editarCategoria(c)">✏️</button>
-              <button class="btn-delete-small" (click)="eliminarCategoria(c.idCategoria!)">🗑️</button>
             </div>
           </div>
         </div>
@@ -383,7 +459,7 @@
   </div>
 
   <!-- ========================== 🛒 MODAL PRODUCTO ========================== -->
-  <div class="modal-overlay" *ngIf="mostrarModalProducto" (click)="cerrarModalProducto()">
+  <div class="modal-overlay" *ngIf="mostrarModalProducto">
     <div class="modal-content large-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>{{ editandoProducto ? '✏️ Editar Producto' : '➕ Nuevo Producto' }}</h3>
@@ -484,100 +560,5 @@
         </div>
       </form>
     </div>
-  </div>
-
-  <!-- ========================== 📊 MODAL HISTORIAL DE PRECIOS (HU7) ========================== -->
-  <div class="modal-overlay" *ngIf="mostrarModalHistorial" (click)="cerrarHistorialPrecios()">
-    <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 800px;">
-      <div class="modal-header">
-        <h2>📊 Historial de Cambios de Precios</h2>
-        <button class="btn-close" (click)="cerrarHistorialPrecios()">✕</button>
-      </div>
-
-      <div class="modal-body" *ngIf="productoSeleccionadoHistorial">
-        <!-- Información del Producto -->
-        <div class="historial-header">
-          <div class="header-info">
-            <h3>{{ productoSeleccionadoHistorial.nombre }}</h3>
-            <p class="codigo">Código: {{ productoSeleccionadoHistorial.codigo }}</p>
-          </div>
-          <div class="header-stats">
-            <div class="stat-box">
-              <span class="stat-label">Total Cambios</span>
-              <span class="stat-value">{{ totalCambiosPrecio }}</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">Precio Actual</span>
-              <span class="stat-value">S/ {{ productoSeleccionadoHistorial.precioBase | number:'1.2-2' }}</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">Precio Promedio</span>
-              <span class="stat-value">S/ {{ precioPromedio | number:'1.2-2' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Listado de Cambios -->
-        <div class="historial-content" *ngIf="!cargandoHistorial">
-          <div *ngIf="historialPrecios.length > 0" class="historial-list">
-            <div class="historial-item" *ngFor="let item of historialPrecios; let i = index">
-              <div class="item-header">
-                <div class="item-date">
-                  📅 {{ item.fechaCambio | date:'dd/MM/yyyy HH:mm' }}
-                </div>
-                <div class="item-user">
-                  👤 {{ item.usuario || 'Sistema' }}
-                </div>
-              </div>
-
-              <div class="item-prices">
-                <div class="price-box anterior">
-                  <label>Precio Anterior</label>
-                  <span class="price">S/ {{ item.precioAnterior | number:'1.2-2' }}</span>
-                </div>
-
-                <div class="price-arrow">→</div>
-
-                <div class="price-box nuevo">
-                  <label>Precio Nuevo</label>
-                  <span class="price">S/ {{ item.precioNuevo | number:'1.2-2' }}</span>
-                </div>
-
-                <div class="variacion-badge" [class]="obtenerClaseVariacion(calcularVariacion(item))">
-                  <span *ngIf="calcularVariacion(item) > 0">
-                    📈 +{{ calcularVariacion(item) | number:'1.2-2' }}%
-                  </span>
-                  <span *ngIf="calcularVariacion(item) < 0">
-                    📉 {{ calcularVariacion(item) | number:'1.2-2' }}%
-                  </span>
-                  <span *ngIf="calcularVariacion(item) === 0">
-                    ➡️ 0%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div *ngIf="historialPrecios.length === 0" class="empty-state">
-            <p>📭 No hay cambios de precio registrados para este producto</p>
-          </div>
-        </div>
-
-        <!-- Loading -->
-        <div *ngIf="cargandoHistorial" class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando historial...</p>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-primary" (click)="cerrarHistorialPrecios()">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sistema de Alertas -->
-  <div *ngIf="alertaVisible" class="alert" [class]="'alert-' + alertaTipo">
-    <span class="alert-message">{{ alertaMensaje }}</span>
   </div>
 </div>

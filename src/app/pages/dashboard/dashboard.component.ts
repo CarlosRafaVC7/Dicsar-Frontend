@@ -1,321 +1,379 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration } from 'chart.js';
-import { VentaService } from '../../services/venta.service';
-import { MovimientoService } from '../../services/movimiento.service';
+import { RouterModule } from '@angular/router';
+import { HttpClientModule } from '@angular/common/http';
+import { Chart, registerables } from 'chart.js';
+import { ReporteService, ReporteInventario, ReporteProveedores } from '../../services/reporte.service';
 import { ProductoService } from '../../services/producto.service';
-import { UsuarioService } from '../../services/usuario.service';
+import { MovimientoService } from '../../services/movimiento.service';
+import { ProveedorService } from '../../services/proveedor.service';
+import { NotificacionService } from '../../services/notificacion.service';
+import { CategoriaService } from '../../services/categoria.service';
+import { AuthService } from '../../services/auth.service';
+import { AuthResponse } from '../../models/auth.model';
+
+Chart.register(...registerables);
+
+interface StatCard {
+  titulo: string;
+  valor: number;
+  icono: string;
+  color: string;
+  cambio?: number;
+  tendencia?: 'up' | 'down' | 'neutral';
+}
+
+interface MovimientoReciente {
+  id: number;
+  tipo: string;
+  producto: string;
+  cantidad: number;
+  fecha: Date;
+  usuario: string;
+}
+
+interface AlertaStock {
+  idProducto: number;
+  nombre: string;
+  stockActual: number;
+  stockMinimo: number;
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, BaseChartDirective],
+  imports: [CommonModule, RouterModule, HttpClientModule],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css'
+  styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements OnInit {
-  // Ventas
-  productosMasVendidos: any[] = [];
-  clientesTopCompras: any[] = [];
-  totalesMensuales: any[] = [];
+export class DashboardComponent implements OnInit, AfterViewInit {
+  @ViewChild('chartMovimientos') chartMovimientosRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartCategorias') chartCategoriasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartEstado') chartEstadoRef!: ElementRef<HTMLCanvasElement>;
 
-  // Inventario
-  movimientos: any[] = [];
-  productosTotal = 0;
-  stockBajo: any[] = [];
-  productosVencidos: any[] = [];
-  productosProximosAVencer: any[] = [];
-
-  // Sistema
-  usuariosActivos = 0;
-  totalUsuarios = 0;
-
-  // Estados
+  currentUser: AuthResponse | null = null;
   loading = true;
 
-  // Gráficos
-  chartMovimientosConfig: ChartConfiguration = {
-    type: 'bar',
-    data: {
-      labels: ['Salidas', 'Entradas', 'Ajustes'],
-      datasets: [
-        {
-          label: 'Total Movimientos',
-          data: [0, 0, 0],
-          backgroundColor: ['#FF6B6B', '#4ECDC4', '#FFE66D'],
-          borderColor: ['#FF5252', '#00BCD4', '#FFC107'],
-          borderWidth: 2
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { color: '#333' } }
-      }
-    }
-  };
+  stats: StatCard[] = [];
+  movimientosRecientes: MovimientoReciente[] = [];
+  alertasStock: AlertaStock[] = [];
+  categoriasData: any[] = [];
 
-  chartVentasMensualesConfig: ChartConfiguration = {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: 'Ventas Mensuales (S/)',
-          data: [],
-          borderColor: '#9C27B0',
-          backgroundColor: 'rgba(156, 39, 176, 0.1)',
-          tension: 0.4,
-          fill: true,
-          pointRadius: 5,
-          pointBackgroundColor: '#9C27B0'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { color: '#333' } }
-      }
-    }
-  };
+  private chartMovimientos: Chart | null = null;
+  private chartCategorias: Chart | null = null;
+  private chartEstado: Chart | null = null;
 
-  chartProductosConfig: ChartConfiguration = {
-    type: 'doughnut',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          data: [],
-          backgroundColor: [
-            '#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181',
-            '#AA96DA', '#FCBAD3', '#A8DADC', '#457B9D', '#1D3557'
-          ]
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { color: '#333' }, position: 'right' }
-      }
-    }
-  };
+  reporteInventario: ReporteInventario | null = null;
+  reporteProveedores: ReporteProveedores | null = null;
+
+  productosActivos = 0;
+  productosInactivos = 0;
+  totalEntradas = 0;
+  totalSalidas = 0;
+
+  horaActual = '';
+
+  get actualDate(): string {
+    return new Date().toLocaleDateString('es-PE', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
 
   constructor(
-    private ventaService: VentaService,
-    private movimientoService: MovimientoService,
+    private reporteService: ReporteService,
     private productoService: ProductoService,
-    private usuarioService: UsuarioService
+    private movimientoService: MovimientoService,
+    private proveedorService: ProveedorService,
+    private notificacionService: NotificacionService,
+    private categoriaService: CategoriaService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
-    this.cargarTodosDatos();
+    this.authService.currentUser.subscribe(user => {
+      this.currentUser = user;
+    });
+    this.actualizarHora();
+    setInterval(() => this.actualizarHora(), 1000);
+    this.cargarDatos();
   }
 
-  cargarTodosDatos(): void {
-    this.loading = true;
+  ngAfterViewInit(): void { }
 
-    // Cargar datos de Ventas - CON MAPPING CORRECTO
-    this.ventaService.obtenerProductosMasVendidos().subscribe({
-      next: (datos) => {
-        console.log('📊 Raw Productos:', datos);
-        if (Array.isArray(datos)) {
-          // MAPEAR: [id, nombre, cantidad, total] → [nombre, cantidad, total]
-          this.productosMasVendidos = datos.map((p: any) => {
-            if (Array.isArray(p) && p.length >= 4) {
-              return [p[1], p[2], p[3]]; // nombre, cantidad, total
-            }
-            return p;
-          }).filter((p: any) => {
-            if (Array.isArray(p)) return p[1] > 0;
-            return false;
-          });
-        }
-        this.actualizarGraficos();
-      },
-      error: (error) => {
-        console.error('❌ Error productos vendidos:', error);
-        this.productosMasVendidos = [];
-      }
-    });
-
-    this.ventaService.obtenerClientesTopCompras().subscribe({
-      next: (datos) => {
-        console.log('👥 Raw Clientes:', datos);
-        if (Array.isArray(datos)) {
-          // MAPEAR: [id, nombre, cantidad, total] → [nombre, cantidad, total]
-          this.clientesTopCompras = datos.map((c: any) => {
-            if (Array.isArray(c) && c.length >= 4) {
-              return [c[1], c[2], c[3]]; // nombre, cantidad, total
-            }
-            return c;
-          }).filter((c: any) => {
-            if (Array.isArray(c)) return c[2] > 0;
-            return false;
-          });
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error clientes top:', error);
-        this.clientesTopCompras = [];
-      }
-    });
-
-    this.ventaService.obtenerTotalesMensuales().subscribe({
-      next: (datos) => {
-        console.log('📈 Raw Totales:', datos);
-        if (Array.isArray(datos)) {
-          // Ya está en formato correcto: [año, mes, total, count]
-          this.totalesMensuales = datos.filter((m: any) => {
-            if (Array.isArray(m) && m.length >= 3) {
-              return m[2] > 0; // total > 0
-            }
-            return false;
-          });
-        }
-        this.actualizarGraficos();
-      },
-      error: (error) => {
-        console.error('❌ Error totales mensuales:', error);
-        this.totalesMensuales = [];
-      }
-    });
-
-    // Cargar datos de Inventario
-    this.movimientoService.listar().subscribe({
-      next: (datos) => {
-        console.log('📋 Movimientos:', datos);
-        this.movimientos = datos || [];
-        this.actualizarGraficos();
-      },
-      error: (error) => console.error('❌ Error movimientos:', error)
-    });
-
-    this.productoService.listar().subscribe({
-      next: (datos) => {
-        console.log('🛒 Productos:', datos);
-        this.productosTotal = (datos || []).length;
-        this.stockBajo = (datos || []).filter((p: any) => (p.stockActual || p.stock || 0) < 10).slice(0, 5);
-
-        // 🆕 Calcular productos vencidos y próximos a vencer
-        const hoy = new Date();
-        this.productosVencidos = (datos || []).filter((p: any) => {
-          if (!p.fechaVencimiento) return false;
-          const vencimiento = new Date(p.fechaVencimiento);
-          return vencimiento < hoy && p.estado;
-        }).slice(0, 5);
-
-        this.productosProximosAVencer = (datos || []).filter((p: any) => {
-          if (!p.fechaVencimiento) return false;
-          const vencimiento = new Date(p.fechaVencimiento);
-          const diasFaltantes = Math.floor((vencimiento.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
-          return diasFaltantes > 0 && diasFaltantes <= 30 && p.estado;
-        }).slice(0, 5);
-      },
-      error: (error) => console.error('❌ Error productos:', error)
-    });
-
-    // Cargar datos de Sistema
-    this.usuarioService.listar().subscribe({
-      next: (datos: any) => {
-        console.log('👤 Usuarios:', datos);
-        const usuarios = Array.isArray(datos) ? datos : (datos?.content || []);
-        this.totalUsuarios = usuarios.length;
-        this.usuariosActivos = usuarios.filter((u: any) => u.activo).length || Math.ceil(usuarios.length * 0.7);
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('❌ Error usuarios:', error);
-        this.loading = false;
-      }
+  actualizarHora(): void {
+    const now = new Date();
+    this.horaActual = now.toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   }
 
-  actualizarGraficos(): void {
-    // Gráfico de Movimientos
-    this.chartMovimientosConfig.data.datasets[0].data = [
-      this.salidasCount,
-      this.entradasCount,
-      this.ajustesCount
+  cargarDatos(): void {
+    this.productoService.listar().subscribe(productos => {
+      const activos = productos.filter((p: any) => p.estado === true || p.estado === 'true');
+      const inactivos = productos.filter((p: any) => p.estado === false || p.estado === 'false');
+      this.productosActivos = activos.length;
+      this.productosInactivos = inactivos.length;
+
+      this.alertasStock = productos
+        .filter((p: any) => p.stockActual <= p.stockMinimo)
+        .map((p: any) => ({
+          idProducto: p.idProducto,
+          nombre: p.nombre,
+          stockActual: p.stockActual,
+          stockMinimo: p.stockMinimo
+        }))
+        .slice(0, 5);
+
+      this.actualizarStats();
+      this.cargarCategoriaData(productos);
+
+      this.inicializarGraficos();
+    });
+
+    this.movimientoService.listar().subscribe(movimientos => {
+      this.totalEntradas = movimientos.filter((m: any) => m.tipo === 'ENTRADA').length;
+      this.totalSalidas = movimientos.filter((m: any) => m.tipo === 'SALIDA').length;
+
+      this.movimientosRecientes = movimientos
+        .sort((a: any, b: any) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime())
+        .slice(0, 8)
+        .map((m: any) => ({
+          id: m.idMovimiento,
+          tipo: m.tipo,
+          producto: m.producto?.nombre || 'Producto',
+          cantidad: m.cantidad,
+          fecha: new Date(m.fechaHora),
+          usuario: m.usuario
+        }));
+
+      this.actualizarStats();
+    });
+
+    this.proveedorService.listar().subscribe(proveedores => {
+      this.reporteService.obtenerReporteInventario().subscribe(reporte => {
+        this.reporteInventario = reporte;
+        this.actualizarStats();
+        this.loading = false;
+      });
+    });
+
+    this.reporteService.obtenerReporteProveedores().subscribe(reporte => {
+      this.reporteProveedores = reporte;
+    });
+  }
+
+  cargarCategoriaData(productos: any[]): void {
+    const categoriasMap = new Map<string, number>();
+    productos.forEach((p: any) => {
+      const cat = p.categoriaNombre || p.categoria?.nombre || 'Sin categoría';
+      categoriasMap.set(cat, (categoriasMap.get(cat) || 0) + 1);
+    });
+    this.categoriasData = Array.from(categoriasMap.entries()).map(([nombre, cantidad]) => ({
+      nombre,
+      cantidad
+    }));
+  }
+
+  actualizarStats(): void {
+    this.stats = [
+      {
+        titulo: 'Total Productos',
+        valor: this.productosActivos + this.productosInactivos,
+        icono: '📦',
+        color: '#3b82f6'
+      },
+      {
+        titulo: 'Productos Activos',
+        valor: this.productosActivos,
+        icono: '✅',
+        color: '#10b981',
+        cambio: this.productosActivos > 0 ? 100 : 0,
+        tendencia: 'up'
+      },
+      {
+        titulo: 'Total Entradas',
+        valor: this.totalEntradas,
+        icono: '📥',
+        color: '#8b5cf6'
+      },
+      {
+        titulo: 'Total Salidas',
+        valor: this.totalSalidas,
+        icono: '📤',
+        color: '#f59e0b'
+      },
+      {
+        titulo: 'Alertas Stock',
+        valor: this.alertasStock.length,
+        icono: '⚠️',
+        color: '#ef4444',
+        cambio: this.alertasStock.length > 0 ? -10 : 0,
+        tendencia: this.alertasStock.length > 0 ? 'down' : 'neutral'
+      },
+      {
+        titulo: 'Proveedores',
+        valor: this.reporteProveedores?.totalProveedores || 0,
+        icono: '🏢',
+        color: '#06b6d4'
+      }
     ];
+  }
 
-    // Gráfico de Ventas Mensuales - FORMATO: [nombre, cantidad, total]
-    const labelsVentas: string[] = [];
-    const datosVentas: number[] = [];
+  inicializarGraficos(): void {
+    this.crearGraficoMovimientos();
+    this.crearGraficoCategorias();
+    this.crearGraficoEstado();
+  }
 
-    this.totalesMensuales.forEach((m: any) => {
-      if (Array.isArray(m) && m.length >= 3) {
-        // Formato: [año, mes, total, count?]
-        const año = m[0];
-        const mes = m[1];
-        const total = parseFloat(m[2]);
+  crearGraficoMovimientos(): void {
+    const ctx = this.chartMovimientosRef?.nativeElement?.getContext('2d');
+    if (!ctx) return;
 
-        if (total > 0) {
-          const fecha = new Date(año, mes - 1, 1);
-          labelsVentas.push(fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }));
-          datosVentas.push(total);
+    this.chartMovimientos = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Entradas', 'Salidas', 'Ajustes'],
+        datasets: [{
+          data: [
+            this.totalEntradas,
+            this.totalSalidas,
+            Math.max(1, this.totalEntradas + this.totalSalidas - this.totalEntradas - this.totalSalidas)
+          ],
+          backgroundColor: ['#10b981', '#f59e0b', '#8b5cf6'],
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 20,
+              usePointStyle: true,
+              font: { size: 12, family: 'Inter' }
+            }
+          }
         }
       }
     });
+  }
 
-    this.chartVentasMensualesConfig.data.labels = labelsVentas;
-    this.chartVentasMensualesConfig.data.datasets[0].data = datosVentas;
+  crearGraficoCategorias(): void {
+    const ctx = this.chartCategoriasRef?.nativeElement?.getContext('2d');
+    if (!ctx) return;
 
-    // Gráfico de Productos Más Vendidos - FORMATO: [nombre, cantidad, total]
-    const productosLabels: string[] = [];
-    const productosData: number[] = [];
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
-    this.productosMasVendidos.forEach((p: any) => {
-      if (Array.isArray(p) && p.length >= 3) {
-        const nombre = p[0];
-        const cantidad = parseFloat(p[1]);
-
-        if (cantidad > 0) {
-          productosLabels.push(nombre);
-          productosData.push(cantidad);
+    this.chartCategorias = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: this.categoriasData.slice(0, 6).map(c => c.nombre),
+        datasets: [{
+          label: 'Productos',
+          data: this.categoriasData.slice(0, 6).map(c => c.cantidad),
+          backgroundColor: colors.slice(0, 6),
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11, family: 'Inter' } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: { font: { size: 11, family: 'Inter' } }
+          }
         }
       }
     });
+  }
 
-    this.chartProductosConfig.data.labels = productosLabels;
-    this.chartProductosConfig.data.datasets[0].data = productosData;
+  crearGraficoEstado(): void {
+    const ctx = this.chartEstadoRef?.nativeElement?.getContext('2d');
+    if (!ctx) return;
 
-    console.log('✅ Gráficos actualizados', {
-      ventas: { labels: labelsVentas, data: datosVentas },
-      productos: { labels: productosLabels, data: productosData }
+    this.chartEstado = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Activos', 'Inactivos'],
+        datasets: [{
+          data: [this.productosActivos || 1, this.productosInactivos || 0],
+          backgroundColor: ['#10b981', '#ef4444'],
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 20,
+              usePointStyle: true,
+              font: { size: 12, family: 'Inter' }
+            }
+          }
+        }
+      }
     });
   }
 
-  // Getters para Movimientos
-  get salidasCount(): number {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'SALIDA').length;
+  getTipoIcon(tipo: string): string {
+    switch (tipo) {
+      case 'ENTRADA': return '📥';
+      case 'SALIDA': return '📤';
+      case 'AJUSTE': return '🔄';
+      default: return '📦';
+    }
   }
 
-  get entradasCount(): number {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'ENTRADA').length;
+  getTipoClass(tipo: string): string {
+    switch (tipo) {
+      case 'ENTRADA': return 'tipo-entrada';
+      case 'SALIDA': return 'tipo-salida';
+      case 'AJUSTE': return 'tipo-ajuste';
+      default: return '';
+    }
   }
 
-  get ajustesCount(): number {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'AJUSTE').length;
+  getStockClass(producto: AlertaStock): string {
+    if (producto.stockActual === 0) return 'stock-cero';
+    if (producto.stockActual <= producto.stockMinimo * 0.5) return 'stock-crítico';
+    return 'stock-bajo';
   }
 
-  // Helper para moneda
-  formatearMoneda(valor: number): string {
-    if (!valor) return 'S/ 0.00';
-    return 'S/ ' + valor.toFixed(2);
-  }
+  formatearFecha(date: Date): string {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutos = Math.floor(diff / 60000);
+    const horas = Math.floor(minutos / 60);
+    const dias = Math.floor(horas / 24);
 
-  // 🆕 Helper para cálculo de vencimiento
-  getDiasParaVencer(fechaVencimiento: string): number {
-    if (!fechaVencimiento) return 999;
-    const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
-    return Math.floor((vencimiento.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
+    if (minutos < 1) return 'Ahora';
+    if (minutos < 60) return `Hace ${minutos}m`;
+    if (horas < 24) return `Hace ${horas}h`;
+    if (dias < 7) return `Hace ${dias}d`;
+    return new Date(date).toLocaleDateString('es-PE');
   }
 }

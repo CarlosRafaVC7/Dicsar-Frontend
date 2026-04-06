@@ -1,23 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 
 export interface Usuario {
   idUsuario?: number;
-  usuario: string;
+  username: string;
   password?: string;
-  email?: string;
-  rol: 'ADMIN' | 'VENDEDOR' | 'USUARIO' | 'CLIENTE';
+  nombreCompleto: string;
+  rol: 'ADMIN' | 'VENDEDOR';
   activo: boolean;
-  fechaCreacion?: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class UsuarioService {
-  private apiUrl = `${environment.apiBaseUrl}/usuarios`;
+  private apiUrl = 'http://localhost:8080/api/usuarios';
 
   constructor(private http: HttpClient) { }
 
@@ -46,14 +44,5 @@ export class UsuarioService {
       passwordActual,
       passwordNueva
     });
-  }
-
-  // ========== DESACTIVAR / ACTIVAR ==========
-  desactivarUsuario(id: number): Observable<Usuario> {
-    return this.http.post<Usuario>(`${this.apiUrl}/${id}/desactivar`, {});
-  }
-
-  activarUsuario(id: number): Observable<Usuario> {
-    return this.http.post<Usuario>(`${this.apiUrl}/${id}/activar`, {});
   }
 }

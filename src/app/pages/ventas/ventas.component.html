@@ -29,13 +29,12 @@
     </div>
   </div>
 
-  <!-- Barra de controles: pestañas (opcional), búsqueda y filtro -->
+  <!-- Barra de controles: pestañas, búsqueda y filtro tipo -->
   <div class="controls-row-ventas">
     <div class="tabs pills">
       <button [class.active]="activeTab === 'salidas'" (click)="cambiarTab('salidas')">Movimientos</button>
       <button [class.active]="activeTab === 'historial'" (click)="cambiarTab('historial')">Reportes</button>
     </div>
-
 
     <div class="search-filter">
       <input class="search" placeholder="Buscar por producto, código o descripción..." [(ngModel)]="searchMov" />
@@ -49,7 +48,7 @@
   </div>
 
   <!-- Modal: Nuevo Movimiento -->
-  <div class="modal-overlay" *ngIf="mostrarModalMovimiento" (click)="cerrarModalMovimiento()">
+  <div class="modal-overlay" *ngIf="mostrarModalMovimiento">
     <div class="modal product-modal" (click)="$event.stopPropagation()">
       <header class="modal-head">
         <h3>Nuevo Movimiento</h3>
@@ -58,10 +57,18 @@
 
       <form class="product-modal-form" (ngSubmit)="registrarMovimiento()">
         <div class="field">
+          <label>Categoría</label>
+          <select [(ngModel)]="filtroCategoriaId" name="filtroCategoriaId">
+            <option [ngValue]="null">Todas las categorías</option>
+            <option *ngFor="let c of categorias" [ngValue]="c.idCategoria">{{ c.nombre }}</option>
+          </select>
+        </div>
+
+        <div class="field">
           <label>Producto</label>
           <select [(ngModel)]="nuevoMovimiento.producto" name="producto" required>
             <option [ngValue]="null">Seleccione un producto</option>
-            <option *ngFor="let p of productos" [ngValue]="p">{{ p.nombre }} (Stock: {{p.stockActual}})</option>
+            <option *ngFor="let p of productosFiltradosModal" [ngValue]="p">{{ p.nombre }} ({{ p.codigo }}) - Stock: {{p.stockActual}}</option>
           </select>
         </div>
 
@@ -125,9 +132,9 @@
             <td [class.positive]="m.tipoMovimiento === 'ENTRADA'" [class.negative]="m.tipoMovimiento === 'SALIDA'">
               {{ m.cantidad > 0 ? (m.cantidad | number) : m.cantidad }}
             </td>
-            <td>{{ m.usuarioMovimiento || '---' }}</td>
+            <td>{{ m.usuario?.nombreCompleto || '---' }}</td>
             <td>
-              <button class="icon-btn" title="Ver" (click)="verMovimiento(m)">𓁹</button>
+              <button class="icon-btn" title="Nuevo movimiento similar" (click)="verMovimiento(m)">🔄</button>
             </td>
           </tr>
 
@@ -150,28 +157,99 @@
     </div>
   </section>
 
-  <div *ngIf="activeTab === 'historial'" class="filtro-fechas">
-    <h3>Filtrar Reportes por Fecha</h3>
-    <div class="fecha-inputs">
-      <div class="field-date">
-        <label>Fecha inicio</label>
-        <input type="date" [(ngModel)]="fechaInicio" />
+  <!-- Pestaña Reportes -->
+  <section class="reportes-container" *ngIf="activeTab === 'historial'">
+    <!-- Filtros de Fecha -->
+    <div class="reportes-filtros">
+      <h3>📊 Reporte de Movimientos</h3>
+      <div class="filtros-row">
+        <div class="filtro-group">
+          <label>Desde:</label>
+          <input type="date" [(ngModel)]="fechaInicio" (change)="aplicarFiltros()">
+        </div>
+        <div class="filtro-group">
+          <label>Hasta:</label>
+          <input type="date" [(ngModel)]="fechaFin" (change)="aplicarFiltros()">
+        </div>
+        <div class="filtro-group">
+          <label>Tipo:</label>
+          <select [(ngModel)]="filterTipo" (change)="aplicarFiltros()">
+            <option value="TODOS">Todos</option>
+            <option value="ENTRADA">Entradas</option>
+            <option value="SALIDA">Salidas</option>
+            <option value="AJUSTE">Ajustes</option>
+          </select>
+        </div>
+        <button class="btn-limpiar" (click)="limpiarFiltros()">Limpiar</button>
       </div>
-      <div class="field-date">
-        <label>Fecha fin</label>
-        <input type="date" [(ngModel)]="fechaFin" />
-      </div>
-      <button class="btn btn-primario" (click)="filtrarPorFecha()">Filtrar</button>
-    </div>
-  </div>
-<div class="export-buttons" *ngIf="activeTab === 'historial' && movimientosFiltrados.length > 0">
-      <button class="btn btn-pdf" (click)="exportarPDF()">Exportar PDF</button>
     </div>
 
-  <!-- Tabla Reportes -->
-  <section class="historial-container" *ngIf="activeTab === 'historial' && movimientosFiltrados.length > 0">
-    <h2>Reporte de Movimientos</h2>
-    <div class="table-wrap">
+    <!-- Estadísticas del Reporte -->
+    <div class="reportes-stats" *ngIf="movimientosFiltrados.length > 0">
+      <div class="stat-card entrada">
+        <div class="stat-icon">📥</div>
+        <div class="stat-content">
+          <span class="stat-label">Total Entradas</span>
+          <span class="stat-value">{{ totalEntradas }}</span>
+          <span class="stat-units">unidades</span>
+        </div>
+      </div>
+      <div class="stat-card salida">
+        <div class="stat-icon">📤</div>
+        <div class="stat-content">
+          <span class="stat-label">Total Salidas</span>
+          <span class="stat-value">{{ totalSalidas }}</span>
+          <span class="stat-units">unidades</span>
+        </div>
+      </div>
+      <div class="stat-card ajuste">
+        <div class="stat-icon">⚙️</div>
+        <div class="stat-content">
+          <span class="stat-label">Total Ajustes</span>
+          <span class="stat-value">{{ totalAjustes }}</span>
+          <span class="stat-units">unidades</span>
+        </div>
+      </div>
+      <div class="stat-card ingreso">
+        <div class="stat-icon">💰</div>
+        <div class="stat-content">
+          <span class="stat-label">Ingreso Generado</span>
+          <span class="stat-value">S/ {{ ingresoGenerado | number:'1.2-2' }}</span>
+          <span class="stat-units">por salidas</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen Financiero -->
+    <div class="resumen-financiero" *ngIf="movimientosFiltrados.length > 0">
+      <h4>📈 Resumen del Período</h4>
+      <div class="resumen-grid">
+        <div class="resumen-item">
+          <span class="label">Movimientos Totales:</span>
+          <span class="value">{{ movimientosFiltrados.length }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">Productos Afectados:</span>
+          <span class="value">{{ productosUnicos }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">Entrada más reciente:</span>
+          <span class="value">{{ ultimaEntrada }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">Salida más reciente:</span>
+          <span class="value">{{ ultimaSalida }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón Exportar -->
+    <div class="export-buttons" *ngIf="movimientosFiltrados.length > 0">
+      <button class="btn btn-pdf" (click)="exportarPDF()">📄 Exportar PDF</button>
+    </div>
+
+    <!-- Tabla de Movimientos -->
+    <div class="table-wrap" *ngIf="movimientosFiltrados.length > 0">
       <table class="tabla">
         <thead>
           <tr>
@@ -182,6 +260,7 @@
             <th>Tipo</th>
             <th>Cantidad</th>
             <th>Usuario</th>
+            <th>Valor</th>
           </tr>
         </thead>
         <tbody>
@@ -190,17 +269,37 @@
             <td>{{ m.fechaMovimiento | date:'dd/MM/yyyy, HH:mm' }}</td>
             <td>{{ m.producto.nombre }}</td>
             <td>{{ m.producto.codigo || '-' }}</td>
-            <td>{{ m.tipoMovimiento }}</td>
-            <td>{{ m.cantidad }}</td>
-            <td>{{ m.usuarioMovimiento || '---' }}</td>
+            <td>
+              <span class="badge" [ngClass]="{
+                'badge-in': m.tipoMovimiento === 'ENTRADA',
+                'badge-out': m.tipoMovimiento === 'SALIDA',
+                'badge-ajuste': m.tipoMovimiento === 'AJUSTE'
+              }">{{ m.tipoMovimiento }}</span>
+            </td>
+            <td [class.positive]="m.tipoMovimiento === 'ENTRADA'" [class.negative]="m.tipoMovimiento === 'SALIDA'">
+              {{ m.cantidad | number }}
+            </td>
+            <td>{{ m.usuario?.nombreCompleto || '---' }}</td>
+            <td>{{ m.tipoMovimiento === 'SALIDA' ? 'S/ ' + (m.cantidad * (m.producto?.precio || 0) | number:'1.2-2') : '-' }}</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- Mensaje si no hay resultados -->
+    <div class="no-data" *ngIf="movimientosFiltrados.length === 0 && (fechaInicio || fechaFin)">
+      <span class="icon">📭</span>
+      <h4>No hay movimientos</h4>
+      <p>No se encontraron movimientos en el período seleccionado.</p>
+      <button class="btn-limpiar" (click)="limpiarFiltros()">Ver todos los movimientos</button>
+    </div>
+
+    <!-- Instrucciones iniciales -->
+    <div class="no-data" *ngIf="movimientosFiltrados.length === 0 && !fechaInicio && !fechaFin">
+      <span class="icon">📅</span>
+      <h4>Selecciona un rango de fechas</h4>
+      <p>Elige un período para generar el reporte de movimientos.</p>
+    </div>
   </section>
-  <!-- Mensaje si no hay resultados -->
-  <div *ngIf="activeTab === 'historial' && movimientosFiltrados.length === 0">
-    <p>No hay movimientos dentro del rango seleccionado.</p>
-  </div>
 
 </div>

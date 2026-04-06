@@ -7,6 +7,7 @@ import { ProveedorService, PageResponse } from '../../services/proveedor.service
 import { ProductoService } from '../../services/producto.service';
 import { ReporteService } from '../../services/reporte.service';
 import { ExportService } from '../../services/export.service';
+import { ToastService } from '../../services/toast.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -47,8 +48,12 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
 
   // === 📄 PAGINACIÓN ===
   paginaActualProveedores = 1;
+  paginaActualInactivos = 1;
   itemsPorPaginaProveedores = 10;
   totalPaginasProveedores = 1;
+
+  // === 👁️ MOSTRAR INACTIVOS ===
+  mostrarInactivos = false;
 
   // === 🏷️ PRODUCTOS POR PROVEEDOR ===
   proveedorSeleccionado: Proveedor | null = null;
@@ -63,17 +68,13 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
   // === 📊 REPORTES ===
   reporteProveedores: any = null;
 
-  // === ⚠️ ALERTAS ===
-  alertaVisible = false;
-  alertaMensaje = '';
-  alertaTipo: 'exito' | 'error' | 'info' = 'info';
-
   constructor(
     private proveedorService: ProveedorService,
     private productoService: ProductoService,
     private reporteService: ReporteService,
     private exportService: ExportService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -187,6 +188,8 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
       next: () => {
         proveedor.estado = nuevoEstado;
         this.mostrarAlerta(`Proveedor ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`, 'exito');
+        // Recargar la lista para actualizar las vistas de activos/inactivos
+        this.cargarProveedores();
       },
       error: (err) => this.manejarError(err, 'Error al cambiar estado')
     });
@@ -200,11 +203,19 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
 
   // ==================== BÚSQUEDA Y FILTROS ====================
   onBuscar(): void {
+    // Si el filtro está en "inactivos", cambiar a "todos" para ver la tabla principal
+    if (this.filtroEstado === 'inactivos') {
+      this.filtroEstado = 'todos';
+    }
     this.paginaActualProveedores = 1;
     this.actualizarPaginacionProveedores();
   }
 
   onFiltroEstadoChange(): void {
+    // Si selecciona "inactivos", cambiar a "todos" (los inactivos se ven en la sección separada)
+    if (this.filtroEstado === 'inactivos') {
+      this.filtroEstado = 'todos';
+    }
     this.paginaActualProveedores = 1;
     this.actualizarPaginacionProveedores();
   }
@@ -236,11 +247,8 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
         p.razonSocial?.toLowerCase().includes(busqueda) ||
         p.ruc?.toLowerCase().includes(busqueda);
       
-      const matchesEstado = this.filtroEstado === 'todos' ||
-        (this.filtroEstado === 'activos' && p.estado === true) ||
-        (this.filtroEstado === 'inactivos' && p.estado === false);
-      
-      return matchesBusqueda && matchesEstado;
+      // Solo mostrar activos en la tabla principal
+      return matchesBusqueda && p.estado === true;
     });
 
     return filtered;
@@ -251,6 +259,34 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
     const inicio = (this.paginaActualProveedores - 1) * this.itemsPorPaginaProveedores;
     const fin = inicio + this.itemsPorPaginaProveedores;
     return filtered.slice(inicio, fin);
+  }
+
+  // ==================== PROVEEDORES INACTIVOS ====================
+  get proveedoresInactivos(): Proveedor[] {
+    return this.proveedores.filter(p => p.estado === false);
+  }
+
+  get proveedoresInactivosPaginados(): Proveedor[] {
+    const inicio = (this.paginaActualInactivos - 1) * this.itemsPorPaginaProveedores;
+    const fin = inicio + this.itemsPorPaginaProveedores;
+    return this.proveedoresInactivos.slice(inicio, fin);
+  }
+
+  get totalPaginasInactivos(): number {
+    return Math.ceil(this.proveedoresInactivos.length / this.itemsPorPaginaProveedores);
+  }
+
+  cambiarPaginaInactivos(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginasInactivos) {
+      this.paginaActualInactivos = pagina;
+    }
+  }
+
+  toggleMostrarInactivos(): void {
+    this.mostrarInactivos = !this.mostrarInactivos;
+    if (this.mostrarInactivos) {
+      this.paginaActualInactivos = 1;
+    }
   }
 
   // ==================== PRODUCTOS POR PROVEEDOR ====================
@@ -425,10 +461,14 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
   }
 
   mostrarAlerta(mensaje: string, tipo: 'exito' | 'error' | 'info' = 'info'): void {
-    this.alertaVisible = true;
-    this.alertaMensaje = mensaje;
-    this.alertaTipo = tipo;
-    setTimeout(() => (this.alertaVisible = false), 3500);
+    const toastType: 'success' | 'error' | 'info' = tipo === 'exito' ? 'success' : tipo as 'error' | 'info';
+    if (toastType === 'success') {
+      this.toastService.success(mensaje);
+    } else if (toastType === 'error') {
+      this.toastService.error(mensaje);
+    } else {
+      this.toastService.info(mensaje);
+    }
   }
 
   manejarError(error: any, mensajeDefault: string): void {
