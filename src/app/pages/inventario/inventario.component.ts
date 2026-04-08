@@ -101,7 +101,30 @@ export class InventarioComponent implements OnInit {
 
   // ==================== REPORTES ====================
   get totalProductos(): number {
+    return this.productos.length;
+  }
+
+  get productosActivosCount(): number {
     return this.productos.filter(p => p.estado === true).length;
+  }
+
+  get productosInactivosCount(): number {
+    return this.productos.filter(p => p.estado === false).length;
+  }
+
+  get productosConStockBajo(): number {
+    return this.productos.filter(p => p.estado === true && p.stockActual <= p.stockMinimo).length;
+  }
+
+  get totalUnidadesStock(): number {
+    return this.productos.filter(p => p.estado === true).reduce((total, p) => total + (p.stockActual || 0), 0);
+  }
+
+  get promedioPrecio(): number {
+    const activos = this.productos.filter(p => p.estado === true);
+    if (activos.length === 0) return 0;
+    const suma = activos.reduce((total, p) => total + (p.precioBase || 0), 0);
+    return suma / activos.length;
   }
 
   get valorTotalInventario(): number {
@@ -203,7 +226,7 @@ export class InventarioComponent implements OnInit {
           this.cargarUnidades();
           this.cancelarEdicionUnidad();
           this.cerrarModalUnidad();
-          this.mostrarAlerta('Unidad actualizada correctamente', 'exito');
+          this.mostrarAlerta('Tipo actualizado correctamente', 'exito');
         },
         error: (err) => this.mostrarAlerta(err.error?.message || 'Error al actualizar unidad', 'error')
       });
@@ -213,7 +236,7 @@ export class InventarioComponent implements OnInit {
           this.cargarUnidades();
           this.nuevaUnidad = { nombre: '', abreviatura: '' };
           this.cerrarModalUnidad();
-          this.mostrarAlerta('Unidad creada correctamente', 'exito');
+          this.mostrarAlerta('Tipo creado correctamente', 'exito');
         },
         error: (err) => this.mostrarAlerta(err.error?.message || 'Error al crear unidad', 'error')
       });
@@ -235,7 +258,7 @@ export class InventarioComponent implements OnInit {
       this.unidadMedService.eliminar(id).subscribe({
         next: () => {
           this.cargarUnidades();
-          this.mostrarAlerta('Unidad eliminada correctamente', 'exito');
+          this.mostrarAlerta('Tipo eliminado correctamente', 'exito');
         },
         error: () => this.mostrarAlerta('Error al eliminar unidad', 'error')
       });
@@ -353,7 +376,7 @@ export class InventarioComponent implements OnInit {
       return;
     }
     if (!this.nuevoProducto.unidadMedidaId || this.nuevoProducto.unidadMedidaId === 0) {
-      this.mostrarAlerta('❌ La Unidad de Medida es obligatoria', 'error');
+      this.mostrarAlerta('❌ El Tipo es obligatorio', 'error');
       return;
     }
     if (!this.nuevoProducto.nombre || this.nuevoProducto.nombre.trim() === '') {
@@ -725,7 +748,7 @@ export class InventarioComponent implements OnInit {
       { header: 'Precio Base', field: 'precioBase', width: 50 },
       { header: 'Stock Actual', field: 'stockActual', width: 40 },
       { header: 'Stock Mínimo', field: 'stockMinimo', width: 40 },
-      { header: 'Unidad', field: 'unidadMedida.abreviatura', width: 40 },
+      { header: 'Tipo', field: 'unidadMedida.abreviatura', width: 40 },
       { header: 'Vencimiento', field: 'fechaVencimiento', width: 60 }
     ];
 
@@ -755,7 +778,7 @@ export class InventarioComponent implements OnInit {
       { header: 'Precio Compra', field: 'precioCompra', width: 15 },
       { header: 'Stock Actual', field: 'stockActual', width: 12 },
       { header: 'Stock Mínimo', field: 'stockMinimo', width: 12 },
-      { header: 'Unidad', field: 'unidadMedida.nombre', width: 15 },
+      { header: 'Tipo', field: 'unidadMedida.nombre', width: 15 },
       { header: 'Fecha Vencimiento', field: 'fechaVencimiento', width: 18 },
       { header: 'Proveedor', field: 'proveedor.nombreComercial', width: 20 }
     ];

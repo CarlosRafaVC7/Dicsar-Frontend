@@ -14,18 +14,6 @@
     <div class="hero-decoration"></div>
   </div>
 
-  <!-- Stats Cards -->
-  <div class="stats-grid">
-    <div class="stat-card" *ngFor="let stat of stats; let i = index" [style.--accent-color]="stat.color" [style.animation-delay]="i * 0.1 + 's'">
-      <div class="stat-icon">{{ stat.icono }}</div>
-      <div class="stat-info">
-        <span class="stat-title">{{ stat.titulo }}</span>
-        <span class="stat-value">{{ stat.valor }}</span>
-      </div>
-      <div class="stat-glow" [style.background]="stat.color"></div>
-    </div>
-  </div>
-
   <!-- Quick Actions -->
   <div class="quick-actions">
     <a routerLink="/ventas" class="action-btn movimientos-btn">
@@ -36,6 +24,18 @@
       </div>
       <div class="action-arrow">→</div>
     </a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card" *ngFor="let stat of stats; let i = index" [style.--accent-color]="stat.color" [style.animation-delay]="i * 0.1 + 's'">
+      <div class="stat-icon">{{ stat.icono }}</div>
+      <div class="stat-info">
+        <span class="stat-title">{{ stat.titulo }}</span>
+        <span class="stat-value">{{ stat.valor }}</span>
+      </div>
+      <div class="stat-glow" [style.background]="stat.color"></div>
+    </div>
   </div>
 
   <!-- Charts Row -->

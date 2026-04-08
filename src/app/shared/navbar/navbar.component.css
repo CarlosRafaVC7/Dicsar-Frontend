@@ -515,6 +515,51 @@
   background-color: rgba(245, 158, 11, 0.15);
 }
 
+/* ALERTA_PRECIO - Naranja/Dorado */
+.tipo-ALERTA_PRECIO {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left-color: #f59e0b;
+}
+
+.tipo-ALERTA_PRECIO .notification-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.tipo-ALERTA_PRECIO .notification-type {
+  color: #d97706;
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+/* ALERTA_VENCIMIENTO - Rojo/Rojizo */
+.tipo-ALERTA_VENCIMIENTO {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left-color: #ef4444;
+}
+
+.tipo-ALERTA_VENCIMIENTO .notification-icon {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.tipo-ALERTA_VENCIMIENTO .notification-type {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+/* STOCK_BAJO - Amarillo/Naranja */
+.tipo-STOCK_BAJO {
+  background-color: rgba(234, 179, 8, 0.1);
+  border-left-color: #eab308;
+}
+
+.tipo-STOCK_BAJO .notification-icon {
+  background: linear-gradient(135deg, #eab308, #ca8a04);
+}
+
+.tipo-STOCK_BAJO .notification-type {
+  color: #ca8a04;
+  background-color: rgba(234, 179, 8, 0.15);
+}
+
 /* ========================== SIN NOTIFICACIONES ========================== */
 .no-notifications {
   padding: 50px 30px;

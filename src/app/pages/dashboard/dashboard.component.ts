@@ -132,26 +132,32 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       this.actualizarStats();
       this.cargarCategoriaData(productos);
       
-      this.inicializarGraficos();
+      this.crearGraficoCategorias();
+      this.crearGraficoEstado();
     });
 
     this.movimientoService.listar().subscribe(movimientos => {
-      this.totalEntradas = movimientos.filter((m: any) => m.tipo === 'ENTRADA').length;
-      this.totalSalidas = movimientos.filter((m: any) => m.tipo === 'SALIDA').length;
+      this.totalEntradas = movimientos
+        .filter((m: any) => m.tipoMovimiento === 'ENTRADA')
+        .reduce((s: number, m: any) => s + (Number(m.cantidad) || 0), 0);
+      this.totalSalidas = movimientos
+        .filter((m: any) => m.tipoMovimiento === 'SALIDA')
+        .reduce((s: number, m: any) => s + (Number(m.cantidad) || 0), 0);
       
       this.movimientosRecientes = movimientos
-        .sort((a: any, b: any) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime())
+        .sort((a: any, b: any) => new Date(b.fechaMovimiento).getTime() - new Date(a.fechaMovimiento).getTime())
         .slice(0, 8)
         .map((m: any) => ({
           id: m.idMovimiento,
-          tipo: m.tipo,
+          tipo: m.tipoMovimiento,
           producto: m.producto?.nombre || 'Producto',
           cantidad: m.cantidad,
-          fecha: new Date(m.fechaHora),
-          usuario: m.usuario
+          fecha: new Date(m.fechaMovimiento),
+          usuario: m.usuario?.nombreCompleto || m.usuario?.username || m.usuarioMovimiento
         }));
 
       this.actualizarStats();
+      this.crearGraficoMovimientos();
     });
 
     this.proveedorService.listar().subscribe(proveedores => {
@@ -169,7 +175,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   cargarCategoriaData(productos: any[]): void {
     const categoriasMap = new Map<string, number>();
-    productos.forEach((p: any) => {
+    productos
+      .filter((p: any) => p.estado === true)
+      .forEach((p: any) => {
       const cat = p.categoriaNombre || p.categoria?.nombre || 'Sin categoría';
       categoriasMap.set(cat, (categoriasMap.get(cat) || 0) + 1);
     });
@@ -217,7 +225,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       },
       {
         titulo: 'Proveedores',
-        valor: this.reporteProveedores?.totalProveedores || 0,
+        valor: this.reporteProveedores?.proveedoresActivos || 0,
         icono: '🏢',
         color: '#06b6d4'
       }
@@ -234,15 +242,21 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     const ctx = this.chartMovimientosRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
 
+    const totalAjustes = Math.max(0, this.totalEntradas + this.totalSalidas);
+
+    if (this.chartMovimientos) {
+      this.chartMovimientos.destroy();
+    }
+
     this.chartMovimientos = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: ['Entradas', 'Salidas', 'Ajustes'],
         datasets: [{
           data: [
-            this.totalEntradas,
-            this.totalSalidas,
-            Math.max(1, this.totalEntradas + this.totalSalidas - this.totalEntradas - this.totalSalidas)
+            this.totalEntradas || 1,
+            this.totalSalidas || 1,
+            totalAjustes > 0 ? totalAjustes * 0.1 : 1
           ],
           backgroundColor: ['#10b981', '#f59e0b', '#8b5cf6'],
           borderWidth: 0,

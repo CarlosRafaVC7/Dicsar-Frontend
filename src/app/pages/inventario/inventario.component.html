@@ -35,11 +35,56 @@
       </div>
 
       <div class="reporte-card">
+        <div class="reporte-icon">✅</div>
+        <div class="reporte-content">
+          <h3>Productos Activos</h3>
+          <div class="reporte-valor">{{ productosActivosCount }}</div>
+          <p>Productos con estado activo</p>
+        </div>
+      </div>
+
+      <div class="reporte-card">
+        <div class="reporte-icon">❌</div>
+        <div class="reporte-content">
+          <h3>Productos Inactivos</h3>
+          <div class="reporte-valor">{{ productosInactivosCount }}</div>
+          <p>Productos dados de baja</p>
+        </div>
+      </div>
+
+      <div class="reporte-card">
+        <div class="reporte-icon">⚠️</div>
+        <div class="reporte-content">
+          <h3>Stock Bajo</h3>
+          <div class="reporte-valor">{{ productosConStockBajo }}</div>
+          <p>Productos por debajo del mínimo</p>
+        </div>
+      </div>
+
+      <div class="reporte-card">
+        <div class="reporte-icon">📊</div>
+        <div class="reporte-content">
+          <h3>Unidades en Stock</h3>
+          <div class="reporte-valor">{{ totalUnidadesStock | number }}</div>
+          <p>Total de unidades en inventario</p>
+        </div>
+      </div>
+
+      <div class="reporte-card">
+        <div class="reporte-icon">💵</div>
+        <div class="reporte-content">
+          <h3>Precio Promedio</h3>
+          <div class="reporte-valor">{{ promedioPrecio | currency:'PEN':'S/ ':'1.2-2' }}</div>
+          <p>Precio promedio de productos activos</p>
+        </div>
+      </div>
+
+      <div class="reporte-card highlight">
         <div class="reporte-icon">💰</div>
         <div class="reporte-content">
           <h3>Valor Total del Inventario</h3>
           <div class="reporte-valor">{{ valorTotalInventario | currency:'PEN':'S/ ':'1.2-2' }}</div>
-          <p>Valor total basado en stock y precios actuales</p>
+          <p>Valor total (solo productos activos)</p>
         </div>
       </div>
     </div>
@@ -77,7 +122,7 @@
         </select>
 
         <button class="btn-secondary" (click)="abrirModalUnidad()">
-          ⚖️ Unidades
+          ⚖️ Tipos
         </button>
         
         <button class="btn-secondary" (click)="abrirModalCategoria()">
@@ -108,7 +153,7 @@
           <tr>
             <th>Producto</th>
             <th>Categoría</th>
-            <th>Unidad</th>
+            <th>Tipo</th>
             <th>Precio</th>
             <th>Stock</th>
             <th>Estado</th>
@@ -136,7 +181,7 @@
               <span class="category-badge">{{ p.categoriaNombre || p.categoria?.nombre || '-' }}</span>
             </td>
             
-            <!-- Columna Unidad -->
+            <!-- Columna Tipo -->
             <td>
               <span class="unit-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura || p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
             </td>
@@ -242,7 +287,7 @@
             <tr>
               <th>Producto</th>
               <th>Categoría</th>
-              <th>Unidad</th>
+<th>Tipo</th>
               <th>Precio</th>
               <th>Stock</th>
               <th>Estado</th>
@@ -265,7 +310,7 @@
                 <span class="category-badge inactive-badge">{{ p.categoriaNombre || p.categoria?.nombre || '-' }}</span>
               </td>
               
-              <!-- Columna Unidad -->
+              <!-- Columna Tipo -->
               <td>
                 <span class="unit-badge inactive-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura || p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
               </td>
@@ -409,7 +454,7 @@
   <div class="modal-overlay" *ngIf="mostrarModalUnidad">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>⚖️ Gestión de Unidades de Medida</h3>
+        <h3>⚖️ Gestión de Tipos</h3>
         <button class="modal-close" (click)="cerrarModalUnidad()">×</button>
       </div>
       
@@ -439,7 +484,7 @@
       </form>
 
       <div class="modal-list">
-        <h4>Unidades Existentes</h4>
+        <h4>Tipos Existentes</h4>
         <div class="items-list">
           <div *ngFor="let u of unidades" class="item-card">
             <div class="item-info">
@@ -536,7 +581,7 @@
           </div>
 
           <div class="form-group">
-            <label>Unidad de Medida *</label>
+            <label>Tipo *</label>
             <select [(ngModel)]="nuevoProducto.unidadMedidaId" name="modalUnidad" required>
               <option [ngValue]="0">Seleccione una unidad...</option>
               <option *ngFor="let u of unidades" [ngValue]="u.idUnidadMed">

@@ -107,10 +107,10 @@ export class NavbarComponent implements OnInit {
       case 'CRITICA': return 'tipo-CRITICA';
       case 'INFORMACION': return 'tipo-INFORMACION';
       case 'PRECIO': return 'tipo-PRECIO';
-      case 'ALERTA_PRECIO': return 'tipo-PRECIO';
-      case 'ALERTA_VENCIMIENTO': return 'tipo-VENCIMIENTO';
-      case 'STOCK_BAJO': return 'tipo-STOCK';
-      default: return '';
+      case 'ALERTA_PRECIO': return 'tipo-ALERTA_PRECIO';
+      case 'ALERTA_VENCIMIENTO': return 'tipo-ALERTA_VENCIMIENTO';
+      case 'STOCK_BAJO': return 'tipo-STOCK_BAJO';
+      default: return 'tipo-INFORMACION';
     }
   }
 

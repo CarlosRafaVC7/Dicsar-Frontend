@@ -97,6 +97,7 @@ movimientoAEliminar: Movimiento | null = null;
           console.log('📦 Primer movimiento:', data[0]);
           console.log('📦 Tipos de movimiento:', data.map(m => m.tipoMovimiento));
           console.log('📦 Cantidades:', data.map(m => m.cantidad));
+          console.log('📦 Usuario movimiento:', data.map(m => m.usuarioMovimiento));
         }
         this.movimientos = data;
         this.actualizarTablas();
@@ -178,7 +179,7 @@ movimientoAEliminar: Movimiento | null = null;
           m.producto?.codigo || '-',
           m.tipoMovimiento || '-',
           m.cantidad || 0,
-          (m.usuario?.nombreCompleto || '---').substring(0, 15),
+          (m.usuario?.nombreCompleto || m.usuario?.username || m.usuarioMovimiento || '---').substring(0, 15),
           valor
         ];
       }),
@@ -363,22 +364,22 @@ limpiarFiltros() {
   }
 
   get totalEntradas(): number {
-    if (!this.movimientosFiltrados || this.movimientosFiltrados.length === 0) return 0;
-    return this.movimientosFiltrados
+    if (!this.movimientos || this.movimientos.length === 0) return 0;
+    return this.movimientos
       .filter(m => m.tipoMovimiento?.toUpperCase() === 'ENTRADA')
       .reduce((s, m) => s + (Number(m.cantidad) || 0), 0);
   }
 
   get totalSalidas(): number {
-    if (!this.movimientosFiltrados || this.movimientosFiltrados.length === 0) return 0;
-    return this.movimientosFiltrados
+    if (!this.movimientos || this.movimientos.length === 0) return 0;
+    return this.movimientos
       .filter(m => m.tipoMovimiento?.toUpperCase() === 'SALIDA')
       .reduce((s, m) => s + (Number(m.cantidad) || 0), 0);
   }
 
   get totalAjustes(): number {
-    if (!this.movimientosFiltrados || this.movimientosFiltrados.length === 0) return 0;
-    return this.movimientosFiltrados
+    if (!this.movimientos || this.movimientos.length === 0) return 0;
+    return this.movimientos
       .filter(m => m.tipoMovimiento?.toUpperCase() === 'AJUSTE')
       .reduce((s, m) => s + Math.abs(Number(m.cantidad) || 0), 0);
   }

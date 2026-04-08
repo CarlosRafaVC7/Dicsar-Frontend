@@ -132,7 +132,7 @@
             <td [class.positive]="m.tipoMovimiento === 'ENTRADA'" [class.negative]="m.tipoMovimiento === 'SALIDA'">
               {{ m.cantidad > 0 ? (m.cantidad | number) : m.cantidad }}
             </td>
-            <td>{{ m.usuario?.nombreCompleto || '---' }}</td>
+            <td>{{ m.usuario?.nombreCompleto || m.usuario?.username || m.usuarioMovimiento || '---' }}</td>
             <td>
               <button class="icon-btn" title="Nuevo movimiento similar" (click)="verMovimiento(m)">🔄</button>
             </td>
@@ -279,7 +279,7 @@
             <td [class.positive]="m.tipoMovimiento === 'ENTRADA'" [class.negative]="m.tipoMovimiento === 'SALIDA'">
               {{ m.cantidad | number }}
             </td>
-            <td>{{ m.usuario?.nombreCompleto || '---' }}</td>
+            <td>{{ m.usuario?.nombreCompleto || m.usuario?.username || m.usuarioMovimiento || '---' }}</td>
             <td>{{ m.tipoMovimiento === 'SALIDA' ? 'S/ ' + (m.cantidad * (m.producto?.precio || 0) | number:'1.2-2') : '-' }}</td>
           </tr>
         </tbody>

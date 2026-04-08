@@ -11,5 +11,6 @@ export interface Movimiento {
     username: string;
     nombreCompleto: string;
   };
+  usuarioMovimiento?: string;
   fechaMovimiento?: string;
 }

@@ -145,6 +145,22 @@
   border-color: var(--primary-300);
 }
 
+.reporte-card.highlight {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  border-color: var(--primary-400);
+}
+
+.reporte-card.highlight::before {
+  background: linear-gradient(180deg, #10b981, #059669);
+}
+
+.reporte-card.highlight .reporte-valor {
+  background: linear-gradient(135deg, #10b981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .reporte-icon {
   font-size: 3rem;
   flex-shrink: 0;
