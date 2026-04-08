@@ -1,1 +1,413 @@
-<p>clientes works!</p>
+<div class="clientes-container">
+  <!-- ALERTA -->
+  <div *ngIf="alertaVisible" [ngClass]="'alerta alerta-' + alertaTipo" role="alert">
+    {{ alertaMensaje }}
+  </div>
+
+  <!-- ENCABEZADO -->
+  <div class="header-clientes">
+    <h1>👥 Gestión de Clientes</h1>
+    <p>Administra clientes, visualiza su historial de compras y reportes de ventas</p>
+  </div>
+
+  <!-- NAVEGACIÓN DE TABS -->
+  <div class="tabs-navigation">
+    <button [ngClass]="{ active: activeTab === 'clientes' }" (click)="cambiarTab('clientes')" class="tab-btn">
+      📋 Clientes
+    </button>
+    <button [ngClass]="{ active: activeTab === 'historial' }" (click)="cambiarTab('historial')" class="tab-btn">
+      📜 Historial de Compras
+    </button>
+    <button [ngClass]="{ active: activeTab === 'reportes' }" (click)="cambiarTab('reportes')" class="tab-btn">
+      📊 Reportes
+    </button>
+  </div>
+
+  <!-- TAB 1: GESTIÓN DE CLIENTES -->
+  <div *ngIf="activeTab === 'clientes'" class="tab-content">
+    <!-- BUSCADOR Y FILTROS -->
+    <div class="filtros-section">
+      <div class="search-box">
+        <input type="text" placeholder="🔍 Buscar por nombre, email, teléfono..." [(ngModel)]="searchTerm"
+          (keyup.enter)="buscarClientes()" [disabled]="loading">
+        <button class="btn btn-search" (click)="buscarClientes()" [disabled]="loading">
+          🔍 Buscar
+        </button>
+      </div>
+
+      <div class="filtros-row">
+        <div class="filter-group">
+          <label>Tipo:</label>
+          <select [(ngModel)]="filtroTipo" (change)="filtrarPorTipo()" [disabled]="loading">
+            <option value="todos">Todos</option>
+            <option value="persona">Persona Natural</option>
+            <option value="empresa">Empresa</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Estado:</label>
+          <select [(ngModel)]="filtroEstado" (change)="filtrarPorEstado()" [disabled]="loading">
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" (click)="crearCliente()" [disabled]="loading">
+          ➕ Nuevo Cliente
+        </button>
+
+        <div class="export-buttons">
+          <button class="btn btn-export" (click)="exportarExcel()" [disabled]="loading">
+            📊 Excel
+          </button>
+          <button class="btn btn-export" (click)="exportarPDF()" [disabled]="loading">
+            📄 PDF
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLA DE CLIENTES -->
+    <div class="tabla-section">
+      <div *ngIf="loading" class="loading">⏳ Cargando...</div>
+
+      <table *ngIf="!loading && clientes.length > 0" class="tabla-clientes">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre Completo</th>
+            <th>Tipo Documento</th>
+            <th>Documento</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let cliente of clientes" [ngClass]="!cliente.estado ? 'inactivo' : ''">
+            <td>#{{ cliente.idCliente }}</td>
+            <td>{{ cliente.nombreCompleto || (cliente.nombre + ' ' + cliente.apellidos) }}</td>
+            <td>{{ cliente.tipoDocumento }}</td>
+            <td>{{ cliente.numeroDocumento }}</td>
+            <td>{{ cliente.email }}</td>
+            <td>{{ cliente.telefono }}</td>
+            <td>
+              <span class="badge" [ngClass]="cliente.esEmpresa ? 'badge-info' : 'badge-success'">
+                {{ cliente.esEmpresa ? '🏢 Empresa' : '👤 Persona' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="cliente.estado ? 'badge-success' : 'badge-danger'">
+                {{ cliente.estado ? '✅ Activo' : '❌ Inactivo' }}
+              </span>
+            </td>
+            <td class="acciones">
+              <button class="btn btn-sm btn-info" (click)="cargarHistorialCliente(cliente)"
+                (click)="cambiarTab('historial')" title="Ver historial de compras">
+                📜
+              </button>
+              <button class="btn btn-sm btn-warning" (click)="editarCliente(cliente)" title="Editar cliente">
+                ✏️
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="eliminarCliente(cliente.idCliente!, cliente.nombre)"
+                *ngIf="isAdmin" title="Eliminar cliente">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!loading && clientes.length === 0" class="no-data">
+        ℹ️ No hay clientes para mostrar
+      </div>
+    </div>
+
+    <!-- PAGINACIÓN -->
+    <div *ngIf="totalPages > 1" class="paginacion">
+      <button class="btn btn-sm" (click)="onPageChange(pageNumber - 1)" [disabled]="pageNumber === 0 || loading">
+        ← Anterior
+      </button>
+
+      <div class="paginas">
+        <button *ngFor="let page of paginasArray" class="btn btn-sm" [ngClass]="pageNumber === page ? 'active' : ''"
+          (click)="onPageChange(page)" [disabled]="loading">
+          {{ page + 1 }}
+        </button>
+      </div>
+
+      <button class="btn btn-sm" (click)="onPageChange(pageNumber + 1)"
+        [disabled]="pageNumber === totalPages - 1 || loading">
+        Siguiente →
+      </button>
+
+      <span class="paginacion-info">
+        Página {{ pageNumber + 1 }} de {{ totalPages }} ({{ totalElements }} total)
+      </span>
+    </div>
+  </div>
+
+  <!-- TAB 2: HISTORIAL DE COMPRAS -->
+  <div *ngIf="activeTab === 'historial'" class="tab-content">
+    <div *ngIf="!clienteSeleccionado" class="info-box">
+      <p>👉 Selecciona un cliente desde la pestaña "Clientes" para ver su historial de compras</p>
+    </div>
+
+    <div *ngIf="clienteSeleccionado" class="historial-section">
+      <div class="cliente-info">
+        <h2>{{ clienteSeleccionado.nombre }} {{ clienteSeleccionado.apellidos }}</h2>
+        <p><strong>Documento:</strong> {{ clienteSeleccionado.tipoDocumento }} - {{ clienteSeleccionado.numeroDocumento
+          }}</p>
+        <p><strong>Email:</strong> {{ clienteSeleccionado.email }}</p>
+        <p><strong>Teléfono:</strong> {{ clienteSeleccionado.telefono }}</p>
+        <button class="btn btn-secondary" (click)="cerrarHistorialCliente()">Cambiar Cliente</button>
+      </div>
+
+      <div class="tabla-section">
+        <div *ngIf="comprasLoading" class="loading">⏳ Cargando compras...</div>
+
+        <table *ngIf="!comprasLoading && compras.length > 0" class="tabla-compras">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio Unit.</th>
+              <th>Total</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let compra of compras" [ngClass]="!compra.estado ? 'inactivo' : ''">
+              <td>{{ compra.fechaVenta | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ compra.nombreProducto }}</td>
+              <td class="text-center">{{ compra.cantidad }}</td>
+              <td class="text-right">S/ {{ compra.precioUnitario ? compra.precioUnitario.toFixed(2) : '0.00' }}</td>
+              <td class="text-right font-bold">S/ {{ compra.total ? compra.total.toFixed(2) : '0.00' }}</td>
+              <td>
+                <span class="badge" [ngClass]="compra.estado ? 'badge-success' : 'badge-danger'">
+                  {{ compra.estado ? '✅ Completada' : '❌ Cancelada' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="4"><strong>TOTAL</strong></td>
+              <td class="text-right font-bold">S/ {{ calcularTotalCompras() }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div *ngIf="!comprasLoading && compras.length === 0" class="no-data">
+          ℹ️ Este cliente no tiene compras registradas
+        </div>
+      </div>
+
+      <!-- PAGINACIÓN COMPRAS -->
+      <div *ngIf="totalComprasPages > 1" class="paginacion">
+        <button class="btn btn-sm" (click)="onComprasPageChange(comprasPageNumber - 1)"
+          [disabled]="comprasPageNumber === 0 || comprasLoading">
+          ← Anterior
+        </button>
+
+        <div class="paginas">
+          <button *ngFor="let page of comprasPaginasArray" class="btn btn-sm"
+            [ngClass]="comprasPageNumber === page ? 'active' : ''" (click)="onComprasPageChange(page)"
+            [disabled]="comprasLoading">
+            {{ page + 1 }}
+          </button>
+        </div>
+
+        <button class="btn btn-sm" (click)="onComprasPageChange(comprasPageNumber + 1)"
+          [disabled]="comprasPageNumber === totalComprasPages - 1 || comprasLoading">
+          Siguiente →
+        </button>
+
+        <span class="paginacion-info">
+          Página {{ comprasPageNumber + 1 }} de {{ totalComprasPages }} ({{ totalCompras }} total)
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: REPORTES -->
+  <div *ngIf="activeTab === 'reportes'" class="tab-content">
+    <div *ngIf="reportesLoading" class="loading">⏳ Cargando reportes...</div>
+
+    <div *ngIf="!reportesLoading" class="reportes-section">
+      <!-- MÉTRICAS -->
+      <div class="metricas-grid">
+        <div class="metrica-card">
+          <div class="metrica-icono">📊</div>
+          <div class="metrica-info">
+            <div class="metrica-label">Total Ventas</div>
+            <div class="metrica-valor">{{ metricas.totalVentas }}</div>
+          </div>
+        </div>
+
+        <div class="metrica-card">
+          <div class="metrica-icono">💰</div>
+          <div class="metrica-info">
+            <div class="metrica-label">Monto Total</div>
+            <div class="metrica-valor">{{ formatoMoneda(metricas.montoTotalVentas) }}</div>
+          </div>
+        </div>
+
+        <div class="metrica-card">
+          <div class="metrica-icono">👥</div>
+          <div class="metrica-info">
+            <div class="metrica-label">Total Clientes</div>
+            <div class="metrica-valor">{{ metricas.totalClientes }}</div>
+          </div>
+        </div>
+
+        <div class="metrica-card">
+          <div class="metrica-icono">💳</div>
+          <div class="metrica-info">
+            <div class="metrica-label">Ventas Hoy</div>
+            <div class="metrica-valor">{{ formatoMoneda(metricas.ventasHoy) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTOS MÁS VENDIDOS -->
+      <div class="reportes-subsection">
+        <h2>🏆 Top 10 Productos Más Vendidos</h2>
+        <div *ngIf="productosMasVendidos.length > 0" class="productos-list">
+          <div *ngFor="let producto of productosMasVendidos; let i = index" class="producto-card">
+            <div class="producto-rank">{{ i + 1 }}</div>
+            <div class="producto-details">
+              <h3>{{ producto.nombreProducto || 'Producto sin nombre' }}</h3>
+              <p><strong>Cantidad:</strong> {{ producto.cantidadVendida || 0 }} unidades</p>
+              <p><strong>Monto:</strong> {{ formatoMoneda(producto.montoTotal || 0) }}</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="productosMasVendidos.length === 0" class="empty-state">
+          <p>📭 No hay datos de productos vendidos</p>
+        </div>
+      </div>
+
+      <!-- CLIENTES TOP -->
+      <div class="reportes-subsection">
+        <h2>👥 Top 10 Clientes por Compras</h2>
+        <div *ngIf="clientesTopVentas.length > 0" class="clientes-list">
+          <div *ngFor="let cliente of clientesTopVentas; let i = index" class="cliente-card">
+            <div class="cliente-rank">{{ i + 1 }}</div>
+            <div class="cliente-details">
+              <h3>{{ cliente.nombreCliente || 'Cliente sin nombre' }}</h3>
+              <p><strong>Compras:</strong> {{ cliente.cantidadVentas || 0 }}</p>
+              <p><strong>Gastado:</strong> {{ formatoMoneda(cliente.montoTotal || 0) }}</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="clientesTopVentas.length === 0" class="empty-state">
+          <p>📭 No hay datos de clientes con compras</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR/EDITAR CLIENTE -->
+<div *ngIf="mostrarModal" class="modal-overlay" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editandoCliente ? '✏️ Editar Cliente' : '➕ Nuevo Cliente' }}</h2>
+      <button type="button" class="modal-close" (click)="cerrarModal()">✕</button>
+    </div>
+
+    <form [formGroup]="clienteForm" (ngSubmit)="guardarCliente()" class="modal-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nombre">Nombre *</label>
+          <input id="nombre" type="text" formControlName="nombre" placeholder="Nombre del cliente" class="form-control">
+          <small class="error-message" *ngIf="clienteForm.get('nombre')?.invalid && clienteForm.get('nombre')?.touched">
+            Nombre requerido (mínimo 2 caracteres)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="apellidos">Apellidos *</label>
+          <input id="apellidos" type="text" formControlName="apellidos" placeholder="Apellidos del cliente"
+            class="form-control">
+          <small class="error-message"
+            *ngIf="clienteForm.get('apellidos')?.invalid && clienteForm.get('apellidos')?.touched">
+            Apellidos requeridos (mínimo 2 caracteres)
+          </small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="tipoDocumento">Tipo Documento *</label>
+          <select formControlName="tipoDocumento" id="tipoDocumento" class="form-control">
+            <option value="DNI">DNI</option>
+            <option value="RUC">RUC</option>
+            <option value="PASAPORTE">Pasaporte</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="numeroDocumento">Número Documento *</label>
+          <input id="numeroDocumento" type="text" formControlName="numeroDocumento" placeholder="Número de documento"
+            class="form-control">
+          <small class="error-message"
+            *ngIf="clienteForm.get('numeroDocumento')?.invalid && clienteForm.get('numeroDocumento')?.touched">
+            Documento requerido (mínimo 8 caracteres)
+          </small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input id="email" type="email" formControlName="email" placeholder="correo@ejemplo.com" class="form-control">
+          <small class="error-message" *ngIf="clienteForm.get('email')?.invalid && clienteForm.get('email')?.touched">
+            Email válido requerido
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="telefono">Teléfono *</label>
+          <input id="telefono" type="text" formControlName="telefono" placeholder="Teléfono" class="form-control">
+          <small class="error-message"
+            *ngIf="clienteForm.get('telefono')?.invalid && clienteForm.get('telefono')?.touched">
+            Teléfono requerido (mínimo 7 caracteres)
+          </small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group checkbox">
+          <label for="esEmpresa">
+            <input id="esEmpresa" type="checkbox" formControlName="esEmpresa">
+            ¿Es una Empresa?
+          </label>
+        </div>
+
+        <div class="form-group checkbox">
+          <label for="estado">
+            <input id="estado" type="checkbox" formControlName="estado" [disabled]="!isAdmin">
+            Activo
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="cerrarModal()">
+          ❌ Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="clienteForm.invalid">
+          ✅ Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

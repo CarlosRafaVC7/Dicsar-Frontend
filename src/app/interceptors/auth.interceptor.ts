@@ -14,6 +14,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
+  console.log(`📡 Interceptor - URL: ${req.url}`);
+  console.log(`🔑 Interceptor - Token: ${token ? 'Existe' : 'NO EXISTE'}`);
+
   if (token) {
     const cloned = req.clone({
       setHeaders: {
@@ -34,5 +37,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     );
   }
 
+  console.log(`⚠️ SIN TOKEN - Petición sin autenticación`);
   return next(req);
 };

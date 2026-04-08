@@ -210,6 +210,17 @@
   color: var(--primary-400);
 }
 
+.admin-item {
+  background-color: #f0f3ff;
+  color: #0a2c8c;
+  font-weight: 500;
+}
+
+.admin-item:hover {
+  background-color: #e0e7ff;
+  color: #0855b8;
+}
+
 .dropdown-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-color), transparent);

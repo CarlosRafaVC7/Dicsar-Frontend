@@ -27,19 +27,19 @@ export class UsuariosComponent implements OnInit {
   mostrarModalUsuario = false;
   mostrarModalPassword = false;
   editandoUsuario: Usuario | null = null;
-  
+
   // Paginación
   paginaActual = 1;
   itemsPorPagina = 10;
   totalPaginas = 1;
-  
+
   // Búsqueda
   search = '';
-  
+
   // Ordenación
   sortField = 'idUsuario';
   sortDirection: 'asc' | 'desc' = 'asc';
-  
+
   // Cambio de contraseña
   passwordForm!: FormGroup;
   currentUser: any;
@@ -151,7 +151,7 @@ export class UsuariosComponent implements OnInit {
 
   toggleEstadoUsuario(usuario: Usuario): void {
     if (!usuario.idUsuario) return;
-    
+
     const nuevoEstado = !usuario.activo;
     this.usuarioService.actualizar(usuario.idUsuario, { ...usuario, activo: nuevoEstado }).subscribe({
       next: () => this.cargarUsuarios(),
@@ -218,18 +218,18 @@ export class UsuariosComponent implements OnInit {
 
   get usuariosVisibles(): Usuario[] {
     const filtered = this.usuariosFiltrados;
-    
+
     // Aplicar ordenación
     const sorted = [...filtered].sort((a, b) => {
       const aVal = a[this.sortField as keyof Usuario] ?? '';
       const bVal = b[this.sortField as keyof Usuario] ?? '';
-      
+
       if (aVal === bVal) return 0;
-      
+
       const comparison = aVal < bVal ? -1 : 1;
       return this.sortDirection === 'asc' ? comparison : -comparison;
     });
-    
+
     this.totalPaginas = Math.ceil(sorted.length / this.itemsPorPagina);
     const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
     const fin = inicio + this.itemsPorPagina;

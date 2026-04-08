@@ -53,12 +53,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   currentUser: AuthResponse | null = null;
   loading = true;
-  
+
   stats: StatCard[] = [];
   movimientosRecientes: MovimientoReciente[] = [];
   alertasStock: AlertaStock[] = [];
   categoriasData: any[] = [];
-  
+
   private chartMovimientos: Chart | null = null;
   private chartCategorias: Chart | null = null;
   private chartEstado: Chart | null = null;
@@ -74,11 +74,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   horaActual = '';
 
   get actualDate(): string {
-    return new Date().toLocaleDateString('es-PE', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return new Date().toLocaleDateString('es-PE', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   }
 
@@ -90,7 +90,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     private notificacionService: NotificacionService,
     private categoriaService: CategoriaService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.authService.currentUser.subscribe(user => {
@@ -101,12 +101,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.cargarDatos();
   }
 
-  ngAfterViewInit(): void {}
+  ngAfterViewInit(): void { }
 
   actualizarHora(): void {
     const now = new Date();
-    this.horaActual = now.toLocaleTimeString('es-PE', { 
-      hour: '2-digit', 
+    this.horaActual = now.toLocaleTimeString('es-PE', {
+      hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
     });
@@ -118,7 +118,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       const inactivos = productos.filter((p: any) => p.estado === false || p.estado === 'false');
       this.productosActivos = activos.length;
       this.productosInactivos = inactivos.length;
-      
+
       this.alertasStock = productos
         .filter((p: any) => p.stockActual <= p.stockMinimo)
         .map((p: any) => ({
@@ -286,7 +286,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     if (!ctx) return;
 
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
-    
+
     this.chartCategorias = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -354,7 +354,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   getTipoIcon(tipo: string): string {
-    switch(tipo) {
+    switch (tipo) {
       case 'ENTRADA': return '📥';
       case 'SALIDA': return '📤';
       case 'AJUSTE': return '🔄';
@@ -363,7 +363,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   getTipoClass(tipo: string): string {
-    switch(tipo) {
+    switch (tipo) {
       case 'ENTRADA': return 'tipo-entrada';
       case 'SALIDA': return 'tipo-salida';
       case 'AJUSTE': return 'tipo-ajuste';

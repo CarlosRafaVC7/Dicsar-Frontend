@@ -23,19 +23,19 @@ interface NavItem {
 export class SidebarComponent {
   // Estado del sidebar: expandido o colapsado
   sidebarExpanded = true;
-  
+
   // Evento para notificar al componente padre sobre el cambio de estado
   @Output() sidebarToggle = new EventEmitter<boolean>();
-  
+
   // Breakpoint para responsive (1024px)
   private readonly MOBILE_BREAKPOINT = 1024;
   isMobile = false;
-  
+
   items: NavItem[] = [
-    { 
-      label: 'Dashboard', 
-      icon: 'fa-solid fa-chart-line', 
-      route: '/dashboard' 
+    {
+      label: 'Dashboard',
+      icon: 'fa-solid fa-chart-line',
+      route: '/dashboard'
     },
     {
       label: 'Inventario',
@@ -47,15 +47,15 @@ export class SidebarComponent {
         { label: 'Historial de Precios', icon: 'fa-solid fa-chart-line', route: '/historial-precios' }
       ]
     },
-    { 
-      label: 'Proveedores', 
-      icon: 'fa-solid fa-truck-field', 
-      route: '/proveedores' 
+    {
+      label: 'Proveedores',
+      icon: 'fa-solid fa-truck-field',
+      route: '/proveedores'
     },
-    { 
-      label: 'Clientes', 
-      icon: 'fa-solid fa-people-group', 
-      route: '/clientes' 
+    {
+      label: 'Clientes',
+      icon: 'fa-solid fa-people-group',
+      route: '/clientes'
     }
     ,
     {
@@ -71,7 +71,7 @@ export class SidebarComponent {
     this.authService.currentUser.subscribe(user => {
       this.currentUser = user;
     });
-    
+
     // Verificar si estamos en mobile al iniciar
     this.checkMobile();
   }
@@ -84,7 +84,7 @@ export class SidebarComponent {
 
   private checkMobile(): void {
     this.isMobile = window.innerWidth < this.MOBILE_BREAKPOINT;
-    
+
     // En móvil, el sidebar empieza cerrado
     if (this.isMobile && this.sidebarExpanded) {
       this.sidebarExpanded = false;
@@ -98,7 +98,7 @@ export class SidebarComponent {
   toggleSidebar(): void {
     this.sidebarExpanded = !this.sidebarExpanded;
     this.sidebarToggle.emit(this.sidebarExpanded);
-    
+
     // Cuando el sidebar está contraído, mantener el submenú de Inventario visible
     if (!this.sidebarExpanded) {
       const inventarioItem = this.items.find(item => item.label === 'Inventario');
@@ -128,3 +128,7 @@ export class SidebarComponent {
     window.location.href = '/login';
   }
 }
+
+
+
+

@@ -1,4 +1,6 @@
 import { Producto } from './producto.model';
+import { ClienteDTO } from './cliente.model';
+import { Proveedor } from './proveedor.model';
 
 export interface Movimiento {
   idMovimiento?: number;

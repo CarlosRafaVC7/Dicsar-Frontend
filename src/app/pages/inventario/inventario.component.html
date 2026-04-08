@@ -7,16 +7,10 @@
   <!-- Tabs principales -->
   <div class="tabs-container">
     <div class="tabs">
-      <button 
-        [class.active]="activeTab === 'productos'" 
-        (click)="cambiarTab('productos')"
-        class="tab-button">
+      <button [class.active]="activeTab === 'productos'" (click)="cambiarTab('productos')" class="tab-button">
         📦 Productos
       </button>
-      <button 
-        [class.active]="activeTab === 'reportes'" 
-        (click)="cambiarTab('reportes')"
-        class="tab-button">
+      <button [class.active]="activeTab === 'reportes'" (click)="cambiarTab('reportes')" class="tab-button">
         📊 Reportes
       </button>
     </div>
@@ -111,11 +105,8 @@
       </div>
 
       <div class="controls-grid">
-        <input 
-          class="search-input" 
-          placeholder="🔍 Buscar producto, categoría o código..." 
-          [(ngModel)]="search" />
-        
+        <input class="search-input" placeholder="🔍 Buscar producto, categoría o código..." [(ngModel)]="search" />
+
         <select class="category-select" [(ngModel)]="selectedCategory">
           <option>Todas las categorías</option>
           <option *ngFor="let c of categorias">{{ c.nombre }}</option>
@@ -124,7 +115,7 @@
         <button class="btn-secondary" (click)="abrirModalUnidad()">
           ⚖️ Tipos
         </button>
-        
+
         <button class="btn-secondary" (click)="abrirModalCategoria()">
           📂 Categorías
         </button>
@@ -161,21 +152,20 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of productosActivosPaginados" 
-              [class.expired]="esProductoVencido(p.fechaVencimiento)"
-              [class.low-stock]="p.stockActual <= p.stockMinimo">
-            
+          <tr *ngFor="let p of productosActivosPaginados" [class.expired]="esProductoVencido(p.fechaVencimiento)"
+            [class.low-stock]="p.stockActual <= p.stockMinimo">
+
             <!-- Columna Producto -->
             <td class="product-info">
               <div class="product-name">{{ p.nombre }}</div>
               <div class="product-code">{{ p.codigo }}</div>
               <div *ngIf="p.descripcion" class="product-desc">{{ p.descripcion }}</div>
-              <div *ngIf="p.fechaVencimiento" class="expiry-date" 
-                   [class.expired]="esProductoVencido(p.fechaVencimiento)">
+              <div *ngIf="p.fechaVencimiento" class="expiry-date"
+                [class.expired]="esProductoVencido(p.fechaVencimiento)">
                 Vence: {{ p.fechaVencimiento | date:'dd/MM/yyyy' }}
               </div>
             </td>
-            
+
             <!-- Columna Categoría -->
             <td>
               <span class="category-badge">{{ p.categoriaNombre || p.categoria?.nombre || '-' }}</span>
@@ -183,21 +173,20 @@
             
             <!-- Columna Tipo -->
             <td>
-              <span class="unit-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura || p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
+              <span class="unit-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura ||
+                p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
             </td>
-            
+
             <!-- Columna Precio CON BOTÓN DE EDITAR -->
             <td class="price-cell">
               <div class="price-content">
                 <strong>{{ p.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</strong>
-                <button class="btn-edit-price" 
-                        (click)="abrirModalPrecio(p)"
-                        title="Editar precio">
+                <button class="btn-edit-price" (click)="abrirModalPrecio(p)" title="Editar precio">
                   ✏️
                 </button>
               </div>
             </td>
-            
+
             <!-- Columna Stock -->
             <td class="stock-cell">
               <div [class]="p.stockActual <= p.stockMinimo ? 'stock-low' : 'stock-ok'">
@@ -205,21 +194,18 @@
                 <small>/ {{ p.stockMinimo }}</small>
               </div>
             </td>
-            
+
             <!-- Columna Estado CON TOGGLE -->
             <td class="status-cell">
               <div class="status-toggle">
                 <label class="toggle-switch">
-                  <input 
-                    type="checkbox" 
-                    [checked]="p.estado" 
-                    (change)="toggleEstadoProducto(p)">
+                  <input type="checkbox" [checked]="p.estado" (change)="toggleEstadoProducto(p)">
                   <span class="slider"></span>
                 </label>
                 <span class="status-text active">Activo</span>
               </div>
             </td>
-            
+
             <!-- Columna Acciones -->
             <td class="actions-cell">
               <div class="action-buttons">
@@ -243,31 +229,24 @@
 
       <!-- Paginación para productos activos -->
       <div class="pagination" *ngIf="totalPaginasActivos > 1">
-        <button 
-          class="page-btn" 
-          [disabled]="paginaActualActivos === 1"
+        <button class="page-btn" [disabled]="paginaActualActivos === 1"
           (click)="cambiarPaginaActivos(paginaActualActivos - 1)">
           ← Anterior
         </button>
-        
-        <button 
-          *ngFor="let p of paginasArrayActivos" 
-          class="page-btn"
-          [class.active]="p === paginaActualActivos"
+
+        <button *ngFor="let p of paginasArrayActivos" class="page-btn" [class.active]="p === paginaActualActivos"
           (click)="cambiarPaginaActivos(p)">
           {{ p }}
         </button>
-        
-        <button 
-          class="page-btn" 
-          [disabled]="paginaActualActivos === totalPaginasActivos"
+
+        <button class="page-btn" [disabled]="paginaActualActivos === totalPaginasActivos"
           (click)="cambiarPaginaActivos(paginaActualActivos + 1)">
           Siguiente →
         </button>
       </div>
 
       <div class="pagination-info" *ngIf="totalPaginasActivos > 1">
-        Página {{ paginaActualActivos }} de {{ totalPaginasActivos }} 
+        Página {{ paginaActualActivos }} de {{ totalPaginasActivos }}
         ({{ filteredActiveProducts.length }} productos)
       </div>
     </div>
@@ -295,16 +274,15 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of productosInactivosPaginados" 
-                class="inactive-row">
-              
+            <tr *ngFor="let p of productosInactivosPaginados" class="inactive-row">
+
               <!-- Columna Producto -->
               <td class="product-info">
                 <div class="product-name inactive-text">{{ p.nombre }}</div>
                 <div class="product-code">{{ p.codigo }}</div>
                 <div *ngIf="p.descripcion" class="product-desc inactive-text">{{ p.descripcion }}</div>
               </td>
-              
+
               <!-- Columna Categoría -->
               <td>
                 <span class="category-badge inactive-badge">{{ p.categoriaNombre || p.categoria?.nombre || '-' }}</span>
@@ -312,33 +290,31 @@
               
               <!-- Columna Tipo -->
               <td>
-                <span class="unit-badge inactive-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura || p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
+                <span class="unit-badge inactive-badge">{{ p.unidadMedidaAbreviatura || p.unidadMedida?.abreviatura ||
+                  p.unidadMedidaNombre || p.unidadMedida?.nombre || '-' }}</span>
               </td>
-              
+
               <!-- Columna Precio -->
               <td class="price-cell inactive-text">
                 <strong>{{ p.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</strong>
               </td>
-              
+
               <!-- Columna Stock -->
               <td class="stock-cell">
                 <div class="stock-inactive">{{ p.stockActual }}</div>
               </td>
-              
+
               <!-- Columna Estado -->
               <td class="status-cell">
                 <div class="status-toggle">
                   <label class="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      [checked]="p.estado" 
-                      (change)="toggleEstadoProducto(p)">
+                    <input type="checkbox" [checked]="p.estado" (change)="toggleEstadoProducto(p)">
                     <span class="slider"></span>
                   </label>
                   <span class="status-text">Inactivo</span>
                 </div>
               </td>
-              
+
               <!-- Columna Acciones -->
               <td class="actions-cell">
                 <div class="action-buttons">
@@ -353,31 +329,24 @@
 
         <!-- Paginación para productos inactivos -->
         <div class="pagination" *ngIf="totalPaginasInactivos > 1">
-          <button 
-            class="page-btn" 
-            [disabled]="paginaActualInactivos === 1"
+          <button class="page-btn" [disabled]="paginaActualInactivos === 1"
             (click)="cambiarPaginaInactivos(paginaActualInactivos - 1)">
             ← Anterior
           </button>
-          
-          <button 
-            *ngFor="let p of paginasArrayInactivos" 
-            class="page-btn"
-            [class.active]="p === paginaActualInactivos"
+
+          <button *ngFor="let p of paginasArrayInactivos" class="page-btn" [class.active]="p === paginaActualInactivos"
             (click)="cambiarPaginaInactivos(p)">
             {{ p }}
           </button>
-          
-          <button 
-            class="page-btn" 
-            [disabled]="paginaActualInactivos === totalPaginasInactivos"
+
+          <button class="page-btn" [disabled]="paginaActualInactivos === totalPaginasInactivos"
             (click)="cambiarPaginaInactivos(paginaActualInactivos + 1)">
             Siguiente →
           </button>
         </div>
 
         <div class="pagination-info" *ngIf="totalPaginasInactivos > 1">
-          Página {{ paginaActualInactivos }} de {{ totalPaginasInactivos }} 
+          Página {{ paginaActualInactivos }} de {{ totalPaginasInactivos }}
           ({{ productosInactivos.length }} productos)
         </div>
       </div>
@@ -407,7 +376,8 @@
               </div>
               <div class="info-item">
                 <label>Precio Actual:</label>
-                <span class="current-price">{{ productoEditandoPrecio?.precioBase | currency:'PEN':'S/ ':'1.2-2' }}</span>
+                <span class="current-price">{{ productoEditandoPrecio?.precioBase | currency:'PEN':'S/ ':'1.2-2'
+                  }}</span>
               </div>
             </div>
           </div>
@@ -415,24 +385,14 @@
           <div class="price-inputs">
             <div class="form-group">
               <label for="nuevoPrecio">Nuevo Precio *</label>
-              <input 
-                type="number" 
-                id="nuevoPrecio"
-                [(ngModel)]="nuevoPrecio" 
-                step="0.01" 
-                min="0.01"
-                placeholder="0.00"
+              <input type="number" id="nuevoPrecio" [(ngModel)]="nuevoPrecio" step="0.01" min="0.01" placeholder="0.00"
                 class="price-input">
             </div>
 
             <div class="form-group">
               <label for="motivoCambio">Motivo del Cambio (Opcional)</label>
-              <textarea 
-                id="motivoCambio"
-                [(ngModel)]="motivoCambioPrecio" 
-                placeholder="Ej: Ajuste por inflación, promoción, etc."
-                rows="3"
-                class="reason-textarea"></textarea>
+              <textarea id="motivoCambio" [(ngModel)]="motivoCambioPrecio"
+                placeholder="Ej: Ajuste por inflación, promoción, etc." rows="3" class="reason-textarea"></textarea>
             </div>
           </div>
         </div>
@@ -457,18 +417,16 @@
         <h3>⚖️ Gestión de Tipos</h3>
         <button class="modal-close" (click)="cerrarModalUnidad()">×</button>
       </div>
-      
+
       <form class="modal-form" (ngSubmit)="guardarUnidad()">
         <div class="form-row">
           <div class="form-group">
             <label>Nombre *</label>
-            <input type="text" [(ngModel)]="nuevaUnidad.nombre" name="nombre" required 
-                   placeholder="Ej: Kilogramos">
+            <input type="text" [(ngModel)]="nuevaUnidad.nombre" name="nombre" required placeholder="Ej: Kilogramos">
           </div>
           <div class="form-group">
             <label>Abreviatura</label>
-            <input type="text" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviatura"
-                   placeholder="Ej: kg">
+            <input type="text" [(ngModel)]="nuevaUnidad.abreviatura" name="abreviatura" placeholder="Ej: kg">
           </div>
         </div>
 
@@ -476,8 +434,7 @@
           <button type="submit" class="btn-primary">
             {{ editandoUnidad ? '🔄 Actualizar' : '➕ Agregar' }}
           </button>
-          <button type="button" *ngIf="editandoUnidad" 
-                  (click)="cancelarEdicionUnidad()" class="btn-cancel">
+          <button type="button" *ngIf="editandoUnidad" (click)="cancelarEdicionUnidad()" class="btn-cancel">
             ❌ Cancelar
           </button>
         </div>
@@ -507,25 +464,23 @@
         <h3>📂 Gestión de Categorías</h3>
         <button class="modal-close" (click)="cerrarModalCategoria()">×</button>
       </div>
-      
+
       <form class="modal-form" (ngSubmit)="guardarCategoria()">
         <div class="form-group">
           <label>Nombre *</label>
-          <input type="text" [(ngModel)]="nuevaCategoria.nombre" name="nombre" required 
-                 placeholder="Ej: Bebidas">
+          <input type="text" [(ngModel)]="nuevaCategoria.nombre" name="nombre" required placeholder="Ej: Bebidas">
         </div>
         <div class="form-group">
           <label>Descripción</label>
           <textarea [(ngModel)]="nuevaCategoria.descripcion" name="descripcion"
-                    placeholder="Descripción de la categoría"></textarea>
+            placeholder="Descripción de la categoría"></textarea>
         </div>
 
         <div class="form-actions">
           <button type="submit" class="btn-primary">
             {{ editandoCategoria ? '🔄 Actualizar' : '➕ Agregar' }}
           </button>
-          <button type="button" *ngIf="editandoCategoria" 
-                  (click)="cancelarEdicionCategoria()" class="btn-cancel">
+          <button type="button" *ngIf="editandoCategoria" (click)="cancelarEdicionCategoria()" class="btn-cancel">
             ❌ Cancelar
           </button>
         </div>
@@ -560,14 +515,13 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre del Producto *</label>
-            <input type="text" [(ngModel)]="nuevoProducto.nombre" name="modalNombre" required 
-                   placeholder="Ej: Aceite Cocinero 12L">
+            <input type="text" [(ngModel)]="nuevoProducto.nombre" name="modalNombre" required
+              placeholder="Ej: Aceite Cocinero 12L">
           </div>
 
           <div class="form-group">
             <label>Código</label>
-            <input type="text" [(ngModel)]="nuevoProducto.codigo" name="modalCodigo"
-                   placeholder="Ej: ACE-12">
+            <input type="text" [(ngModel)]="nuevoProducto.codigo" name="modalCodigo" placeholder="Ej: ACE-12">
           </div>
 
           <div class="form-group">
@@ -592,26 +546,24 @@
 
           <div class="form-group">
             <label>Precio Base (S/)</label>
-            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioBase" 
-                   name="modalPrecio" placeholder="0.00">
+            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioBase" name="modalPrecio"
+              placeholder="0.00">
           </div>
 
           <div class="form-group">
             <label>Precio de Compra (S/)</label>
-            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioCompra" 
-                   name="modalPrecioCompra" placeholder="0.00">
+            <input type="number" step="0.01" [(ngModel)]="nuevoProducto.precioCompra" name="modalPrecioCompra"
+              placeholder="0.00">
           </div>
 
           <div class="form-group">
             <label>Stock Actual</label>
-            <input type="number" [(ngModel)]="nuevoProducto.stockActual" 
-                   name="modalStock" placeholder="0">
+            <input type="number" [(ngModel)]="nuevoProducto.stockActual" name="modalStock" placeholder="0">
           </div>
 
           <div class="form-group">
             <label>Stock Mínimo</label>
-            <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" 
-                   name="modalStockMin" placeholder="0">
+            <input type="number" [(ngModel)]="nuevoProducto.stockMinimo" name="modalStockMin" placeholder="0">
           </div>
 
           <div class="form-group">
@@ -626,24 +578,20 @@
 
           <div class="form-group">
             <label>Fecha de Vencimiento</label>
-            <input type="date" [(ngModel)]="nuevoProducto.fechaVencimiento" 
-                   name="modalFecha" [min]="minDate">
+            <input type="date" [(ngModel)]="nuevoProducto.fechaVencimiento" name="modalFecha" [min]="minDate">
           </div>
 
           <div class="form-group">
             <label class="estado-label">
-              <input type="checkbox" 
-                     [(ngModel)]="nuevoProducto.estado" 
-                     name="modalEstado"
-                     class="estado-checkbox">
+              <input type="checkbox" [(ngModel)]="nuevoProducto.estado" name="modalEstado" class="estado-checkbox">
               <span class="estado-text">Estado Activo</span>
             </label>
           </div>
 
           <div class="form-group full-width">
             <label>Descripción</label>
-            <textarea [(ngModel)]="nuevoProducto.descripcion" name="modalDescripcion" 
-                      placeholder="Descripción del producto..." rows="3"></textarea>
+            <textarea [(ngModel)]="nuevoProducto.descripcion" name="modalDescripcion"
+              placeholder="Descripción del producto..." rows="3"></textarea>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Categoria {
   idCategoria: number;
@@ -28,9 +29,9 @@ export interface Notificacion {
   providedIn: 'root'
 })
 export class NotificacionService {
-  private baseUrl = 'http://localhost:8080/api/notificaciones';
+  private baseUrl = `${environment.apiBaseUrl}/notificaciones`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   listar(): Observable<Notificacion[]> {
     return this.http.get<Notificacion[]>(this.baseUrl);

@@ -1488,6 +1488,101 @@ input:checked + .slider:before {
   accent-color: var(--secondary-500);
 }
 
+/* ============================= ⚠️ ALERTAS DE VENCIMIENTO ============================= */
+.alerta-vencimiento-section {
+  margin-bottom: 2rem;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alertas-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.alerta-vencido,
+.alerta-proximo {
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.alerta-vencido {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-left: 5px solid #dc2626;
+}
+
+.alerta-proximo {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde047 100%);
+  border-left: 5px solid #f59e0b;
+}
+
+.alerta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.alerta-vencido .alerta-header {
+  color: #991b1b;
+}
+
+.alerta-proximo .alerta-header {
+  color: #78350f;
+}
+
+.alerta-icon {
+  font-size: 1.5rem;
+}
+
+.alerta-titulo {
+  flex: 1;
+}
+
+.alerta-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.alerta-item {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.alerta-vencido .alerta-item {
+  color: #7c2d12;
+}
+
+.alerta-proximo .alerta-item {
+  color: #654d0f;
+}
+
+.alerta-item strong {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
 .estado-text {
   font-weight: 600;
   color: var(--text-secondary);

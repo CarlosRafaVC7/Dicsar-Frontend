@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Proveedor } from '../models/proveedor.model';
+import { environment } from '../../environments/environment';
 
 export interface PageResponse<T> {
   content: T[];
@@ -15,9 +16,9 @@ export interface PageResponse<T> {
   providedIn: 'root'
 })
 export class ProveedorService {
-  private apiUrl = 'http://localhost:8080/api/proveedores';
+  private apiUrl = `${environment.apiBaseUrl}/proveedores`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   listar(): Observable<Proveedor[]> {
     return this.http.get<Proveedor[]>(this.apiUrl);

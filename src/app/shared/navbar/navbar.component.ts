@@ -102,7 +102,7 @@ export class NavbarComponent implements OnInit {
   }
 
   getTipoClass(tipo: string): string {
-    switch(tipo) {
+    switch (tipo) {
       case 'ADVERTENCIA': return 'tipo-ADVERTENCIA';
       case 'CRITICA': return 'tipo-CRITICA';
       case 'INFORMACION': return 'tipo-INFORMACION';
@@ -115,7 +115,7 @@ export class NavbarComponent implements OnInit {
   }
 
   getTipoIcon(tipo: string): string {
-    switch(tipo) {
+    switch (tipo) {
       case 'ADVERTENCIA': return 'fa-triangle-exclamation';
       case 'CRITICA': return 'fa-circle-exclamation';
       case 'INFORMACION': return 'fa-circle-info';
@@ -133,7 +133,19 @@ export class NavbarComponent implements OnInit {
   }
 
   getRoleName(): string {
-    return this.currentUser?.rol === 'ADMIN' ? 'Administrador' : 'Vendedor';
+    const rol = this.currentUser?.rol;
+    const nombre = this.currentUser?.nombreCompleto?.toLowerCase() || '';
+    // Si el rol es ADMIN o si el nombre contiene "admin" (por inconsistencias del backend)
+    if (rol === 'ADMIN' || nombre.includes('admin')) {
+      return 'Administrador';
+    }
+    return rol === 'VENDEDOR' ? 'Vendedor' : 'Usuario';
+  }
+
+  isAdminUser(): boolean {
+    const rol = this.currentUser?.rol;
+    const nombre = this.currentUser?.nombreCompleto?.toLowerCase() || '';
+    return rol === 'ADMIN' || nombre.includes('admin');
   }
 
   abrirModalPassword(): void {
