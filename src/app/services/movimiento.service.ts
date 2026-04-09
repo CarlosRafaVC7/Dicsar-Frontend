@@ -24,8 +24,7 @@ export class MovimientoService {
    * 📦 Lista solo movimientos filtrados por tipo (ENTRADA, SALIDA, AJUSTE).
    */
   listarPorTipo(tipo: string): Observable<Movimiento[]> {
-    const params = new HttpParams().set('tipo', tipo);
-    return this.http.get<Movimiento[]>(`${this.baseUrl}/tipo`, { params });
+    return this.http.get<Movimiento[]>(`${this.baseUrl}/tipo/${encodeURIComponent(tipo)}`);
   }
 
   /**
@@ -41,8 +40,7 @@ export class MovimientoService {
    * @param username Username del usuario que realiza el movimiento
    */
   crear(movimiento: Movimiento, username: string = 'admin'): Observable<Movimiento> {
-    const params = new HttpParams().set('username', username);
-    return this.http.post<Movimiento>(this.baseUrl, movimiento, { params });
+    return this.http.post<Movimiento>(`${this.baseUrl}?usuario=${encodeURIComponent(username)}`, movimiento);
   }
 
   /**

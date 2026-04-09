@@ -15,4 +15,5 @@ export interface Movimiento {
   };
   usuarioMovimiento?: string;
   fechaMovimiento?: string;
+  precio?: number;
 }

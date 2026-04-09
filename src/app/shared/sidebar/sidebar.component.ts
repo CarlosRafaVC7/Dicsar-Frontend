@@ -43,7 +43,7 @@ export class SidebarComponent {
       expanded: true,
       submenu: [
         { label: 'Productos', icon: 'fa-solid fa-cube', route: '/inventario' },
-        { label: 'Movimientos', icon: 'fa-solid fa-arrows-rotate', route: '/ventas' },
+        { label: 'Movimientos', icon: 'fa-solid fa-arrows-rotate', route: '/movimientos' },
         { label: 'Historial de Precios', icon: 'fa-solid fa-chart-line', route: '/historial-precios' }
       ]
     },
@@ -51,6 +51,11 @@ export class SidebarComponent {
       label: 'Proveedores',
       icon: 'fa-solid fa-truck-field',
       route: '/proveedores'
+    },
+    {
+      label: 'Ventas',
+      icon: 'fa-solid fa-cash-register',
+      route: '/ventas'
     },
     {
       label: 'Clientes',

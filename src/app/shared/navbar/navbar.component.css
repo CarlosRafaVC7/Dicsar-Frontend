@@ -240,19 +240,32 @@
 }
 
 /* ========================== MODAL NOTIFICACIONES ========================== */
+.notifications-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+}
+
 .notifications-modal {
   position: absolute;
   top: calc(100% + 12px);
-  right: 60px;
+  right: 0;
   width: 420px;
   max-height: 540px;
   background-color: var(--bg-primary);
   border-radius: 20px;
   box-shadow: var(--shadow-xl);
-  z-index: 1000;
+  z-index: 10000;
   border: 1px solid var(--border-color);
   overflow: hidden;
   animation: slideDown 0.2s ease;
+}
+
+.navbar-right {
+  position: relative;
 }
 
 @keyframes slideDown {

@@ -1,321 +1,376 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MovimientoService } from '../../services/movimiento.service';
 import { ProductoService } from '../../services/producto.service';
-import { ProveedorService } from '../../services/proveedor.service';
-import { ClienteService } from '../../services/cliente.service';
-import { Subject } from 'rxjs';
-
+import { CategoriaService } from '../../services/categoria.service';
+import { ToastService } from '../../services/toast.service';
+import { Producto } from '../../models/producto.model';
+import { Movimiento } from '../../models/movimientos.model';
+import { Categoria } from '../../models/categoria.model';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-movimientos',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './movimientos.component.html',
   styleUrls: ['./movimientos.component.css']
 })
-export class MovimientosComponent implements OnInit, OnDestroy {
-  // Tabs
-  activeTab: 'registro' | 'reportes' = 'registro';
+export class MovimientosComponent implements OnInit {
 
-  // Formulario
-  movimientoForm!: FormGroup;
-  tipoMovimiento: 'SALIDA' | 'ENTRADA' | 'AJUSTE' = 'SALIDA';
+  // === 🧭 CONTROL DE TABS ===
+  activeTab: 'salidas' | 'historial' = 'salidas';
 
-  // Listas
-  movimientos: any[] = [];
-  productos: any[] = [];
-  proveedores: any[] = [];
-  clientes: any[] = [];
+  // === 📦 DATOS ===
+  productos: Producto[] = [];
+  categorias: Categoria[] = [];
+  movimientos: Movimiento[] = [];
+  nuevoMovimiento: Movimiento = this.resetMovimiento();
 
-  // Estados
-  loading = false;
-  mostrarAlerta = false;
-  mensajeAlerta = '';
-  tipoAlerta: 'exito' | 'error' | 'info' = 'info';
-
-  // Filtros
-  busqueda = '';
-  filtroTipo = 'SALIDA';
-  filtroFecha = '';
-
-  // Paginación
+  // === 📄 PAGINACIÓN ===
   paginaActual = 1;
   itemsPorPagina = 10;
+  totalPaginas = 1;
 
-  // Precio y validación
-  precioActual: number = 0;
-  productoSeleccionado: any = null;
-  errorPrecio = '';
+  // === 📋 TIPOS DE MOVIMIENTO ===
+  tiposMovimiento = ['ENTRADA', 'SALIDA', 'AJUSTE'] as const;
 
-  // Destroy
-  private destroy$ = new Subject<void>();
+  // === 🧠 ESTADO ===
+  cargando = false;
+  mensajeError = '';
 
+  // Modal nuevo movimiento
+  mostrarModalMovimiento: boolean = false;
+// === Modal eliminar movimiento ===
+mostrarModalEliminar: boolean = false;
+movimientoAEliminar: Movimiento | null = null;
+
+  // Búsqueda y filtro en histórico
+  searchMov: string = '';
+  filterTipo: 'TODOS' | 'ENTRADA' | 'SALIDA' | 'AJUSTE' = 'TODOS';
+  // Filtros de producto en modal
+  filtroCategoriaId: number | null = null;
+  // Arrays filtrados para “tablitas”
+  entradas: Movimiento[] = [];
+  salidas: Movimiento[] = [];
+  ajustes: Movimiento[] = [];
   constructor(
-    private fb: FormBuilder,
     private movimientoService: MovimientoService,
     private productoService: ProductoService,
-    private proveedorService: ProveedorService,
-    private clienteService: ClienteService
-  ) {
-    this.initForm();
-  }
+    private categoriaService: CategoriaService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit(): void {
-    this.cargarDatos();
+    this.cargarProductos();
+    this.cargarCategorias();
+    this.cargarHistorial();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  initForm(): void {
-    this.movimientoForm = this.fb.group({
-      tipo: ['SALIDA', Validators.required],
-      producto: ['', Validators.required],
-      cantidad: [1, [Validators.required, Validators.min(1)]],
-      cliente: [''],
-      proveedor: [''],
-      motivo: ['', Validators.required],
-      observaciones: [''],
-      referencia: ['']
+  cargarCategorias(): void {
+    this.categoriaService.listar().subscribe({
+      next: data => this.categorias = data.filter((c: Categoria) => c.estado !== false),
+      error: () => this.mensajeError = 'Error al cargar categorías'
     });
   }
 
-  cargarDatos(): void {
-    this.loading = true;
-
-    // Cargar productos
-    this.productoService.listar().subscribe({
-      next: (data) => {
-        this.productos = data;
-      },
-      error: (err) => console.error('Error cargando productos:', err)
-    });
-
-    // Cargar proveedores
-    this.proveedorService.listar().subscribe({
-      next: (data) => {
-        this.proveedores = data;
-      },
-      error: (err) => console.error('Error cargando proveedores:', err)
-    });
-
-    // Cargar clientes
-    this.clienteService.listar().subscribe({
-      next: (data: any) => {
-        // Manejar tanto respuesta directa como respuesta paginada
-        this.clientes = Array.isArray(data) ? data : (data.content || []);
-      },
-      error: (err) => console.error('Error cargando clientes:', err)
-    });
-
-    // Cargar movimientos
-    this.movimientoService.listar().subscribe({
-      next: (data) => {
-        this.movimientos = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error cargando movimientos:', err);
-        this.loading = false;
-      }
-    });
-  }
-
-  cambiarTab(tab: 'registro' | 'reportes'): void {
+  cambiarTab(tab: 'salidas' | 'historial') {
     this.activeTab = tab;
-    if (tab === 'reportes') {
-      this.cargarDatos();
-    }
+    if (tab === 'historial') this.cargarHistorial();
   }
 
-  cambiarTipo(tipo: 'SALIDA' | 'ENTRADA' | 'AJUSTE'): void {
-    this.tipoMovimiento = tipo;
-    this.movimientoForm.patchValue({ tipo });
-    this.movimientoForm.patchValue({ producto: '' });
-    this.precioActual = 0;
-    this.productoSeleccionado = null;
-    this.actualizarValidadores();
-  }
-
-  actualizarValidadores(): void {
-    const clienteControl = this.movimientoForm.get('cliente');
-    const proveedorControl = this.movimientoForm.get('proveedor');
-
-    clienteControl?.clearValidators();
-    proveedorControl?.clearValidators();
-
-    if (this.tipoMovimiento === 'SALIDA') {
-      clienteControl?.setValidators([Validators.required]);
-    } else if (this.tipoMovimiento === 'ENTRADA') {
-      proveedorControl?.setValidators([Validators.required]);
-    }
-
-    clienteControl?.updateValueAndValidity();
-    proveedorControl?.updateValueAndValidity();
-  }
-
-  onProductoSeleccionado(): void {
-    const idProducto = this.movimientoForm.get('producto')?.value;
-
-    if (!idProducto) {
-      this.precioActual = 0;
-      this.productoSeleccionado = null;
-      this.errorPrecio = '';
-      return;
-    }
-
-    // Encontrar el producto seleccionado
-    this.productoSeleccionado = this.productos.find(p => p.idProducto === parseInt(idProducto));
-
-    if (this.productoSeleccionado) {
-      console.log('Producto seleccionado:', this.productoSeleccionado);
-      console.log('Tipo:', this.tipoMovimiento);
-      // Obtener el precio según el tipo de movimiento
-      this.obtenerPrecioProducto(idProducto);
-    }
-  }
-
-  obtenerPrecioProducto(idProducto: number): void {
-    this.movimientoService.obtenerPrecio(idProducto, this.tipoMovimiento).subscribe({
-      next: (respuesta: any) => {
-        this.precioActual = respuesta.precio || 0;
-        this.errorPrecio = '';
-      },
-      error: (err: any) => {
-        console.warn('Endpoint /precio no disponible, usando precios del producto local');
-        // Fallback: usar precios del producto local
-        if (this.productoSeleccionado) {
-          this.calcularPrecioLocal();
-        } else {
-          this.errorPrecio = 'No se pudo obtener el precio del producto';
-          this.precioActual = 0;
-        }
-      }
+  // ==================== CARGA DE DATOS ====================
+  cargarProductos(): void {
+    this.productoService.listar().subscribe({
+      next: data => this.productos = data.filter((p: Producto) => p.estado === true),
+      error: () => this.mensajeError = 'Error al cargar productos'
     });
   }
 
-  calcularPrecioLocal(): void {
-    if (!this.productoSeleccionado) return;
-
-    let precio = 0;
-    switch (this.tipoMovimiento) {
-      case 'SALIDA':
-        // Para ventas: usar precio de venta o precio base
-        precio = this.productoSeleccionado.precio || this.productoSeleccionado.precioBase || 0;
-        break;
-      case 'ENTRADA':
-        // Para compras: usar precio de compra o precio base
-        precio = this.productoSeleccionado.precioCompra || this.productoSeleccionado.precioBase || 0;
-        break;
-      case 'AJUSTE':
-        // Para ajustes: usar precio base o precio de venta
-        precio = this.productoSeleccionado.precioBase || this.productoSeleccionado.precio || 0;
-        break;
+  cargarHistorial(): void {
+    this.movimientoService.listar().subscribe({
+      next: data => {
+        console.log('📦 Movimientos recibidos del backend:', data);
+        if (data && data.length > 0) {
+          console.log('📦 Primer movimiento:', data[0]);
+          console.log('📦 Tipos de movimiento:', data.map(m => m.tipoMovimiento));
+          console.log('📦 Cantidades:', data.map(m => m.cantidad));
+          console.log('📦 Usuario movimiento:', data.map(m => m.usuarioMovimiento));
+        }
+        this.movimientos = data;
+        this.actualizarTablas();
+      },
+      error: () => this.mensajeError = 'Error al cargar movimientos'
+    });
+  }
+  exportarPDF() {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Reporte de Movimientos de Inventario', pageWidth / 2, 20, { align: 'center' });
+    
+    // Fecha de generación
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    const fechaReporte = new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.text(`Generado el: ${fechaReporte}`, pageWidth / 2, 28, { align: 'center' });
+    
+    // Rango de fechas del filtro
+    if (this.fechaInicio && this.fechaFin) {
+      const fechaInicioFmt = new Date(this.fechaInicio).toLocaleDateString('es-PE');
+      const fechaFinFmt = new Date(this.fechaFin).toLocaleDateString('es-PE');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`Período: ${fechaInicioFmt} al ${fechaFinFmt}`, pageWidth / 2, 35, { align: 'center' });
+    } else if (this.fechaInicio) {
+      const fechaInicioFmt = new Date(this.fechaInicio).toLocaleDateString('es-PE');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`Desde: ${fechaInicioFmt}`, pageWidth / 2, 35, { align: 'center' });
+    } else if (this.fechaFin) {
+      const fechaFinFmt = new Date(this.fechaFin).toLocaleDateString('es-PE');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 64, 175);
+      doc.text(`Hasta: ${fechaFinFmt}`, pageWidth / 2, 35, { align: 'center' });
     }
-    this.precioActual = precio;
-    this.errorPrecio = '';
+    
+    // Resumen
+    const totalEntradas = this.totalEntradas;
+    const totalSalidas = this.totalSalidas;
+    const totalAjustes = this.totalAjustes;
+    const ingresoGenerado = this.ingresoGenerado;
+    
+    const tieneRangoFechas = (this.fechaInicio || this.fechaFin);
+    const resumenY = tieneRangoFechas ? 48 : 40;
+    
+    doc.setFillColor(245, 245, 245);
+    doc.rect(14, resumenY, pageWidth - 28, 25, 'F');
+    
+    doc.setFontSize(11);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Resumen del Período', 18, resumenY + 8);
+    
+    doc.setFontSize(10);
+    doc.text(`Total: ${this.movimientosFiltrados.length}`, 18, resumenY + 16);
+    doc.text(`Entradas: ${totalEntradas}`, 60, resumenY + 16);
+    doc.text(`Salidas: ${totalSalidas}`, 100, resumenY + 16);
+    doc.text(`Ajustes: ${totalAjustes}`, 140, resumenY + 16);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(34, 197, 94);
+    doc.text(`Ingreso: S/ ${ingresoGenerado.toFixed(2)}`, 18, resumenY + 23);
+    
+    // Tabla
+    const startY = resumenY + 35;
+    autoTable(doc, {
+      head: [['ID', 'Fecha', 'Producto', 'Código', 'Tipo', 'Cantidad', 'Usuario', 'Valor (S/)']],
+      body: this.movimientosFiltrados.map(m => {
+        const precio = m.producto?.precioBase || m.producto?.precio || 0;
+        const valor = m.tipoMovimiento === 'SALIDA' ? (m.cantidad * precio).toFixed(2) : '-';
+        return [
+          m.idMovimiento || 0,
+          m.fechaMovimiento ? new Date(m.fechaMovimiento).toLocaleDateString('es-PE') : '-',
+          (m.producto?.nombre || '-').substring(0, 25),
+          m.producto?.codigo || '-',
+          m.tipoMovimiento || '-',
+          m.cantidad || 0,
+          (m.usuario?.nombreCompleto || m.usuario?.username || m.usuarioMovimiento || '---').substring(0, 15),
+          valor
+        ];
+      }),
+      theme: 'striped',
+      headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      startY: startY,
+      margin: { left: 14, right: 14 }
+    });
+    
+    // Pie
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Sistema DICSAR - Gestión de Inventario', pageWidth / 2, finalY, { align: 'center' });
+    
+    const filename = `reporte_movimientos_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(filename);
   }
 
-  validarStock(): boolean {
-    if (!this.productoSeleccionado) {
-      this.errorPrecio = 'Selecciona un producto';
-      return false;
-    }
+  // ==================== CRUD MOVIMIENTOS ====================
+  registrarMovimiento(): void {
+    console.log('📤 Enviando movimiento:', this.nuevoMovimiento);
+    console.log('📦 Producto ID:', this.nuevoMovimiento.producto?.idProducto);
+    console.log('📊 Cantidad:', this.nuevoMovimiento.cantidad);
+    console.log('🏷️ Tipo:', this.nuevoMovimiento.tipoMovimiento);
 
-    const cantidad = this.movimientoForm.get('cantidad')?.value || 0;
-    const stock = this.productoSeleccionado.stockActual || 0;
-
-    if (this.tipoMovimiento === 'SALIDA' && cantidad > stock) {
-      this.errorPrecio = `Stock insuficiente. Disponible: ${stock}`;
-      return false;
-    }
-
-    this.errorPrecio = '';
-    return true;
-  }
-
-  guardarMovimiento(): void {
-    if (this.movimientoForm.invalid) {
-      this.mostrarAlertaTemp('Por favor completa todos los campos requeridos', 'error');
+    if (!this.nuevoMovimiento.producto?.idProducto || this.nuevoMovimiento.cantidad <= 0) {
+      this.toastService.error('Debes seleccionar un producto y una cantidad válida');
       return;
     }
 
-    if (!this.validarStock()) {
-      this.mostrarAlertaTemp(this.errorPrecio, 'error');
-      return;
+    // Validarstock para salidas
+    if (this.nuevoMovimiento.tipoMovimiento === 'SALIDA') {
+      const stockActual = this.nuevoMovimiento.producto?.stockActual ?? 0;
+      console.log('🔍 Validando stock:', { cantidad: this.nuevoMovimiento.cantidad, stockActual });
+      if (!stockActual || this.nuevoMovimiento.cantidad > stockActual) {
+        this.toastService.error(`No puedes extraer ${this.nuevoMovimiento.cantidad} unidades. Stock actual: ${stockActual}`);
+        return;
+      }
     }
 
-    this.loading = true;
-
-    // Construir payload con producto completo
-    const formValue = this.movimientoForm.value;
-
-    // Obtener cliente completo si existe
-    const clienteId = formValue.cliente ? parseInt(formValue.cliente) : null;
-    const clienteSeleccionado = clienteId ? this.clientes.find(c => c.idCliente === clienteId) : null;
-
-    // Obtener proveedor completo si existe
-    const proveedorId = formValue.proveedor ? parseInt(formValue.proveedor) : null;
-    const proveedorSeleccionado = proveedorId ? this.proveedores.find(p => p.idProveedor === proveedorId) : null;
-
-    const movimiento = {
-      tipoMovimiento: formValue.tipo,
-      producto: this.productoSeleccionado,
-      cantidad: formValue.cantidad,
-      precio: this.precioActual,
-      cliente: clienteSeleccionado || null,
-      proveedor: proveedorSeleccionado || null,
-      motivo: formValue.motivo,
-      observaciones: formValue.observaciones,
-      referencia: formValue.referencia
+    const movimientoData = {
+      producto: {
+        idProducto: this.nuevoMovimiento.producto.idProducto
+      },
+      tipoMovimiento: this.nuevoMovimiento.tipoMovimiento,
+      cantidad: this.nuevoMovimiento.cantidad,
+      descripcion: this.nuevoMovimiento.descripcion || ''
     };
 
-    console.log('📤 Enviando movimiento:', movimiento);
-
-    this.movimientoService.crear(movimiento).subscribe({
-      next: () => {
-        this.mostrarAlertaTemp('✅ Movimiento registrado correctamente', 'exito');
-        this.movimientoForm.reset({ tipo: 'SALIDA' });
-        this.precioActual = 0;
-        this.productoSeleccionado = null;
-        this.cargarDatos();
-        this.loading = false;
+    this.movimientoService.crear(movimientoData as any, 'admin').subscribe({
+      next: (response) => {
+        console.log('✅ Movimiento registrado:', response);
+        this.nuevoMovimiento = this.resetMovimiento();
+        this.cargarHistorial();
+        this.actualizarTablas();
+        this.mostrarModalMovimiento = false;
+        this.toastService.success('Movimiento registrado exitosamente');
       },
-      error: (err: any) => {
-        console.error('❌ Error registrando movimiento:', err);
-        console.error('Response:', err.error);
-        this.mostrarAlertaTemp(err.error?.message || 'Error al registrar movimiento', 'error');
-        this.loading = false;
+      error: (err) => {
+        console.error('❌ Error al registrar movimiento:', err);
+        const mensaje = err.error?.message || err.message || 'Error al registrar el movimiento';
+        this.toastService.error(mensaje);
       }
     });
   }
+// Mostrar movimiento en modal
+verMovimiento(m: Movimiento) {
+  this.nuevoMovimiento = { ...m }; // copiamos el movimiento para el modal
+  this.abrirModalMovimiento(); // abre tu modal existente
+}
 
-  get movimientosFiltrados(): any[] {
-    return this.movimientos.filter(m => {
-      // Backend devuelve 'tipoMovimiento', no 'tipo'
-      const tipo = m.tipoMovimiento || m.tipo;
-      const coincideTipo = this.filtroTipo === 'TODOS' || tipo === this.filtroTipo;
-      const coincideBusqueda = !this.busqueda ||
-        m.producto?.nombre?.toLowerCase().includes(this.busqueda.toLowerCase()) ||
-        m.cliente?.nombre?.toLowerCase().includes(this.busqueda.toLowerCase()) ||
-        m.proveedor?.nombre?.toLowerCase().includes(this.busqueda.toLowerCase());
+eliminarMovimiento(m: Movimiento) {
+  console.log('Mov a eliminar:', m);
+  if (!m.idMovimiento) {
+    this.toastService.error('El movimiento no tiene ID válido');
+    return;
+  }
 
-      return coincideTipo && coincideBusqueda;
+  this.movimientoService.eliminar(m.idMovimiento).subscribe({
+    next: () => {
+      this.movimientos = this.movimientos.filter(x => x.idMovimiento !== m.idMovimiento);
+      this.actualizarTablas();
+      this.toastService.success('Movimiento eliminado correctamente');
+    },
+    error: () => this.toastService.error('Error al eliminar el movimiento')
+  });
+}
+
+
+// Abrir modal de eliminación
+abrirModalEliminar(m: Movimiento) {
+  this.movimientoAEliminar = m;
+  this.mostrarModalEliminar = true;
+}
+
+// Cerrar modal de eliminación
+cerrarModalEliminar() {
+  this.mostrarModalEliminar = false;
+  this.movimientoAEliminar = null;
+}
+
+// Confirmar eliminación
+confirmarEliminar() {
+  if (!this.movimientoAEliminar?.idMovimiento) return;
+
+  this.movimientoService.eliminar(this.movimientoAEliminar.idMovimiento).subscribe({
+    next: () => {
+      this.movimientos = this.movimientos.filter(x => x.idMovimiento !== this.movimientoAEliminar!.idMovimiento);
+      this.actualizarTablas(); // actualizar arrays filtrados
+      this.cerrarModalEliminar();
+      this.toastService.success('Movimiento eliminado correctamente');
+    },
+    error: (err) => {
+      console.error('Error al eliminar', err);
+      this.toastService.error('Error al eliminar el movimiento');
+      this.cerrarModalEliminar();
+    }
+  });
+}// Variables para fechas y resultados filtrados
+fechaInicio: string = '';
+fechaFin: string = '';
+movimientosFiltrados: Movimiento[] = [];
+
+aplicarFiltros() {
+  let filtrados = [...this.movimientos];
+
+  if (this.filterTipo && this.filterTipo !== 'TODOS') {
+    filtrados = filtrados.filter(m => m.tipoMovimiento?.toUpperCase() === this.filterTipo);
+  }
+
+  if (this.fechaInicio && this.fechaFin) {
+    const inicio = new Date(this.fechaInicio);
+    const fin = new Date(this.fechaFin);
+    fin.setHours(23, 59, 59);
+
+    filtrados = filtrados.filter(m => {
+      const fechaMovimiento = new Date(m.fechaMovimiento || '');
+      return fechaMovimiento >= inicio && fechaMovimiento <= fin;
     });
   }
 
-  get movimientosVisibles(): any[] {
-    const filtered = this.movimientosFiltrados;
+  this.movimientosFiltrados = filtrados;
+}
+
+limpiarFiltros() {
+  this.fechaInicio = '';
+  this.fechaFin = '';
+  this.movimientosFiltrados = [];
+  this.searchMov = '';
+  this.filterTipo = 'TODOS';
+}
+
+
+
+
+  // ============================
+  // Getters auxiliares (estadísticas y filtrado)
+  // ============================
+  get filteredMovimientos(): Movimiento[] {
+    let filtered = (this.movimientos || []);
+
+    const q = (this.searchMov || '').trim().toLowerCase();
+    if (q) {
+      filtered = filtered.filter(m =>
+        (m.producto?.nombre || '').toLowerCase().includes(q) ||
+        (m.producto?.codigo || '').toLowerCase().includes(q) ||
+        (m.descripcion || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (this.filterTipo && this.filterTipo !== 'TODOS') {
+      filtered = filtered.filter(m => m.tipoMovimiento?.toUpperCase() === this.filterTipo);
+    }
+
+    if (this.fechaInicio && this.fechaFin) {
+      const inicio = new Date(this.fechaInicio);
+      const fin = new Date(this.fechaFin);
+      fin.setHours(23, 59, 59);
+      filtered = filtered.filter(m => {
+        const fechaMovimiento = new Date(m.fechaMovimiento || '');
+        return fechaMovimiento >= inicio && fechaMovimiento <= fin;
+      });
+    }
+
+    this.totalPaginas = Math.ceil(filtered.length / this.itemsPorPagina);
     const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
     const fin = inicio + this.itemsPorPagina;
     return filtered.slice(inicio, fin);
-  }
-
-  get totalPaginas(): number {
-    return Math.ceil(this.movimientosFiltrados.length / this.itemsPorPagina);
   }
 
   cambiarPagina(pagina: number): void {
@@ -324,64 +379,89 @@ export class MovimientosComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatearMoneda(valor: number): string {
-    if (!valor) return 'S/ 0.00';
-    return 'S/ ' + valor.toFixed(2);
+  get paginasArray(): number[] {
+    return Array.from({ length: this.totalPaginas }, (_, i) => i + 1);
   }
 
-  getTipoBadge(tipo: string): string {
-    switch (tipo) {
-      case 'SALIDA':
-        return 'badge-danger';
-      case 'ENTRADA':
-        return 'badge-success';
-      case 'AJUSTE':
-        return 'badge-warning';
-      default:
-        return 'badge-secondary';
+  get totalEntradas(): number {
+    if (!this.movimientos || this.movimientos.length === 0) return 0;
+    return this.movimientos
+      .filter(m => m.tipoMovimiento?.toUpperCase() === 'ENTRADA')
+      .reduce((s, m) => s + (Number(m.cantidad) || 0), 0);
+  }
+
+  get totalSalidas(): number {
+    if (!this.movimientos || this.movimientos.length === 0) return 0;
+    return this.movimientos
+      .filter(m => m.tipoMovimiento?.toUpperCase() === 'SALIDA')
+      .reduce((s, m) => s + (Number(m.cantidad) || 0), 0);
+  }
+
+  get totalAjustes(): number {
+    if (!this.movimientos || this.movimientos.length === 0) return 0;
+    return this.movimientos
+      .filter(m => m.tipoMovimiento?.toUpperCase() === 'AJUSTE')
+      .reduce((s, m) => s + Math.abs(Number(m.cantidad) || 0), 0);
+  }
+
+  // Métodos para abrir/cerrar modal
+  abrirModalMovimiento() { this.mostrarModalMovimiento = true; this.mensajeError = ''; this.filtroCategoriaId = null; }
+  cerrarModalMovimiento() { this.mostrarModalMovimiento = false; this.nuevoMovimiento = this.resetMovimiento(); this.mensajeError = ''; }
+
+  get productosFiltradosModal(): Producto[] {
+    let resultado = this.productos;
+    
+    if (this.filtroCategoriaId) {
+      resultado = resultado.filter(p => p.categoriaId === this.filtroCategoriaId);
     }
+    
+    return resultado.slice(0, 10);
   }
 
-  getTipoLabel(tipo: string): string {
-    switch (tipo) {
-      case 'SALIDA':
-        return '⬇️ Salida';
-      case 'ENTRADA':
-        return '⬆️ Entrada';
-      case 'AJUSTE':
-        return '🔄 Ajuste';
-      default:
-        return tipo;
-    }
+  // ==================== AUXILIAR ====================
+  private resetMovimiento(): Movimiento {
+    return {
+      producto: { idProducto: 0, nombre: '', descripcion: '', codigo: '', precioBase: 0, stockActual: 0, stockMinimo: 0, categoriaId: 0, unidadMedidaId: 0, proveedorId: 0, precioCompra: 0, fechaVencimiento: '' },
+      tipoMovimiento: 'SALIDA',
+      cantidad: 0,
+      descripcion: ''
+    };
   }
 
-  mostrarAlertaTemp(mensaje: string, tipo: 'exito' | 'error' | 'info'): void {
-    this.mensajeAlerta = mensaje;
-    this.tipoAlerta = tipo;
-    this.mostrarAlerta = true;
-    setTimeout(() => {
-      this.mostrarAlerta = false;
-    }, 3500);
+  private actualizarTablas(): void {
+    this.entradas = this.movimientos.filter(m => m.tipoMovimiento?.toUpperCase() === 'ENTRADA');
+    this.salidas = this.movimientos.filter(m => m.tipoMovimiento?.toUpperCase() === 'SALIDA');
+    this.ajustes = this.movimientos.filter(m => m.tipoMovimiento?.toUpperCase() === 'AJUSTE');
+    console.log('📊 Tablas actualizadas:', {
+      entradas: this.entradas.length,
+      salidas: this.salidas.length,
+      ajustes: this.ajustes.length
+    });
   }
 
-  // Métodos helper para reportes
-  get salidasCount(): number {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'SALIDA').length;
+  // Métodos para el模板
+  get ingresoGenerado(): number {
+    return this.movimientosFiltrados
+      .filter(m => m.tipoMovimiento === 'SALIDA')
+      .reduce((s, m) => s + (Number(m.cantidad) * Number(m.producto?.precioBase || m.producto?.precio || 0)), 0);
   }
 
-  get entradasCount(): number {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'ENTRADA').length;
+  get productosUnicos(): number {
+    const ids = new Set(this.movimientosFiltrados.map(m => m.producto?.idProducto));
+    return ids.size;
   }
 
-  get ajustesCount(): number {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'AJUSTE').length;
+  get ultimaEntrada(): string {
+    const entradas = this.movimientosFiltrados.filter(m => m.tipoMovimiento === 'ENTRADA');
+    if (!entradas.length) return '-';
+    const masReciente = entradas.reduce((a, b) => new Date(a.fechaMovimiento || 0) > new Date(b.fechaMovimiento || 0) ? a : b);
+    return masReciente.fechaMovimiento ? new Date(masReciente.fechaMovimiento).toLocaleDateString() : '-';
   }
 
-  get salidas(): any[] {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'SALIDA').slice(-5);
-  }
-
-  get entradas(): any[] {
-    return this.movimientos.filter(m => (m.tipoMovimiento || m.tipo) === 'ENTRADA').slice(-5);
+  get ultimaSalida(): string {
+    const salidas = this.movimientosFiltrados.filter(m => m.tipoMovimiento === 'SALIDA');
+    if (!salidas.length) return '-';
+    const masReciente = salidas.reduce((a, b) => new Date(a.fechaMovimiento || 0) > new Date(b.fechaMovimiento || 0) ? a : b);
+    return masReciente.fechaMovimiento ? new Date(masReciente.fechaMovimiento).toLocaleDateString() : '-';
   }
 }
