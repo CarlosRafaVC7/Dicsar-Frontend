@@ -11,6 +11,7 @@ import { ProveedorService } from '../../services/proveedor.service';
 import { ExportService } from '../../services/export.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 // import { DataTableComponent, TableColumn, TableAction } from '../../shared/data-table/data-table.component';
 
 interface Proveedor {
@@ -143,6 +144,28 @@ export class InventarioComponent implements OnInit {
     } else {
       this.toastService.info(mensaje);
     }
+  }
+
+  private obtenerMensajeError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (typeof error.error === 'string' && error.error.trim()) {
+        return error.error;
+      }
+
+      if (error.error?.message) {
+        return error.error.message;
+      }
+
+      if (error.error?.error) {
+        return error.error.error;
+      }
+
+      if (error.message) {
+        return error.message;
+      }
+    }
+
+    return fallback;
   }
 
   // ==================== CAMBIO DE TABS ====================
@@ -550,7 +573,6 @@ export class InventarioComponent implements OnInit {
 
   cerrarModalPrecio() {
     this.mostrarModalPrecio = false;
-    this.productoEditandoPrecio = null;
     this.nuevoPrecio = 0;
     this.motivoCambioPrecio = '';
   }
@@ -561,23 +583,20 @@ export class InventarioComponent implements OnInit {
       return;
     }
 
-    const productoActualizado = {
-      ...this.productoEditandoPrecio,
-      precioBase: this.nuevoPrecio
-    };
-
     const username = this.authService.currentUserValue?.username || 'admin';
-    this.productoService.actualizar(this.productoEditandoPrecio.idProducto, productoActualizado, username)
+    const productoEditado = this.productoEditandoPrecio;
+    this.productoService.actualizarPrecio(productoEditado.idProducto, this.nuevoPrecio, username)
       .subscribe({
         next: () => {
-          this.productoEditandoPrecio.precioBase = this.nuevoPrecio;
+          productoEditado.precioBase = this.nuevoPrecio;
+          productoEditado.precio = this.nuevoPrecio;
           this.cerrarModalPrecio();
           this.mostrarAlerta('Precio actualizado correctamente', 'exito');
           console.log(`💰 Precio actualizado: ${this.productoEditandoPrecio.nombre} - $${this.nuevoPrecio}`);
         },
         error: (err) => {
           console.error('Error al actualizar precio:', err);
-          this.mostrarAlerta('Error al actualizar precio', 'error');
+          this.mostrarAlerta(this.obtenerMensajeError(err, 'Error al actualizar precio'), 'error');
         }
       });
   }

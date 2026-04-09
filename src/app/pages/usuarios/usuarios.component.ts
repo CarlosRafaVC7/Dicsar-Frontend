@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { AuthService } from '../../services/auth.service';
 import { UsuarioService } from '../../services/usuario.service';
 import { ToastService } from '../../services/toast.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 interface Usuario {
   idUsuario?: number;
@@ -60,6 +61,28 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
+  private obtenerMensajeError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (typeof error.error === 'string' && error.error.trim()) {
+        return error.error;
+      }
+
+      if (error.error?.message) {
+        return error.error.message;
+      }
+
+      if (error.error?.error) {
+        return error.error.error;
+      }
+
+      if (error.message) {
+        return error.message;
+      }
+    }
+
+    return fallback;
+  }
+
   initForms(): void {
     this.usuarioForm = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
@@ -82,7 +105,10 @@ export class UsuariosComponent implements OnInit {
         this.usuarios = data;
         this.actualizarPaginacion();
       },
-      error: (err: any) => console.error('Error al cargar usuarios:', err)
+      error: (err: any) => {
+        console.error('Error al cargar usuarios:', err);
+        this.toastService.error(this.obtenerMensajeError(err, 'Error al cargar usuarios'));
+      }
     });
   }
 
@@ -115,7 +141,11 @@ export class UsuariosComponent implements OnInit {
   }
 
   guardarUsuario(): void {
-    if (this.usuarioForm.invalid) return;
+    if (this.usuarioForm.invalid) {
+      this.usuarioForm.markAllAsTouched();
+      this.toastService.error('Completa los campos obligatorios antes de continuar');
+      return;
+    }
 
     const usuario = this.usuarioForm.value;
 
@@ -125,8 +155,12 @@ export class UsuariosComponent implements OnInit {
         next: () => {
           this.cargarUsuarios();
           this.cerrarModalUsuario();
+          this.toastService.success('Usuario actualizado correctamente');
         },
-        error: (err: any) => console.error('Error al actualizar usuario:', err)
+        error: (err: any) => {
+          console.error('Error al actualizar usuario:', err);
+          this.toastService.error(this.obtenerMensajeError(err, 'Error al actualizar usuario'));
+        }
       });
     } else {
       // Crear
@@ -134,8 +168,12 @@ export class UsuariosComponent implements OnInit {
         next: () => {
           this.cargarUsuarios();
           this.cerrarModalUsuario();
+          this.toastService.success('Usuario creado correctamente');
         },
-        error: (err: any) => console.error('Error al crear usuario:', err)
+        error: (err: any) => {
+          console.error('Error al crear usuario:', err);
+          this.toastService.error(this.obtenerMensajeError(err, 'Error al crear usuario'));
+        }
       });
     }
   }
@@ -143,8 +181,14 @@ export class UsuariosComponent implements OnInit {
   eliminarUsuario(id: number): void {
     if (confirm('¿Estás seguro de eliminar este usuario?')) {
       this.usuarioService.eliminar(id).subscribe({
-        next: () => this.cargarUsuarios(),
-        error: (err: any) => console.error('Error al eliminar usuario:', err)
+        next: () => {
+          this.cargarUsuarios();
+          this.toastService.success('Usuario eliminado correctamente');
+        },
+        error: (err: any) => {
+          console.error('Error al eliminar usuario:', err);
+          this.toastService.error(this.obtenerMensajeError(err, 'Error al eliminar usuario'));
+        }
       });
     }
   }
@@ -154,8 +198,14 @@ export class UsuariosComponent implements OnInit {
 
     const nuevoEstado = !usuario.activo;
     this.usuarioService.actualizar(usuario.idUsuario, { ...usuario, activo: nuevoEstado }).subscribe({
-      next: () => this.cargarUsuarios(),
-      error: (err: any) => console.error('Error al cambiar estado:', err)
+      next: () => {
+        this.cargarUsuarios();
+        this.toastService.success(`Usuario ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
+      },
+      error: (err: any) => {
+        console.error('Error al cambiar estado:', err);
+        this.toastService.error(this.obtenerMensajeError(err, 'Error al cambiar estado del usuario'));
+      }
     });
   }
 

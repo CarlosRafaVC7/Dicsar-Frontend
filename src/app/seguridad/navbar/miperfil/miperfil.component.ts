@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { AuthResponse } from '../../../models/auth.model';
+import { ModalPasswordService } from '../../../services/modal-password.service';
 
 @Component({
   selector: 'app-miperfil',
@@ -14,7 +15,10 @@ import { AuthResponse } from '../../../models/auth.model';
 export class MiperfilComponent implements OnInit {
   user: AuthResponse | null = null;
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private modalPasswordService: ModalPasswordService
+  ) {}
 
   ngOnInit(): void {
     this.user = this.authService.currentUserValue;
@@ -34,5 +38,9 @@ export class MiperfilComponent implements OnInit {
 
   getRolBadgeClass(rol: string): string {
     return rol === 'ADMIN' ? 'badge-admin' : 'badge-vendedor';
+  }
+
+  abrirCambiarContrasena(): void {
+    this.modalPasswordService.open();
   }
 }

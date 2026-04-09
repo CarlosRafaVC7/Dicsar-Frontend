@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClientModule } from '@angular/common/http';
@@ -9,6 +9,8 @@ import { AuthResponse } from '../../models/auth.model';
 import { UsuarioService } from '../../services/usuario.service';
 import { ThemeToggleComponent } from '../components/theme-toggle/theme-toggle.component';
 import { ToastService } from '../../services/toast.service';
+import { ModalPasswordService } from '../../services/modal-password.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
@@ -17,7 +19,7 @@ import { ToastService } from '../../services/toast.service';
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
   isDropdownOpen = false;
   isNotificationsOpen = false;
   notificaciones: Notificacion[] = [];
@@ -26,6 +28,7 @@ export class NavbarComponent implements OnInit {
   currentUser: AuthResponse | null = null;
   mostrarModalPassword = false;
   passwordForm: FormGroup;
+  private modalSubscription: Subscription = new Subscription();
 
   constructor(
     private notiService: NotificacionService,
@@ -33,7 +36,8 @@ export class NavbarComponent implements OnInit {
     private router: Router,
     private usuarioService: UsuarioService,
     private fb: FormBuilder,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private modalPasswordService: ModalPasswordService
   ) {
     this.passwordForm = this.fb.group({
       passwordActual: ['', [Validators.required, Validators.minLength(6)]],
@@ -46,17 +50,35 @@ export class NavbarComponent implements OnInit {
     this.authService.currentUser.subscribe(user => {
       this.currentUser = user;
     });
+    this.cargarNotificaciones();
+    this.modalSubscription = this.modalPasswordService.showModal$.subscribe(show => {
+      this.mostrarModalPassword = show;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.modalSubscription.unsubscribe();
   }
 
   toggleDropdown(): void {
+    if (!this.isDropdownOpen) {
+      this.isNotificationsOpen = false;
+    }
     this.isDropdownOpen = !this.isDropdownOpen;
   }
 
   toggleNotifications(): void {
+    if (!this.isNotificationsOpen) {
+      this.isDropdownOpen = false;
+    }
     this.isNotificationsOpen = !this.isNotificationsOpen;
     if (this.isNotificationsOpen) {
       this.cargarNotificaciones();
     }
+  }
+
+  cerrarNotificaciones(): void {
+    this.isNotificationsOpen = false;
   }
 
   cargarNotificaciones(): void {
@@ -149,12 +171,12 @@ export class NavbarComponent implements OnInit {
   }
 
   abrirModalPassword(): void {
-    this.mostrarModalPassword = true;
+    this.modalPasswordService.open();
     this.isDropdownOpen = false;
   }
 
   cerrarModalPassword(): void {
-    this.mostrarModalPassword = false;
+    this.modalPasswordService.close();
     this.passwordForm.reset();
   }
 

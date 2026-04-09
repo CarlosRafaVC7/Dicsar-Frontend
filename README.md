@@ -198,6 +198,3 @@ DICSAR/
 
 ---
 
-## License
-
-Proyecto de desarrollo academico - FEPI 2025

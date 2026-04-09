@@ -51,7 +51,7 @@ export class SidebarComponent {
       label: 'Proveedores',
       icon: 'fa-solid fa-truck-field',
       route: '/proveedores'
-    },
+    }/*,
     {
       label: 'Ventas',
       icon: 'fa-solid fa-cash-register',
@@ -62,7 +62,7 @@ export class SidebarComponent {
       icon: 'fa-solid fa-people-group',
       route: '/clientes'
     }
-    ,
+    */,
     {
       label: 'Usuarios',
       icon: 'fa-solid fa-user-group',

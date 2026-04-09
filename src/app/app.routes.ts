@@ -12,6 +12,7 @@ import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { MiperfilComponent } from './seguridad/navbar/miperfil/miperfil.component';
 import { CambiarcontrasenaComponent } from './seguridad/navbar/cambiarcontrasena/cambiarcontrasena.component';
 import { HistorialPreciosComponent } from './pages/historial-precios/historial-precios.component';
+import { VistaNoEncontradaComponent } from './shared/vista-no-encontrada/vista-no-encontrada.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { noAuthGuard } from './guards/no-auth.guard';
@@ -79,5 +80,5 @@ export const appRoutes: Routes = [
     component: CambiarcontrasenaComponent,
     canActivate: [authGuard]
   },
-  { path: '**', redirectTo: '/login' },
+  { path: '**', component: VistaNoEncontradaComponent },
 ];
