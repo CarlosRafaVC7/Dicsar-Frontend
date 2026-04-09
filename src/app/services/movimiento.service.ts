@@ -37,10 +37,9 @@ export class MovimientoService {
   /**
    * ➕ Crea un nuevo movimiento.
    * @param movimiento Datos del movimiento
-   * @param username Username del usuario que realiza el movimiento
    */
-  crear(movimiento: Movimiento, username: string = 'admin'): Observable<Movimiento> {
-    return this.http.post<Movimiento>(`${this.baseUrl}?usuario=${encodeURIComponent(username)}`, movimiento);
+  crear(movimiento: Movimiento): Observable<Movimiento> {
+    return this.http.post<Movimiento>(this.baseUrl, movimiento);
   }
 
   /**

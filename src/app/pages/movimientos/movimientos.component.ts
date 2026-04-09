@@ -232,7 +232,7 @@ movimientoAEliminar: Movimiento | null = null;
       descripcion: this.nuevoMovimiento.descripcion || ''
     };
 
-    this.movimientoService.crear(movimientoData as any, 'admin').subscribe({
+    this.movimientoService.crear(movimientoData as any).subscribe({
       next: (response) => {
         console.log('✅ Movimiento registrado:', response);
         this.nuevoMovimiento = this.resetMovimiento();

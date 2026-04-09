@@ -217,7 +217,7 @@ movimientoAEliminar: Movimiento | null = null;
       }
     }
 
-    this.movimientoService.crear(this.nuevoMovimiento, 'admin').subscribe({
+    this.movimientoService.crear(this.nuevoMovimiento).subscribe({
       next: () => {
         this.nuevoMovimiento = this.resetMovimiento();
         this.cargarHistorial();
