@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
 import { ClienteService } from '../../services/cliente.service';
 import { ReporteVentaService } from '../../services/reporte-venta.service';
 import { DashboardService } from '../../services/dashboard.service';
@@ -10,6 +9,7 @@ import { CompraDTO } from '../../models/compra.model';
 import { PaginatedResponse } from '../../models/paginated-response.model';
 import { AuthService } from '../../services/auth.service';
 import { ExportService, ExportColumn } from '../../services/export.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-clientes',
@@ -19,36 +19,37 @@ import { ExportService, ExportColumn } from '../../services/export.service';
   styleUrl: './clientes.component.css'
 })
 export class ClientesComponent implements OnInit {
-  // === 🧭 TABS ===
   activeTab: 'clientes' | 'historial' | 'reportes' = 'clientes';
 
-  // === 👥 CLIENTES ===
+  allClientes: ClienteDTO[] = [];
   clientes: ClienteDTO[] = [];
-  totalElements: number = 0;
-  pageSize: number = 10;
-  pageNumber: number = 0;
-  loading: boolean = false;
-  searchTerm: string = '';
-  filtroTipo: string = 'todos';
-  filtroEstado: string = 'activos';
+  clientesInactivos: ClienteDTO[] = [];
+  readonly clientesPageSize = 100;
+  totalElements = 0;
+  totalInactiveElements = 0;
+  pageSize = 10;
+  pageNumber = 0;
+  inactivePageNumber = 0;
+  loading = false;
+  searchTerm = '';
+  filtroTipo: 'todos' | 'persona' | 'empresa' = 'todos';
+  mostrarInactivos = false;
+  changingEstadoIds = new Set<number>();
 
-  tiposDocumento = ['DNI', 'RUC'];
-  isAdmin: boolean = false;
+  tiposDocumento = ['DNI', 'RUC', 'PASAPORTE'];
+  isAdmin = false;
 
-  // Modal
   mostrarModal = false;
   editandoCliente: ClienteDTO | null = null;
   clienteForm!: FormGroup;
 
-  // === 📜 HISTORIAL DE COMPRAS ===
   clienteSeleccionado: ClienteDTO | null = null;
   compras: CompraDTO[] = [];
-  comprasLoading: boolean = false;
-  comprasPageNumber: number = 0;
-  comprasPageSize: number = 10;
-  totalCompras: number = 0;
+  comprasLoading = false;
+  comprasPageNumber = 0;
+  comprasPageSize = 10;
+  totalCompras = 0;
 
-  // === 📊 REPORTES ===
   metricas: any = {
     totalVentas: 0,
     montoTotalVentas: 0,
@@ -61,9 +62,8 @@ export class ClientesComponent implements OnInit {
   };
   productosMasVendidos: any[] = [];
   clientesTopVentas: any[] = [];
-  reportesLoading: boolean = false;
+  reportesLoading = false;
 
-  // === 🚨 ALERTAS ===
   alertaVisible = false;
   alertaMensaje = '';
   alertaTipo: 'exito' | 'error' | 'info' = 'info';
@@ -76,6 +76,14 @@ export class ClientesComponent implements OnInit {
     return Array.from({ length: this.totalPages }, (_, i) => i);
   }
 
+  get totalInactivePages(): number {
+    return Math.ceil(this.totalInactiveElements / this.pageSize);
+  }
+
+  get inactivePaginasArray(): number[] {
+    return Array.from({ length: this.totalInactivePages }, (_, i) => i);
+  }
+
   get totalComprasPages(): number {
     return Math.ceil(this.totalCompras / this.comprasPageSize);
   }
@@ -84,13 +92,21 @@ export class ClientesComponent implements OnInit {
     return Array.from({ length: this.totalComprasPages }, (_, i) => i);
   }
 
+  get activosCount(): number {
+    return this.allClientes.filter(cliente => cliente.estado).length;
+  }
+
+  get inactivosCount(): number {
+    return this.allClientes.filter(cliente => !cliente.estado).length;
+  }
+
   constructor(
     private clienteService: ClienteService,
     private reporteVentaService: ReporteVentaService,
     private dashboardService: DashboardService,
     private authService: AuthService,
     private exportService: ExportService,
-    private router: Router,
+    private toastService: ToastService,
     private fb: FormBuilder
   ) {
     this.clienteForm = this.fb.group({
@@ -99,8 +115,10 @@ export class ClientesComponent implements OnInit {
       apellidos: ['', [Validators.required, Validators.minLength(2)]],
       tipoDocumento: ['DNI', Validators.required],
       numeroDocumento: ['', [Validators.required, Validators.minLength(8)]],
+      direccion: [''],
       email: ['', [Validators.required, Validators.email]],
       telefono: ['', [Validators.required, Validators.minLength(7)]],
+      razonSocial: [''],
       esEmpresa: [false],
       estado: [true]
     });
@@ -109,11 +127,8 @@ export class ClientesComponent implements OnInit {
   ngOnInit(): void {
     this.isAdmin = this.authService.isAdmin();
     this.cargarClientes();
-    // Aplicar filtro de estado inicial (activos)
-    this.aplicarFiltros();
   }
 
-  // ==================== TAB MANAGEMENT ====================
   cambiarTab(tab: 'clientes' | 'historial' | 'reportes'): void {
     this.activeTab = tab;
 
@@ -122,38 +137,24 @@ export class ClientesComponent implements OnInit {
     }
   }
 
-  // Método para aplicar todos los filtros
-  aplicarFiltros(): void {
-    this.pageNumber = 0;
-
-    // Si hay búsqueda activa, buscar
-    if (this.searchTerm.trim()) {
-      this.buscarClientes();
-      return;
-    }
-
-    // Si hay filtro de tipo, aplicarlo
-    if (this.filtroTipo !== 'todos') {
-      this.filtrarPorTipo();
-      return;
-    }
-
-    // Si hay filtro de estado, aplicarlo
-    if (this.filtroEstado !== 'todos') {
-      this.filtrarPorEstado();
-      return;
-    }
-
-    // Si no hay filtros, cargar todos
-    this.cargarClientes();
-  }
-
   cargarClientes(): void {
     this.loading = true;
-    this.clienteService.listar(this.pageNumber, this.pageSize).subscribe({
+    this.cargarClientesPagina(0, []);
+  }
+
+  private cargarClientesPagina(page: number, acumulados: ClienteDTO[]): void {
+    this.clienteService.listar(page, this.clientesPageSize).subscribe({
       next: (response: PaginatedResponse<ClienteDTO>) => {
-        this.clientes = response.content;
-        this.totalElements = response.totalElements;
+        const clientesAcumulados = [...acumulados, ...response.content];
+        const quedanPaginas = clientesAcumulados.length < response.totalElements && response.content.length > 0;
+
+        if (quedanPaginas) {
+          this.cargarClientesPagina(page + 1, clientesAcumulados);
+          return;
+        }
+
+        this.allClientes = clientesAcumulados;
+        this.actualizarListasFiltradas(false);
         this.loading = false;
       },
       error: (err) => {
@@ -164,95 +165,102 @@ export class ClientesComponent implements OnInit {
     });
   }
 
-  buscarClientes(): void {
-    if (!this.searchTerm.trim()) {
-      this.pageNumber = 0;
-      this.cargarClientes();
-      return;
-    }
-
-    this.loading = true;
+  aplicarFiltros(): void {
     this.pageNumber = 0;
-    this.clienteService.buscarPorNombre(this.searchTerm, this.pageNumber, this.pageSize).subscribe({
-      next: (response: PaginatedResponse<ClienteDTO>) => {
-        this.clientes = response.content;
-        this.totalElements = response.totalElements;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error buscando clientes:', err);
-        this.mostrarAlerta('Error en la búsqueda', 'error');
-        this.loading = false;
-      }
-    });
+    this.inactivePageNumber = 0;
+    this.actualizarListasFiltradas(false);
+  }
+
+  buscarClientes(): void {
+    this.aplicarFiltros();
   }
 
   filtrarPorTipo(): void {
-    this.pageNumber = 0;
-    this.loading = true;
-
-    if (this.filtroTipo === 'todos') {
-      this.cargarClientes();
-      return;
-    }
-
-    const esEmpresa = this.filtroTipo === 'empresa';
-    this.clienteService.filtrarPorTipo(esEmpresa, this.pageNumber, this.pageSize).subscribe({
-      next: (response: PaginatedResponse<ClienteDTO>) => {
-        this.clientes = response.content;
-        this.totalElements = response.totalElements;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error filtrando por tipo:', err);
-        this.mostrarAlerta('Error en el filtro', 'error');
-        this.clientes = [];
-        this.totalElements = 0;
-        this.loading = false;
-      }
-    });
+    this.aplicarFiltros();
   }
 
   filtrarPorEstado(): void {
-    this.pageNumber = 0;
-    this.loading = true;
+    this.aplicarFiltros();
+  }
 
-    if (this.filtroEstado === 'todos') {
-      this.cargarClientes();
-      return;
+  private actualizarListasFiltradas(resetInactiveVisibility = false): void {
+    const filtered = this.allClientes.filter(cliente => this.coincideConFiltros(cliente));
+    const activeClientes = filtered.filter(cliente => cliente.estado);
+    const inactiveClientes = filtered.filter(cliente => !cliente.estado);
+
+    this.totalElements = activeClientes.length;
+    this.totalInactiveElements = inactiveClientes.length;
+
+    if (this.pageNumber >= this.totalPages && this.totalPages > 0) {
+      this.pageNumber = this.totalPages - 1;
     }
 
-    const estado = this.filtroEstado === 'activos';
-    this.clienteService.filtrarPorEstado(estado, this.pageNumber, this.pageSize).subscribe({
-      next: (response: PaginatedResponse<ClienteDTO>) => {
-        this.clientes = response.content;
-        this.totalElements = response.totalElements;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error filtrando por estado:', err);
-        this.mostrarAlerta('Error en el filtro', 'error');
-        this.clientes = [];
-        this.totalElements = 0;
-        this.loading = false;
-      }
-    });
+    if (this.inactivePageNumber >= this.totalInactivePages && this.totalInactivePages > 0) {
+      this.inactivePageNumber = this.totalInactivePages - 1;
+    }
+
+    const activeStart = this.pageNumber * this.pageSize;
+    const inactiveStart = this.inactivePageNumber * this.pageSize;
+    this.clientes = activeClientes.slice(activeStart, activeStart + this.pageSize);
+    this.clientesInactivos = inactiveClientes.slice(inactiveStart, inactiveStart + this.pageSize);
+
+    if (resetInactiveVisibility && inactiveClientes.length > 0) {
+      this.mostrarInactivos = true;
+    }
+  }
+
+  private coincideConFiltros(cliente: ClienteDTO): boolean {
+    const term = this.searchTerm.trim().toLowerCase();
+    const nombreCompleto = this.getNombreCompleto(cliente).toLowerCase();
+    const documento = cliente.numeroDocumento?.toLowerCase() || '';
+    const email = cliente.email?.toLowerCase() || '';
+    const telefono = cliente.telefono?.toLowerCase() || '';
+
+    const matchesSearch = !term ||
+      nombreCompleto.includes(term) ||
+      documento.includes(term) ||
+      email.includes(term) ||
+      telefono.includes(term);
+
+    const matchesTipo =
+      this.filtroTipo === 'todos' ||
+      (this.filtroTipo === 'empresa' && cliente.esEmpresa) ||
+      (this.filtroTipo === 'persona' && !cliente.esEmpresa);
+
+    return matchesSearch && matchesTipo;
   }
 
   onPageChange(newPage: number): void {
     if (newPage >= 0 && newPage < this.totalPages) {
       this.pageNumber = newPage;
-      if (this.searchTerm.trim()) {
-        this.buscarClientes();
-      } else {
-        this.cargarClientes();
-      }
+      this.actualizarListasFiltradas(false);
+    }
+  }
+
+  onInactivePageChange(newPage: number): void {
+    if (newPage >= 0 && newPage < this.totalInactivePages) {
+      this.inactivePageNumber = newPage;
+      this.actualizarListasFiltradas(false);
+    }
+  }
+
+  toggleMostrarInactivos(): void {
+    this.mostrarInactivos = !this.mostrarInactivos;
+    if (this.mostrarInactivos) {
+      this.inactivePageNumber = 0;
+      this.actualizarListasFiltradas(false);
     }
   }
 
   crearCliente(): void {
     this.editandoCliente = null;
-    this.clienteForm.reset({ esEmpresa: false, estado: true, tipoDocumento: 'DNI' });
+    this.clienteForm.reset({
+      esEmpresa: false,
+      estado: true,
+      tipoDocumento: 'DNI',
+      direccion: '',
+      razonSocial: ''
+    });
     this.mostrarModal = true;
   }
 
@@ -264,6 +272,7 @@ export class ClientesComponent implements OnInit {
 
   guardarCliente(): void {
     if (this.clienteForm.invalid) {
+      this.clienteForm.markAllAsTouched();
       this.mostrarAlerta('Por favor complete todos los campos correctamente', 'error');
       return;
     }
@@ -272,7 +281,6 @@ export class ClientesComponent implements OnInit {
     const cliente: ClienteDTO = this.clienteForm.value;
 
     if (this.editandoCliente && cliente.idCliente) {
-      // Actualizar
       this.clienteService.actualizar(cliente.idCliente, cliente).subscribe({
         next: () => {
           this.mostrarAlerta('Cliente actualizado correctamente', 'exito');
@@ -286,7 +294,6 @@ export class ClientesComponent implements OnInit {
         }
       });
     } else {
-      // Crear
       this.clienteService.crear(cliente).subscribe({
         next: () => {
           this.mostrarAlerta('Cliente creado correctamente', 'exito');
@@ -302,32 +309,84 @@ export class ClientesComponent implements OnInit {
     }
   }
 
+  toggleEstadoCliente(cliente: ClienteDTO): void {
+    if (!this.isAdmin || !cliente.idCliente || this.changingEstadoIds.has(cliente.idCliente)) {
+      return;
+    }
+
+    const previousEstado = cliente.estado;
+    const nuevoEstado = !previousEstado;
+    const id = cliente.idCliente;
+    this.changingEstadoIds.add(id);
+    cliente.estado = nuevoEstado;
+    this.actualizarListasFiltradas(!nuevoEstado);
+
+    this.clienteService.cambiarEstado(id, nuevoEstado).subscribe({
+      next: () => {
+        this.confirmarCambioEstado(id, nuevoEstado);
+      },
+      error: (err) => {
+        console.error('Error al cambiar estado del cliente:', err);
+        this.reintentarCambioEstadoConActualizacion(cliente, previousEstado, nuevoEstado);
+      }
+    });
+  }
+
+  private reintentarCambioEstadoConActualizacion(
+    cliente: ClienteDTO,
+    previousEstado: boolean,
+    nuevoEstado: boolean
+  ): void {
+    const id = cliente.idCliente;
+    if (!id) return;
+
+    const payload: ClienteDTO = { ...cliente, estado: nuevoEstado };
+    this.clienteService.actualizar(id, payload).subscribe({
+      next: () => {
+        this.confirmarCambioEstado(id, nuevoEstado);
+      },
+      error: (err) => {
+        console.error('Error al actualizar estado del cliente con fallback:', err);
+        cliente.estado = previousEstado;
+        this.changingEstadoIds.delete(id);
+        this.actualizarListasFiltradas(false);
+        this.mostrarAlerta(this.obtenerMensajeError(err, 'Error al cambiar el estado del cliente'), 'error');
+      }
+    });
+  }
+
+  private confirmarCambioEstado(id: number, nuevoEstado: boolean): void {
+    this.mostrarAlerta(`Cliente ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`, 'exito');
+    this.changingEstadoIds.delete(id);
+    this.cargarClientes();
+  }
+
   eliminarCliente(id: number, nombre: string): void {
-    if (confirm(`¿Estás seguro de eliminar a ${nombre}?`)) {
-      this.loading = true;
-      this.clienteService.eliminar(id).subscribe({
-        next: () => {
-          this.mostrarAlerta('Cliente eliminado correctamente', 'exito');
-          this.cargarClientes();
-        },
-        error: (err) => {
-          console.error('Error eliminando cliente:', err);
-          this.mostrarAlerta(err.error?.message || 'Error al eliminar cliente', 'error');
-          this.loading = false;
-        }
-      });
+    const cliente = this.allClientes.find(item => item.idCliente === id);
+    if (!cliente) return;
+
+    const accion = cliente.estado ? 'desactivar' : 'activar';
+    if (confirm(`¿Estás seguro de ${accion} a ${nombre}?`)) {
+      this.toggleEstadoCliente(cliente);
     }
   }
 
   cerrarModal(): void {
     this.mostrarModal = false;
     this.editandoCliente = null;
-    this.clienteForm.reset({ esEmpresa: false, estado: true, tipoDocumento: 'DNI' });
+    this.clienteForm.reset({
+      esEmpresa: false,
+      estado: true,
+      tipoDocumento: 'DNI',
+      direccion: '',
+      razonSocial: ''
+    });
   }
 
   exportarExcel(): void {
-    if (this.clientes.length === 0) {
-      this.mostrarAlerta('No hay clientes para exportar', 'info');
+    const clientesExportar = this.allClientes.filter(cliente => cliente.estado);
+    if (clientesExportar.length === 0) {
+      this.mostrarAlerta('No hay clientes activos para exportar', 'info');
       return;
     }
 
@@ -343,22 +402,14 @@ export class ClientesComponent implements OnInit {
       { header: 'Estado', field: 'estado', width: 12 }
     ];
 
-    this.exportService.exportToExcel(
-      this.clientes,
-      columns,
-      'clientes',
-      'Clientes'
-    );
-
-    this.mostrarAlerta(
-      `📊 Excel exportado: ${this.clientes.length} clientes`,
-      'exito'
-    );
+    this.exportService.exportToExcel(clientesExportar, columns, 'clientes_activos', 'Clientes Activos');
+    this.mostrarAlerta(`Excel exportado: ${clientesExportar.length} clientes`, 'exito');
   }
 
   exportarPDF(): void {
-    if (this.clientes.length === 0) {
-      this.mostrarAlerta('No hay clientes para exportar', 'info');
+    const clientesExportar = this.allClientes.filter(cliente => cliente.estado);
+    if (clientesExportar.length === 0) {
+      this.mostrarAlerta('No hay clientes activos para exportar', 'info');
       return;
     }
 
@@ -374,38 +425,58 @@ export class ClientesComponent implements OnInit {
       { header: 'Estado', field: 'estado', width: 12 }
     ];
 
-    this.exportService.exportToPDF(
-      this.clientes,
-      columns,
-      'clientes',
-      'Reporte de Clientes'
-    );
-
-    this.mostrarAlerta(
-      `📄 PDF exportado: ${this.clientes.length} clientes`,
-      'exito'
-    );
+    this.exportService.exportToPDF(clientesExportar, columns, 'clientes_activos', 'Reporte de Clientes Activos');
+    this.mostrarAlerta(`PDF exportado: ${clientesExportar.length} clientes`, 'exito');
   }
 
   mostrarAlerta(mensaje: string, tipo: 'exito' | 'error' | 'info' = 'info'): void {
     this.alertaVisible = true;
     this.alertaMensaje = mensaje;
     this.alertaTipo = tipo;
+
+    if (tipo === 'exito') {
+      this.toastService.success(mensaje);
+    } else if (tipo === 'error') {
+      this.toastService.error(mensaje);
+    } else {
+      this.toastService.info(mensaje);
+    }
+
     setTimeout(() => (this.alertaVisible = false), 3500);
   }
 
-  // ==================== HISTORIAL DE COMPRAS ====================
+  private obtenerMensajeError(error: any, mensajeDefault: string): string {
+    if (error?.error?.message) {
+      return error.error.message;
+    }
+
+    if (error?.error?.errors) {
+      return Object.values(error.error.errors).join(', ');
+    }
+
+    if (typeof error?.error === 'string' && error.error.trim()) {
+      return error.error;
+    }
+
+    return mensajeDefault;
+  }
+
   cargarHistorialCliente(cliente: ClienteDTO): void {
     this.clienteSeleccionado = cliente;
     this.comprasPageNumber = 0;
     this.cargarCompras();
+    this.cambiarTab('historial');
   }
 
   cargarCompras(): void {
     if (!this.clienteSeleccionado) return;
 
     this.comprasLoading = true;
-    this.reporteVentaService.ventasPorCliente(this.clienteSeleccionado.idCliente!, this.comprasPageNumber, this.comprasPageSize).subscribe({
+    this.reporteVentaService.ventasPorCliente(
+      this.clienteSeleccionado.idCliente!,
+      this.comprasPageNumber,
+      this.comprasPageSize
+    ).subscribe({
       next: (response: PaginatedResponse<CompraDTO>) => {
         this.compras = response.content;
         this.totalCompras = response.totalElements;
@@ -432,26 +503,22 @@ export class ClientesComponent implements OnInit {
   }
 
   calcularTotalCompras(): string {
-    const total = this.compras.reduce((sum, c) => sum + c.total, 0);
+    const total = this.compras.reduce((sum, compra) => sum + compra.total, 0);
     return total.toFixed(2);
   }
 
-  // ==================== REPORTES ====================
   cargarReportes(): void {
     this.reportesLoading = true;
 
-    // Cargar métricas (con fallback si falla)
     this.dashboardService.obtenerMetricas().subscribe({
       next: (datos) => {
         this.metricas = datos;
       },
-      error: (err) => {
-        console.warn('Endpoint /api/dashboard/metricas no disponible. Usando valores por defecto.');
-        // Proporcionar valores por defecto si el backend no tiene el endpoint
+      error: () => {
         this.metricas = {
           totalVentas: 0,
           montoTotalVentas: 0,
-          totalClientes: this.clientes.length,
+          totalClientes: this.allClientes.length,
           totalProductos: 0,
           productosAgotados: 0,
           ventasHoy: 0,
@@ -461,7 +528,6 @@ export class ClientesComponent implements OnInit {
       }
     });
 
-    // Cargar productos más vendidos
     this.reporteVentaService.productosMasVendidos().subscribe({
       next: (datos) => {
         this.productosMasVendidos = datos.slice(0, 10);
@@ -472,7 +538,6 @@ export class ClientesComponent implements OnInit {
       }
     });
 
-    // Cargar clientes con más compras
     this.reporteVentaService.ventasPorClienteResumen().subscribe({
       next: (datos) => {
         this.clientesTopVentas = datos.slice(0, 10);
@@ -492,7 +557,6 @@ export class ClientesComponent implements OnInit {
   }
 
   formatoMoneda(monto: number): string {
-    // Validar que el monto sea un número válido
     if (monto === null || monto === undefined || isNaN(monto)) {
       return 'S/ 0.00';
     }
@@ -502,5 +566,13 @@ export class ClientesComponent implements OnInit {
       currency: 'PEN'
     }).format(monto);
   }
-}
 
+  getNombreCompleto(cliente: ClienteDTO): string {
+    return cliente.nombreCompleto || `${cliente.nombre || ''} ${cliente.apellidos || ''}`.trim();
+  }
+
+  esInvalido(campo: string): boolean {
+    const control = this.clienteForm.get(campo);
+    return !!(control && control.invalid && control.touched);
+  }
+}

@@ -65,6 +65,8 @@ export const appRoutes: Routes = [
     component: VentasPanelComponent,
     canActivate: [authGuard]
   },
+
+  
   {
     path: 'usuarios',
     component: UsuariosComponent,

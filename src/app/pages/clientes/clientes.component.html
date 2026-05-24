@@ -1,176 +1,288 @@
-<div class="clientes-container">
-  <!-- ALERTA -->
-  <div *ngIf="alertaVisible" [ngClass]="'alerta alerta-' + alertaTipo" role="alert">
-    {{ alertaMensaje }}
+<div class="clientes-shell">
+  <div class="module-header">
+    <h1 class="module-title">Módulo de Clientes</h1>
+    <p class="module-description">Gestiona clientes, estados e historial de compras</p>
   </div>
 
-  <!-- ENCABEZADO -->
-  <div class="header-clientes">
-    <h1>👥 Gestión de Clientes</h1>
-    <p>Administra clientes, visualiza su historial de compras y reportes de ventas</p>
+  <div class="tabs-container">
+    <div class="tabs">
+      <button [class.active]="activeTab === 'clientes'" (click)="cambiarTab('clientes')" class="tab-button">
+        Clientes
+      </button>
+      <button [class.active]="activeTab === 'historial'" (click)="cambiarTab('historial')" class="tab-button">
+        Historial de Compras
+      </button>
+      <button [class.active]="activeTab === 'reportes'" (click)="cambiarTab('reportes')" class="tab-button">
+        Reportes
+      </button>
+    </div>
   </div>
 
-  <!-- NAVEGACIÓN DE TABS -->
-  <div class="tabs-navigation">
-    <button [ngClass]="{ active: activeTab === 'clientes' }" (click)="cambiarTab('clientes')" class="tab-btn">
-      📋 Clientes
-    </button>
-    <button [ngClass]="{ active: activeTab === 'historial' }" (click)="cambiarTab('historial')" class="tab-btn">
-      📜 Historial de Compras
-    </button>
-    <button [ngClass]="{ active: activeTab === 'reportes' }" (click)="cambiarTab('reportes')" class="tab-btn">
-      📊 Reportes
-    </button>
-  </div>
-
-  <!-- TAB 1: GESTIÓN DE CLIENTES -->
   <div *ngIf="activeTab === 'clientes'" class="tab-content">
-    <!-- BUSCADOR Y FILTROS -->
-    <div class="filtros-section">
-      <div class="search-box">
-        <input type="text" placeholder="🔍 Buscar por nombre, email, teléfono..." [(ngModel)]="searchTerm"
-          (keyup.enter)="buscarClientes()" [disabled]="loading">
-        <button class="btn btn-search" (click)="buscarClientes()" [disabled]="loading">
-          🔍 Buscar
-        </button>
+    <div class="controls-panel">
+      <div class="stats-row">
+        <div class="stat-item active">
+          <span class="stat-number">{{ activosCount }}</span>
+          <span class="stat-label">Activos</span>
+        </div>
+        <div class="stat-item inactive">
+          <span class="stat-number">{{ inactivosCount }}</span>
+          <span class="stat-label">Inactivos</span>
+        </div>
+        <div class="stat-item total">
+          <span class="stat-number">{{ allClientes.length }}</span>
+          <span class="stat-label">Total</span>
+        </div>
       </div>
 
-      <div class="filtros-row">
-        <div class="filter-group">
-          <label>Tipo:</label>
-          <select [(ngModel)]="filtroTipo" (change)="filtrarPorTipo()" [disabled]="loading">
-            <option value="todos">Todos</option>
-            <option value="persona">Persona Natural</option>
-            <option value="empresa">Empresa</option>
-          </select>
-        </div>
+      <div class="controls-grid">
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Buscar cliente, documento, email o teléfono..."
+          [(ngModel)]="searchTerm"
+          (input)="aplicarFiltros()"
+          [disabled]="loading">
 
-        <div class="filter-group">
-          <label>Estado:</label>
-          <select [(ngModel)]="filtroEstado" (change)="filtrarPorEstado()" [disabled]="loading">
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-            <option value="todos">Todos</option>
-          </select>
-        </div>
+        <select class="category-select" [(ngModel)]="filtroTipo" (change)="filtrarPorTipo()" [disabled]="loading">
+          <option value="todos">Todos los tipos</option>
+          <option value="persona">Persona natural</option>
+          <option value="empresa">Empresa</option>
+        </select>
 
-        <button class="btn btn-primary" (click)="crearCliente()" [disabled]="loading">
-          ➕ Nuevo Cliente
+        <button class="btn-primary" (click)="crearCliente()" [disabled]="loading">
+          Nuevo Cliente
         </button>
 
-        <div class="export-buttons">
-          <button class="btn btn-export" (click)="exportarExcel()" [disabled]="loading">
-            📊 Excel
-          </button>
-          <button class="btn btn-export" (click)="exportarPDF()" [disabled]="loading">
-            📄 PDF
-          </button>
-        </div>
+        <button class="btn-export-pdf" (click)="exportarPDF()" [disabled]="loading">
+          PDF
+        </button>
+
+        <button class="btn-export-excel" (click)="exportarExcel()" [disabled]="loading">
+          Excel
+        </button>
       </div>
     </div>
 
-    <!-- TABLA DE CLIENTES -->
-    <div class="tabla-section">
-      <div *ngIf="loading" class="loading">⏳ Cargando...</div>
+    <div class="table-container">
+      <div class="table-section-header">
+        <h3>Clientes Activos ({{ totalElements }})</h3>
+      </div>
 
-      <table *ngIf="!loading && clientes.length > 0" class="tabla-clientes">
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando clientes...</p>
+      </div>
+
+      <table *ngIf="!loading" class="products-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Nombre Completo</th>
-            <th>Tipo Documento</th>
+            <th>Cliente</th>
             <th>Documento</th>
-            <th>Email</th>
-            <th>Teléfono</th>
+            <th>Contacto</th>
             <th>Tipo</th>
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let cliente of clientes" [ngClass]="!cliente.estado ? 'inactivo' : ''">
-            <td>#{{ cliente.idCliente }}</td>
-            <td>{{ cliente.nombreCompleto || (cliente.nombre + ' ' + cliente.apellidos) }}</td>
-            <td>{{ cliente.tipoDocumento }}</td>
-            <td>{{ cliente.numeroDocumento }}</td>
-            <td>{{ cliente.email }}</td>
-            <td>{{ cliente.telefono }}</td>
-            <td>
-              <span class="badge" [ngClass]="cliente.esEmpresa ? 'badge-info' : 'badge-success'">
-                {{ cliente.esEmpresa ? '🏢 Empresa' : '👤 Persona' }}
-              </span>
+          <tr *ngFor="let cliente of clientes">
+            <td class="client-info">
+              <div class="client-name">{{ getNombreCompleto(cliente) }}</div>
+              <div class="client-code">#{{ cliente.idCliente }}</div>
+              <div *ngIf="cliente.direccion" class="client-desc">{{ cliente.direccion }}</div>
             </td>
             <td>
-              <span class="badge" [ngClass]="cliente.estado ? 'badge-success' : 'badge-danger'">
-                {{ cliente.estado ? '✅ Activo' : '❌ Inactivo' }}
+              <span class="document-badge">{{ cliente.tipoDocumento }}</span>
+              <div class="document-number">{{ cliente.numeroDocumento }}</div>
+            </td>
+            <td>
+              <div class="contact-line">{{ cliente.email }}</div>
+              <div class="contact-muted">{{ cliente.telefono }}</div>
+            </td>
+            <td>
+              <span [class]="cliente.esEmpresa ? 'type-badge empresa' : 'type-badge persona'">
+                {{ cliente.esEmpresa ? 'Empresa' : 'Persona' }}
               </span>
             </td>
-            <td class="acciones">
-              <button class="btn btn-sm btn-info" (click)="cargarHistorialCliente(cliente)"
-                (click)="cambiarTab('historial')" title="Ver historial de compras">
-                📜
-              </button>
-              <button class="btn btn-sm btn-warning" (click)="editarCliente(cliente)" title="Editar cliente">
-                ✏️
-              </button>
-              <button class="btn btn-sm btn-danger" (click)="eliminarCliente(cliente.idCliente!, cliente.nombre)"
-                *ngIf="isAdmin" title="Eliminar cliente">
-                🗑️
-              </button>
+            <td class="status-cell">
+              <div class="status-toggle">
+                <label class="toggle-switch" [class.disabled]="!isAdmin || changingEstadoIds.has(cliente.idCliente ?? 0)">
+                  <input
+                    type="checkbox"
+                    [checked]="cliente.estado"
+                    [disabled]="!isAdmin || changingEstadoIds.has(cliente.idCliente ?? 0)"
+                    (change)="toggleEstadoCliente(cliente)">
+                  <span class="slider"></span>
+                </label>
+                <span class="status-text active">Activo</span>
+              </div>
+            </td>
+            <td class="actions-cell">
+              <div class="action-buttons">
+                <button class="btn-history" (click)="cargarHistorialCliente(cliente)" title="Ver historial">
+                  Historial
+                </button>
+                <button class="btn-edit" (click)="editarCliente(cliente)" title="Editar cliente">
+                  Editar
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="clientes.length === 0">
+            <td colspan="6" class="no-data">
+              <div class="no-data-content">
+                No hay clientes activos que coincidan con tu búsqueda
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <div *ngIf="!loading && clientes.length === 0" class="no-data">
-        ℹ️ No hay clientes para mostrar
-      </div>
-    </div>
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" (click)="onPageChange(pageNumber - 1)" [disabled]="pageNumber === 0 || loading">
+          Anterior
+        </button>
 
-    <!-- PAGINACIÓN -->
-    <div *ngIf="totalPages > 1" class="paginacion">
-      <button class="btn btn-sm" (click)="onPageChange(pageNumber - 1)" [disabled]="pageNumber === 0 || loading">
-        ← Anterior
-      </button>
-
-      <div class="paginas">
-        <button *ngFor="let page of paginasArray" class="btn btn-sm" [ngClass]="pageNumber === page ? 'active' : ''"
-          (click)="onPageChange(page)" [disabled]="loading">
+        <button
+          *ngFor="let page of paginasArray"
+          class="page-btn"
+          [class.active]="pageNumber === page"
+          (click)="onPageChange(page)"
+          [disabled]="loading">
           {{ page + 1 }}
+        </button>
+
+        <button class="page-btn" (click)="onPageChange(pageNumber + 1)" [disabled]="pageNumber === totalPages - 1 || loading">
+          Siguiente
         </button>
       </div>
 
-      <button class="btn btn-sm" (click)="onPageChange(pageNumber + 1)"
-        [disabled]="pageNumber === totalPages - 1 || loading">
-        Siguiente →
-      </button>
+      <div class="pagination-info" *ngIf="totalPages > 1">
+        Página {{ pageNumber + 1 }} de {{ totalPages }} ({{ totalElements }} clientes)
+      </div>
+    </div>
 
-      <span class="paginacion-info">
-        Página {{ pageNumber + 1 }} de {{ totalPages }} ({{ totalElements }} total)
-      </span>
+    <div class="table-container inactive-products" *ngIf="totalInactiveElements > 0">
+      <div class="table-section-header inactive-header" (click)="toggleMostrarInactivos()">
+        <h3>Clientes Inactivos ({{ totalInactiveElements }})</h3>
+        <span class="inactive-hint">
+          {{ mostrarInactivos ? 'Ocultar' : 'Ver clientes deshabilitados' }}
+        </span>
+      </div>
+
+      <div *ngIf="mostrarInactivos">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Documento</th>
+              <th>Contacto</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cliente of clientesInactivos" class="inactive-row">
+              <td class="client-info">
+                <div class="client-name inactive-text">{{ getNombreCompleto(cliente) }}</div>
+                <div class="client-code">#{{ cliente.idCliente }}</div>
+                <div *ngIf="cliente.direccion" class="client-desc inactive-text">{{ cliente.direccion }}</div>
+              </td>
+              <td>
+                <span class="document-badge inactive-badge">{{ cliente.tipoDocumento }}</span>
+                <div class="document-number inactive-text">{{ cliente.numeroDocumento }}</div>
+              </td>
+              <td>
+                <div class="contact-line inactive-text">{{ cliente.email }}</div>
+                <div class="contact-muted">{{ cliente.telefono }}</div>
+              </td>
+              <td>
+                <span class="type-badge inactive-badge">
+                  {{ cliente.esEmpresa ? 'Empresa' : 'Persona' }}
+                </span>
+              </td>
+              <td class="status-cell">
+                <div class="status-toggle">
+                  <label class="toggle-switch" [class.disabled]="!isAdmin || changingEstadoIds.has(cliente.idCliente ?? 0)">
+                    <input
+                      type="checkbox"
+                      [checked]="cliente.estado"
+                      [disabled]="!isAdmin || changingEstadoIds.has(cliente.idCliente ?? 0)"
+                      (change)="toggleEstadoCliente(cliente)">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="status-text">Inactivo</span>
+                </div>
+              </td>
+              <td class="actions-cell">
+                <div class="action-buttons">
+                  <button class="btn-edit" (click)="editarCliente(cliente)" title="Editar cliente">
+                    Editar
+                  </button>
+                  <button
+                    class="btn-reactivate"
+                    (click)="toggleEstadoCliente(cliente)"
+                    [disabled]="!isAdmin || changingEstadoIds.has(cliente.idCliente ?? 0)"
+                    title="Reactivar cliente">
+                    Reactivar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination" *ngIf="totalInactivePages > 1">
+          <button class="page-btn" (click)="onInactivePageChange(inactivePageNumber - 1)" [disabled]="inactivePageNumber === 0 || loading">
+            Anterior
+          </button>
+
+          <button
+            *ngFor="let page of inactivePaginasArray"
+            class="page-btn"
+            [class.active]="inactivePageNumber === page"
+            (click)="onInactivePageChange(page)"
+            [disabled]="loading">
+            {{ page + 1 }}
+          </button>
+
+          <button class="page-btn" (click)="onInactivePageChange(inactivePageNumber + 1)" [disabled]="inactivePageNumber === totalInactivePages - 1 || loading">
+            Siguiente
+          </button>
+        </div>
+
+        <div class="pagination-info" *ngIf="totalInactivePages > 1">
+          Página {{ inactivePageNumber + 1 }} de {{ totalInactivePages }} ({{ totalInactiveElements }} clientes)
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- TAB 2: HISTORIAL DE COMPRAS -->
   <div *ngIf="activeTab === 'historial'" class="tab-content">
-    <div *ngIf="!clienteSeleccionado" class="info-box">
-      <p>👉 Selecciona un cliente desde la pestaña "Clientes" para ver su historial de compras</p>
+    <div *ngIf="!clienteSeleccionado" class="empty-state">
+      <h3>Selecciona un cliente</h3>
+      <p>Elige un cliente desde la tabla para consultar su historial de compras.</p>
     </div>
 
-    <div *ngIf="clienteSeleccionado" class="historial-section">
-      <div class="cliente-info">
-        <h2>{{ clienteSeleccionado.nombre }} {{ clienteSeleccionado.apellidos }}</h2>
-        <p><strong>Documento:</strong> {{ clienteSeleccionado.tipoDocumento }} - {{ clienteSeleccionado.numeroDocumento
-          }}</p>
-        <p><strong>Email:</strong> {{ clienteSeleccionado.email }}</p>
-        <p><strong>Teléfono:</strong> {{ clienteSeleccionado.telefono }}</p>
-        <button class="btn btn-secondary" (click)="cerrarHistorialCliente()">Cambiar Cliente</button>
+    <div *ngIf="clienteSeleccionado" class="history-panel">
+      <div class="panel-header">
+        <div>
+          <h2>{{ getNombreCompleto(clienteSeleccionado) }}</h2>
+          <p>{{ clienteSeleccionado.tipoDocumento }} {{ clienteSeleccionado.numeroDocumento }} · {{ clienteSeleccionado.email }}</p>
+        </div>
+        <button class="btn-secondary" (click)="cerrarHistorialCliente()">Cambiar Cliente</button>
       </div>
 
-      <div class="tabla-section">
-        <div *ngIf="comprasLoading" class="loading">⏳ Cargando compras...</div>
+      <div class="table-container">
+        <div *ngIf="comprasLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Cargando compras...</p>
+        </div>
 
-        <table *ngIf="!comprasLoading && compras.length > 0" class="tabla-compras">
+        <table *ngIf="!comprasLoading" class="products-table">
           <thead>
             <tr>
               <th>Fecha</th>
@@ -182,230 +294,209 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let compra of compras" [ngClass]="!compra.estado ? 'inactivo' : ''">
+            <tr *ngFor="let compra of compras" [class.inactive-row]="!compra.estado">
               <td>{{ compra.fechaVenta | date: 'dd/MM/yyyy HH:mm' }}</td>
-              <td>{{ compra.nombreProducto }}</td>
-              <td class="text-center">{{ compra.cantidad }}</td>
-              <td class="text-right">S/ {{ compra.precioUnitario ? compra.precioUnitario.toFixed(2) : '0.00' }}</td>
-              <td class="text-right font-bold">S/ {{ compra.total ? compra.total.toFixed(2) : '0.00' }}</td>
+              <td class="client-name">{{ compra.nombreProducto }}</td>
+              <td>{{ compra.cantidad }}</td>
+              <td>{{ compra.precioUnitario | currency:'PEN':'S/ ':'1.2-2' }}</td>
+              <td class="price-cell">{{ compra.total | currency:'PEN':'S/ ':'1.2-2' }}</td>
               <td>
-                <span class="badge" [ngClass]="compra.estado ? 'badge-success' : 'badge-danger'">
-                  {{ compra.estado ? '✅ Completada' : '❌ Cancelada' }}
+                <span [class]="compra.estado ? 'status-pill active' : 'status-pill inactive'">
+                  {{ compra.estado ? 'Completada' : 'Cancelada' }}
                 </span>
               </td>
             </tr>
+            <tr *ngIf="compras.length === 0">
+              <td colspan="6" class="no-data">Este cliente no tiene compras registradas</td>
+            </tr>
           </tbody>
-          <tfoot>
+          <tfoot *ngIf="compras.length > 0">
             <tr class="total-row">
-              <td colspan="4"><strong>TOTAL</strong></td>
-              <td class="text-right font-bold">S/ {{ calcularTotalCompras() }}</td>
+              <td colspan="4">Total</td>
+              <td class="price-cell">S/ {{ calcularTotalCompras() }}</td>
               <td></td>
             </tr>
           </tfoot>
         </table>
 
-        <div *ngIf="!comprasLoading && compras.length === 0" class="no-data">
-          ℹ️ Este cliente no tiene compras registradas
-        </div>
-      </div>
+        <div class="pagination" *ngIf="totalComprasPages > 1">
+          <button class="page-btn" (click)="onComprasPageChange(comprasPageNumber - 1)" [disabled]="comprasPageNumber === 0 || comprasLoading">
+            Anterior
+          </button>
 
-      <!-- PAGINACIÓN COMPRAS -->
-      <div *ngIf="totalComprasPages > 1" class="paginacion">
-        <button class="btn btn-sm" (click)="onComprasPageChange(comprasPageNumber - 1)"
-          [disabled]="comprasPageNumber === 0 || comprasLoading">
-          ← Anterior
-        </button>
-
-        <div class="paginas">
-          <button *ngFor="let page of comprasPaginasArray" class="btn btn-sm"
-            [ngClass]="comprasPageNumber === page ? 'active' : ''" (click)="onComprasPageChange(page)"
+          <button
+            *ngFor="let page of comprasPaginasArray"
+            class="page-btn"
+            [class.active]="comprasPageNumber === page"
+            (click)="onComprasPageChange(page)"
             [disabled]="comprasLoading">
             {{ page + 1 }}
           </button>
+
+          <button class="page-btn" (click)="onComprasPageChange(comprasPageNumber + 1)" [disabled]="comprasPageNumber === totalComprasPages - 1 || comprasLoading">
+            Siguiente
+          </button>
         </div>
-
-        <button class="btn btn-sm" (click)="onComprasPageChange(comprasPageNumber + 1)"
-          [disabled]="comprasPageNumber === totalComprasPages - 1 || comprasLoading">
-          Siguiente →
-        </button>
-
-        <span class="paginacion-info">
-          Página {{ comprasPageNumber + 1 }} de {{ totalComprasPages }} ({{ totalCompras }} total)
-        </span>
       </div>
     </div>
   </div>
 
-  <!-- TAB 3: REPORTES -->
   <div *ngIf="activeTab === 'reportes'" class="tab-content">
-    <div *ngIf="reportesLoading" class="loading">⏳ Cargando reportes...</div>
+    <div *ngIf="reportesLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando reportes...</p>
+    </div>
 
     <div *ngIf="!reportesLoading" class="reportes-section">
-      <!-- MÉTRICAS -->
-      <div class="metricas-grid">
-        <div class="metrica-card">
-          <div class="metrica-icono">📊</div>
-          <div class="metrica-info">
-            <div class="metrica-label">Total Ventas</div>
-            <div class="metrica-valor">{{ metricas.totalVentas }}</div>
+      <div class="reportes-grid">
+        <div class="reporte-card">
+          <div class="reporte-content">
+            <h3>Total Ventas</h3>
+            <div class="reporte-valor">{{ metricas.totalVentas }}</div>
+            <p>Ventas registradas</p>
           </div>
         </div>
 
-        <div class="metrica-card">
-          <div class="metrica-icono">💰</div>
-          <div class="metrica-info">
-            <div class="metrica-label">Monto Total</div>
-            <div class="metrica-valor">{{ formatoMoneda(metricas.montoTotalVentas) }}</div>
+        <div class="reporte-card">
+          <div class="reporte-content">
+            <h3>Monto Total</h3>
+            <div class="reporte-valor">{{ formatoMoneda(metricas.montoTotalVentas) }}</div>
+            <p>Ingresos acumulados</p>
           </div>
         </div>
 
-        <div class="metrica-card">
-          <div class="metrica-icono">👥</div>
-          <div class="metrica-info">
-            <div class="metrica-label">Total Clientes</div>
-            <div class="metrica-valor">{{ metricas.totalClientes }}</div>
+        <div class="reporte-card">
+          <div class="reporte-content">
+            <h3>Clientes Activos</h3>
+            <div class="reporte-valor">{{ activosCount }}</div>
+            <p>Con estado activo</p>
           </div>
         </div>
 
-        <div class="metrica-card">
-          <div class="metrica-icono">💳</div>
-          <div class="metrica-info">
-            <div class="metrica-label">Ventas Hoy</div>
-            <div class="metrica-valor">{{ formatoMoneda(metricas.ventasHoy) }}</div>
+        <div class="reporte-card">
+          <div class="reporte-content">
+            <h3>Ventas Hoy</h3>
+            <div class="reporte-valor">{{ formatoMoneda(metricas.ventasHoy) }}</div>
+            <p>Movimiento del día</p>
           </div>
         </div>
       </div>
 
-      <!-- PRODUCTOS MÁS VENDIDOS -->
-      <div class="reportes-subsection">
-        <h2>🏆 Top 10 Productos Más Vendidos</h2>
-        <div *ngIf="productosMasVendidos.length > 0" class="productos-list">
-          <div *ngFor="let producto of productosMasVendidos; let i = index" class="producto-card">
-            <div class="producto-rank">{{ i + 1 }}</div>
-            <div class="producto-details">
-              <h3>{{ producto.nombreProducto || 'Producto sin nombre' }}</h3>
-              <p><strong>Cantidad:</strong> {{ producto.cantidadVendida || 0 }} unidades</p>
-              <p><strong>Monto:</strong> {{ formatoMoneda(producto.montoTotal || 0) }}</p>
-            </div>
+      <div class="report-list-grid">
+        <div class="report-card-list">
+          <div class="panel-header compact">
+            <h2>Top Productos Más Vendidos</h2>
           </div>
-        </div>
-        <div *ngIf="productosMasVendidos.length === 0" class="empty-state">
-          <p>📭 No hay datos de productos vendidos</p>
-        </div>
-      </div>
 
-      <!-- CLIENTES TOP -->
-      <div class="reportes-subsection">
-        <h2>👥 Top 10 Clientes por Compras</h2>
-        <div *ngIf="clientesTopVentas.length > 0" class="clientes-list">
-          <div *ngFor="let cliente of clientesTopVentas; let i = index" class="cliente-card">
-            <div class="cliente-rank">{{ i + 1 }}</div>
-            <div class="cliente-details">
-              <h3>{{ cliente.nombreCliente || 'Cliente sin nombre' }}</h3>
-              <p><strong>Compras:</strong> {{ cliente.cantidadVentas || 0 }}</p>
-              <p><strong>Gastado:</strong> {{ formatoMoneda(cliente.montoTotal || 0) }}</p>
+          <div *ngFor="let producto of productosMasVendidos; let i = index" class="ranking-item">
+            <span class="ranking-number">{{ i + 1 }}</span>
+            <div>
+              <strong>{{ producto.nombreProducto || 'Producto sin nombre' }}</strong>
+              <p>{{ producto.cantidadVendida || 0 }} unidades · {{ formatoMoneda(producto.montoTotal || 0) }}</p>
             </div>
           </div>
+
+          <div *ngIf="productosMasVendidos.length === 0" class="no-data">No hay datos de productos vendidos</div>
         </div>
-        <div *ngIf="clientesTopVentas.length === 0" class="empty-state">
-          <p>📭 No hay datos de clientes con compras</p>
+
+        <div class="report-card-list">
+          <div class="panel-header compact">
+            <h2>Top Clientes por Compras</h2>
+          </div>
+
+          <div *ngFor="let cliente of clientesTopVentas; let i = index" class="ranking-item">
+            <span class="ranking-number">{{ i + 1 }}</span>
+            <div>
+              <strong>{{ cliente.nombreCliente || 'Cliente sin nombre' }}</strong>
+              <p>{{ cliente.cantidadVentas || 0 }} compras · {{ formatoMoneda(cliente.montoTotal || 0) }}</p>
+            </div>
+          </div>
+
+          <div *ngIf="clientesTopVentas.length === 0" class="no-data">No hay datos de clientes con compras</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL AGREGAR/EDITAR CLIENTE -->
-<div *ngIf="mostrarModal" class="modal-overlay" (click)="cerrarModal()">
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ editandoCliente ? '✏️ Editar Cliente' : '➕ Nuevo Cliente' }}</h2>
-      <button type="button" class="modal-close" (click)="cerrarModal()">✕</button>
+      <h3>{{ editandoCliente ? 'Editar Cliente' : 'Nuevo Cliente' }}</h3>
+      <button class="modal-close" (click)="cerrarModal()">×</button>
     </div>
 
     <form [formGroup]="clienteForm" (ngSubmit)="guardarCliente()" class="modal-form">
       <div class="form-row">
         <div class="form-group">
           <label for="nombre">Nombre *</label>
-          <input id="nombre" type="text" formControlName="nombre" placeholder="Nombre del cliente" class="form-control">
-          <small class="error-message" *ngIf="clienteForm.get('nombre')?.invalid && clienteForm.get('nombre')?.touched">
-            Nombre requerido (mínimo 2 caracteres)
-          </small>
+          <input id="nombre" type="text" formControlName="nombre" class="form-control" [class.is-invalid]="esInvalido('nombre')" placeholder="Nombre del cliente">
+          <div class="invalid-feedback" *ngIf="esInvalido('nombre')">Ingrese un nombre válido</div>
         </div>
 
         <div class="form-group">
           <label for="apellidos">Apellidos *</label>
-          <input id="apellidos" type="text" formControlName="apellidos" placeholder="Apellidos del cliente"
-            class="form-control">
-          <small class="error-message"
-            *ngIf="clienteForm.get('apellidos')?.invalid && clienteForm.get('apellidos')?.touched">
-            Apellidos requeridos (mínimo 2 caracteres)
-          </small>
+          <input id="apellidos" type="text" formControlName="apellidos" class="form-control" [class.is-invalid]="esInvalido('apellidos')" placeholder="Apellidos del cliente">
+          <div class="invalid-feedback" *ngIf="esInvalido('apellidos')">Ingrese apellidos válidos</div>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="tipoDocumento">Tipo Documento *</label>
-          <select formControlName="tipoDocumento" id="tipoDocumento" class="form-control">
-            <option value="DNI">DNI</option>
-            <option value="RUC">RUC</option>
-            <option value="PASAPORTE">Pasaporte</option>
+          <select id="tipoDocumento" formControlName="tipoDocumento" class="form-control">
+            <option *ngFor="let tipo of tiposDocumento" [value]="tipo">{{ tipo }}</option>
           </select>
         </div>
 
         <div class="form-group">
           <label for="numeroDocumento">Número Documento *</label>
-          <input id="numeroDocumento" type="text" formControlName="numeroDocumento" placeholder="Número de documento"
-            class="form-control">
-          <small class="error-message"
-            *ngIf="clienteForm.get('numeroDocumento')?.invalid && clienteForm.get('numeroDocumento')?.touched">
-            Documento requerido (mínimo 8 caracteres)
-          </small>
+          <input id="numeroDocumento" type="text" formControlName="numeroDocumento" class="form-control" [class.is-invalid]="esInvalido('numeroDocumento')" placeholder="Número de documento">
+          <div class="invalid-feedback" *ngIf="esInvalido('numeroDocumento')">Ingrese un documento válido</div>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="email">Email *</label>
-          <input id="email" type="email" formControlName="email" placeholder="correo@ejemplo.com" class="form-control">
-          <small class="error-message" *ngIf="clienteForm.get('email')?.invalid && clienteForm.get('email')?.touched">
-            Email válido requerido
-          </small>
+          <input id="email" type="email" formControlName="email" class="form-control" [class.is-invalid]="esInvalido('email')" placeholder="correo@ejemplo.com">
+          <div class="invalid-feedback" *ngIf="esInvalido('email')">Ingrese un email válido</div>
         </div>
 
         <div class="form-group">
           <label for="telefono">Teléfono *</label>
-          <input id="telefono" type="text" formControlName="telefono" placeholder="Teléfono" class="form-control">
-          <small class="error-message"
-            *ngIf="clienteForm.get('telefono')?.invalid && clienteForm.get('telefono')?.touched">
-            Teléfono requerido (mínimo 7 caracteres)
-          </small>
+          <input id="telefono" type="text" formControlName="telefono" class="form-control" [class.is-invalid]="esInvalido('telefono')" placeholder="Teléfono">
+          <div class="invalid-feedback" *ngIf="esInvalido('telefono')">Ingrese un teléfono válido</div>
         </div>
       </div>
 
       <div class="form-row">
-        <div class="form-group checkbox">
-          <label for="esEmpresa">
-            <input id="esEmpresa" type="checkbox" formControlName="esEmpresa">
-            ¿Es una Empresa?
+        <div class="form-group full-width">
+          <label for="direccion">Dirección</label>
+          <input id="direccion" type="text" formControlName="direccion" class="form-control" placeholder="Dirección del cliente">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="estado-label">
+            <input id="esEmpresa" type="checkbox" formControlName="esEmpresa" class="estado-checkbox">
+            <span class="estado-text">Es empresa</span>
           </label>
         </div>
 
-        <div class="form-group checkbox">
-          <label for="estado">
-            <input id="estado" type="checkbox" formControlName="estado" [disabled]="!isAdmin">
-            Activo
+        <div class="form-group" *ngIf="isAdmin">
+          <label class="estado-label">
+            <input id="estado" type="checkbox" formControlName="estado" class="estado-checkbox">
+            <span class="estado-text">Cliente activo</span>
           </label>
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" (click)="cerrarModal()">
-          ❌ Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary" [disabled]="clienteForm.invalid">
-          ✅ Guardar
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="clienteForm.invalid">
+          {{ editandoCliente ? 'Actualizar' : 'Crear' }}
         </button>
       </div>
     </form>

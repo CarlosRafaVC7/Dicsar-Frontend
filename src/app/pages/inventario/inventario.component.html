@@ -567,13 +567,57 @@
           </div>
 
           <div class="form-group">
-            <label>Proveedor</label>
+            <div class="field-label-action">
+              <label>Proveedor</label>
+              <button type="button" class="inline-link-button" (click)="alternarFormularioProveedor()">
+                {{ mostrarFormularioProveedor ? 'Ocultar' : 'Crear proveedor' }}
+              </button>
+            </div>
             <select [(ngModel)]="nuevoProducto.proveedorId" name="modalProveedor">
               <option [ngValue]="null">Seleccione un proveedor...</option>
               <option *ngFor="let p of proveedores" [ngValue]="p.idProveedor">
                 {{ p.nombre }}
               </option>
             </select>
+          </div>
+
+          <div class="inline-provider-form full-width" *ngIf="mostrarFormularioProveedor">
+            <div class="inline-provider-header">
+              <strong>Nuevo proveedor</strong>
+              <span>Se guardara y quedara seleccionado en este producto.</span>
+            </div>
+            <div class="inline-provider-grid">
+              <div class="form-group">
+                <label>Razon social *</label>
+                <input type="text" [(ngModel)]="nuevoProveedor.razonSocial" name="inlineProveedorRazon" placeholder="Proveedor SAC">
+              </div>
+              <div class="form-group">
+                <label>RUC *</label>
+                <input type="text" [(ngModel)]="nuevoProveedor.ruc" name="inlineProveedorRuc" placeholder="20123456789">
+              </div>
+              <div class="form-group">
+                <label>Telefono *</label>
+                <input type="text" [(ngModel)]="nuevoProveedor.telefono" name="inlineProveedorTelefono" placeholder="Telefono">
+              </div>
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" [(ngModel)]="nuevoProveedor.email" name="inlineProveedorEmail" placeholder="ventas@proveedor.com">
+              </div>
+              <div class="form-group full-width">
+                <label>Direccion *</label>
+                <input type="text" [(ngModel)]="nuevoProveedor.direccion" name="inlineProveedorDireccion" placeholder="Direccion">
+              </div>
+              <div class="form-group">
+                <label>Contacto</label>
+                <input type="text" [(ngModel)]="nuevoProveedor.contacto" name="inlineProveedorContacto" placeholder="Persona de contacto">
+              </div>
+            </div>
+            <div class="inline-provider-actions">
+              <button type="button" class="btn-secondary" (click)="alternarFormularioProveedor()">Cancelar</button>
+              <button type="button" class="btn-primary" (click)="crearProveedorDesdeProducto()" [disabled]="guardandoProveedor">
+                {{ guardandoProveedor ? 'Creando...' : 'Crear y seleccionar' }}
+              </button>
+            </div>
           </div>
 
           <div class="form-group">

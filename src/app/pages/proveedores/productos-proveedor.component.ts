@@ -62,7 +62,7 @@ export class ProductosProveedorComponent implements OnInit {
   cargarProveedores(): void {
     this.proveedorService.listar().subscribe({
       next: (data) => {
-        this.proveedores = data.filter(p => p.estado);
+        this.proveedores = data;
       },
       error: (err: any) => console.error('Error al cargar proveedores:', err)
     });

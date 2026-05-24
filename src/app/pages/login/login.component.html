@@ -119,9 +119,10 @@
             {{ errorMessage }}
           </div>
 
-          <button type="submit" class="btn-submit" [disabled]="loading">
-            <span *ngIf="!loading">⚡ Iniciar Sesión</span>
+          <button type="submit" class="btn-submit" [disabled]="loading || isBlocked">
+            <span *ngIf="!loading && !isBlocked">⚡ Iniciar Sesión</span>
             <span *ngIf="loading" class="loading-text">Iniciando...</span>
+            <span *ngIf="isBlocked" class="loading-text">Bloqueado ({{ blockedMinutes }} min)</span>
           </button>
         </form>
 

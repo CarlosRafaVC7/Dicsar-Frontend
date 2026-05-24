@@ -15,6 +15,8 @@ export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   loading = false;
   errorMessage = '';
+  blockedMinutes = 0;
+  isBlocked = false;
   returnUrl = '/dashboard';
   showPassword = false;
   rememberMe = false;
@@ -33,6 +35,10 @@ export class LoginComponent implements OnInit {
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
 
+    this.loginForm.valueChanges.subscribe(() => {
+      this.errorMessage = '';
+    });
+
     // Si ya está logueado, redirigir al dashboard
     if (this.authService.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
@@ -44,10 +50,15 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.loginForm.invalid) {
-      Object.keys(this.loginForm.controls).forEach(key => {
-        this.loginForm.get(key)?.markAsTouched();
-      });
+    if (this.loginForm.invalid || this.isBlocked) {
+      if (this.isBlocked) {
+        this.errorMessage = `Usuario bloqueado. Intenta de nuevo en ${this.blockedMinutes} minutos`;
+      } else {
+        Object.keys(this.loginForm.controls).forEach(key => {
+          this.loginForm.get(key)?.markAsTouched();
+        });
+        this.errorMessage = 'Necesitas rellenar los datos para poder ingresar';
+      }
       return;
     }
 
@@ -62,13 +73,44 @@ export class LoginComponent implements OnInit {
       error: (error) => {
         console.error('Error en login:', error);
         this.loading = false;
-        if (error.status === 401 || error.status === 403) {
-          this.errorMessage = 'Usuario o contraseña incorrectos';
-        } else {
+        
+        if (error.status === 423) {
+          const msg = error.error?.message || 'Usuario bloqueado';
+          this.errorMessage = msg;
+          const match = msg.match(/(\d+)\s*minutos?/);
+          if (match) {
+            this.blockedMinutes = parseInt(match[1]);
+            this.isBlocked = true;
+            this.startBlockCountdown();
+          }
+        } else if (error.status === 401) {
+          const backendMessage = error.error?.message;
+          if (backendMessage) {
+            this.errorMessage = backendMessage;
+          } else {
+            this.errorMessage = 'Usuario o contraseña incorrecta';
+          }
+        } else if (error.status === 404) {
+          this.errorMessage = 'Usuario no encontrado';
+        } else if (error.status === 0 || error.status === 500) {
           this.errorMessage = 'Error al conectar con el servidor';
+        } else {
+          this.errorMessage = error.error?.message || 'Error al conectar con el servidor';
         }
       }
     });
+  }
+
+  private startBlockCountdown(): void {
+    const interval = setInterval(() => {
+      if (this.blockedMinutes > 0) {
+        this.blockedMinutes--;
+      } else {
+        this.isBlocked = false;
+        this.errorMessage = '';
+        clearInterval(interval);
+      }
+    }, 60000);
   }
 
   get f() {

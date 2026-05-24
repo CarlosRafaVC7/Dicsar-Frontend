@@ -1,0 +1,191 @@
+<!-- Header -->
+<div class="ventas-header">
+  <h1>Gestión de Ventas</h1>
+  <p class="subtitle">Registra, visualiza y analiza todas tus ventas</p>
+</div>
+
+<!-- Tabs Navigation -->
+<div class="tabs-container">
+  <button class="tab-button" [class.active]="activeTab === 'registro'" (click)="cambiarTab('registro')">
+    Registrar Venta
+  </button>
+  <button class="tab-button" [class.active]="activeTab === 'lista'" (click)="cambiarTab('lista')">
+    Lista de Ventas
+  </button>
+  <button class="tab-button" [class.active]="activeTab === 'reportes'" (click)="cambiarTab('reportes')">
+    Reportes
+  </button>
+</div>
+
+<!-- TAB: Registro de Ventas -->
+<div class="tab-content" *ngIf="activeTab === 'registro'">
+  <app-registro-ventas (ventaRegistrada)="onVentaRegistrada()"></app-registro-ventas>
+</div>
+
+<!-- TAB: Lista de Ventas -->
+<div class="tab-content" *ngIf="activeTab === 'lista'">
+  <div class="historial-container">
+    <!-- Filtros y Exportación -->
+    <div class="controls-grid">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar por cliente..." 
+          [(ngModel)]="busquedaCliente" (ngModelChange)="onBusquedaChange()"
+          class="search-input" aria-label="Buscar cliente">
+      </div>
+      <div class="filter-group">
+        <label>Estado</label>
+        <select [(ngModel)]="filtroEstado" (ngModelChange)="onFiltroChange()" class="filter-select">
+          <option value="todas">Todas</option>
+          <option value="activas">Activas</option>
+          <option value="anuladas">Anuladas</option>
+        </select>
+      </div>
+      <div class="export-buttons">
+        <button class="btn-export excel" (click)="exportarExcel()" title="Exportar a Excel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Excel
+        </button>
+        <button class="btn-export pdf" (click)="exportarPDF()" title="Exportar a PDF">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de Ventas -->
+    <div class="table-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Producto</th>
+            <th class="text-center">Cant.</th>
+            <th class="text-right">P. Unit.</th>
+            <th class="text-right">Total</th>
+            <th class="text-center">Tipo Doc.</th>
+            <th>Fecha</th>
+            <th class="text-center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let venta of ventasFiltradas" [class.anulada]="!venta.estado">
+            <td><strong>#{{ venta.idVenta }}</strong></td>
+            <td class="client-name">{{ venta.cliente?.nombre }} {{ venta.cliente?.apellidos }}</td>
+            <td>{{ venta.producto?.nombre }}</td>
+            <td class="text-center">{{ venta.cantidad }}</td>
+            <td class="text-right">{{ formatearMoneda(venta.precioUnitario) }}</td>
+            <td class="text-right"><strong>{{ formatearMoneda(venta.total) }}</strong></td>
+            <td class="text-center">{{ venta.tipoDocumento }}</td>
+            <td>{{ venta.fechaVenta | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="venta.estado ? 'badge-success' : 'badge-danger'">
+                {{ venta.estado ? 'Activa' : 'Anulada' }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="ventasFiltradas.length === 0">
+            <td colspan="9" class="no-data">
+              <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <p>No hay ventas para mostrar en este período</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button (click)="irPagina(currentPage - 1)" [disabled]="currentPage === 0" class="page-btn" aria-label="Página anterior">
+        ← Anterior
+      </button>
+      <span class="page-info">Página {{ currentPage + 1 }} de {{ totalPages }}</span>
+      <button (click)="irPagina(currentPage + 1)" [disabled]="currentPage === totalPages - 1" class="page-btn" aria-label="Página siguiente">
+        Siguiente →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: Reportes -->
+<div class="tab-content" *ngIf="activeTab === 'reportes'">
+  <div class="reportes-container">
+    <!-- Controles de Exportación -->
+    <div class="reportes-filtros">
+      <h3>Reportes de Movimientos</h3>
+      <div class="filtros-row">
+        <div class="filtro-group">
+          <label>Exportar Reportes</label>
+          <div class="export-buttons">
+            <button class="btn-excel" (click)="exportarReportesExcel()" title="Exportar reportes a Excel">
+              Descargar Excel
+            </button>
+            <button class="btn-pdf" (click)="exportarReportesPDF()" title="Exportar reportes a PDF">
+              Descargar PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="loadingReportes" class="loading">Cargando reportes...</div>
+
+    <div *ngIf="!loadingReportes" class="graficos-grid">
+      <!-- Gráfico Productos Más Vendidos -->
+      <div class="grafico-card">
+        <h3>Top Productos Más Vendidos</h3>
+        <canvas #chartProductosMasVendidos></canvas>
+      </div>
+
+      <!-- Gráfico Clientes Top Compras -->
+      <div class="grafico-card">
+        <h3>Top Clientes por Compras</h3>
+        <canvas #chartClientesTopCompras></canvas>
+      </div>
+
+      <!-- Gráfico Totales Mensuales -->
+      <div class="grafico-card fullwidth">
+        <h3>Totales de Ventas Mensuales</h3>
+        <canvas #chartTotalesMensuales></canvas>
+      </div>
+
+      <!-- Tabla de Detalle -->
+      <div class="resumen-financiero">
+        <h4>Resumen de Reportes</h4>
+        <div class="resumen-grid">
+          <div class="resumen-item">
+            <span class="label">Productos</span>
+            <span class="value">{{ productosMasVendidosArray.length }}</span>
+          </div>
+          <div class="resumen-item">
+            <span class="label">Clientes</span>
+            <span class="value">{{ clientesTopComprasArray.length }}</span>
+          </div>
+          <div class="resumen-item">
+            <span class="label">Meses</span>
+            <span class="value">{{ totalesMensualesArray.length }}</span>
+          </div>
+          <div class="resumen-item">
+            <span class="label">Total</span>
+            <span class="value">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -14,8 +14,8 @@ export class ClienteService {
   constructor(private http: HttpClient) { }
 
   // ========== CAMBIAR ESTADO ==========
-  cambiarEstado(id: number, estado: boolean): Observable<ClienteDTO> {
-    return this.http.post<ClienteDTO>(`${this.apiUrl}/${id}/cambiar-estado`, { estado });
+  cambiarEstado(id: number, estado: boolean): Observable<string> {
+    return this.http.put(`${this.apiUrl}/${id}/estado?nuevoEstado=${estado}`, {}, { responseType: 'text' });
   }
 
   buscarPorCedula(cedula: string, page: number = 0, size: number = 10): Observable<PaginatedResponse<ClienteDTO>> {

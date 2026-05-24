@@ -1,0 +1,336 @@
+<div class="registro-ventas-container">
+  <div class="header">
+    <h2>Registrar Nueva Venta</h2>
+    <p class="subtitle">Elige cliente y producto desde un buscador visual, define la cantidad y registra la venta en segundos</p>
+  </div>
+
+  <form [formGroup]="ventaForm" (ngSubmit)="registrarVenta()" class="venta-form">
+    <div class="selection-grid">
+      <div class="selection-card" [class.has-selection]="clienteSeleccionado">
+        <div class="selection-card-header">
+          <div>
+            <label>Cliente *</label>
+            <h3>{{ clienteSeleccionado ? obtenerNombreCliente(clienteSeleccionado) : 'Selecciona un cliente' }}</h3>
+          </div>
+          <button type="button" class="selector-btn" (click)="abrirModalClientes()">
+            {{ clienteSeleccionado ? 'Cambiar cliente' : 'Buscar cliente' }}
+          </button>
+        </div>
+
+        <div class="selection-empty" *ngIf="!clienteSeleccionado">
+          Busca por nombre, documento, teléfono o correo y elige al cliente correcto.
+        </div>
+
+        <div class="selection-details" *ngIf="clienteSeleccionado">
+          <div class="detail-pill">{{ obtenerTipoCliente(clienteSeleccionado) }}</div>
+          <div class="detail-item">
+            <span>Documento</span>
+            <strong>{{ clienteSeleccionado.tipoDocumento }} {{ clienteSeleccionado.numeroDocumento }}</strong>
+          </div>
+          <div class="detail-item">
+            <span>Teléfono</span>
+            <strong>{{ clienteSeleccionado.telefono || 'Sin teléfono' }}</strong>
+          </div>
+          <div class="detail-item">
+            <span>Email</span>
+            <strong>{{ clienteSeleccionado.email || 'Sin correo' }}</strong>
+          </div>
+        </div>
+
+        <div class="invalid-feedback" *ngIf="f['clienteId'].touched && f['clienteId'].errors">
+          El cliente es requerido
+        </div>
+      </div>
+
+      <div class="selection-card" [class.has-selection]="productoSeleccionado">
+        <div class="selection-card-header">
+          <div>
+            <label>Producto *</label>
+            <h3>{{ productoSeleccionado?.nombre || 'Selecciona un producto' }}</h3>
+          </div>
+          <button type="button" class="selector-btn" (click)="abrirModalProductos()">
+            {{ productoSeleccionado ? 'Cambiar producto' : 'Buscar producto' }}
+          </button>
+        </div>
+
+        <div class="selection-empty" *ngIf="!productoSeleccionado">
+          Revisa stock, precio y vencimiento antes de elegir el producto para la venta.
+        </div>
+
+        <div class="selection-details" *ngIf="productoSeleccionado">
+          <div class="detail-pill stock-pill">Stock: {{ productoSeleccionado.stockActual }}</div>
+          <div class="detail-item">
+            <span>Código</span>
+            <strong>{{ productoSeleccionado.codigo || 'Sin código' }}</strong>
+          </div>
+          <div class="detail-item">
+            <span>Precio</span>
+            <strong>{{ formatearMoneda(productoSeleccionado.precioBase ?? productoSeleccionado.precio) }}</strong>
+          </div>
+          <div class="detail-item">
+            <span>Vencimiento</span>
+            <strong>{{ formatearFecha(productoSeleccionado.fechaVencimiento) }}</strong>
+          </div>
+        </div>
+
+        <div class="invalid-feedback" *ngIf="f['productoId'].touched && f['productoId'].errors">
+          El producto es requerido
+        </div>
+      </div>
+    </div>
+
+    <div class="form-layout">
+      <div class="field">
+        <label for="cantidad">Cantidad *</label>
+        <input type="number" id="cantidad" formControlName="cantidad" min="1" (input)="calcularTotal()">
+        <small class="help-text" *ngIf="productoSeleccionado">
+          Stock disponible: {{ productoSeleccionado.stockActual }}
+        </small>
+        <div class="invalid-feedback" *ngIf="f['cantidad'].touched && f['cantidad'].errors">
+          <span *ngIf="f['cantidad'].errors['required']">La cantidad es requerida</span>
+          <span *ngIf="f['cantidad'].errors['min']">Mínimo 1 unidad</span>
+          <span *ngIf="cantidadError">{{ cantidadError }}</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="precioUnitario">Precio Unitario *</label>
+        <input
+          type="text"
+          id="precioUnitario"
+          [value]="formatearMoneda(ventaForm.getRawValue().precioUnitario)"
+          readonly
+        >
+        <small class="help-text">Se completa automáticamente con el producto elegido</small>
+      </div>
+
+      <div class="field">
+        <label for="tipoDocumento">Tipo de Documento *</label>
+        <select id="tipoDocumento" formControlName="tipoDocumento">
+          <option value="Factura">Factura</option>
+          <option value="Boleta">Boleta</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="total">Total</label>
+        <input
+          type="text"
+          id="total"
+          class="total-input"
+          [value]="formatearMoneda(ventaForm.getRawValue().total)"
+          readonly
+        >
+        <small class="help-text">Se calcula automáticamente según la cantidad</small>
+      </div>
+    </div>
+
+    <div class="sale-summary" *ngIf="clienteSeleccionado || productoSeleccionado">
+      <div class="summary-item">
+        <span>Cliente</span>
+        <strong>{{ clienteSeleccionado ? obtenerNombreCliente(clienteSeleccionado) : 'Pendiente' }}</strong>
+      </div>
+      <div class="summary-item">
+        <span>Producto</span>
+        <strong>{{ productoSeleccionado?.nombre || 'Pendiente' }}</strong>
+      </div>
+      <div class="summary-item">
+        <span>Cantidad</span>
+        <strong>{{ ventaForm.value.cantidad || 0 }}</strong>
+      </div>
+      <div class="summary-item total-highlight">
+        <span>Total estimado</span>
+        <strong>{{ formatearMoneda(ventaForm.getRawValue().total) }}</strong>
+       </div>
+     </div>
+
+     <div class="form-actions">
+      <button type="submit" class="btn-primario" [disabled]="ventaForm.invalid || loading">
+        <span *ngIf="!loading">Registrar Venta</span>
+        <span *ngIf="loading">Procesando...</span>
+      </button>
+      <button type="button" class="btn-cancelar" (click)="limpiarFormulario()">
+        Limpiar
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="modal-overlay" *ngIf="mostrarModalClientes" (click)="cerrarModalClientes()">
+  <div class="selector-modal" (click)="$event.stopPropagation()">
+    <div class="modal-topbar">
+      <div>
+        <p class="modal-eyebrow">Selección inteligente</p>
+        <h3>Elegir cliente</h3>
+      </div>
+      <button type="button" class="close" (click)="cerrarModalClientes()">×</button>
+    </div>
+
+    <div class="modal-search">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Filtra por nombre, documento, teléfono o correo"
+        [value]="filtroClientes"
+        (input)="filtroClientes = $any($event.target).value"
+      >
+      <span class="results-count">{{ clientesFiltrados.length }} resultado(s)</span>
+    </div>
+
+    <div class="inline-create-panel">
+      <div class="inline-create-header">
+        <div>
+          <strong>Cliente no registrado</strong>
+          <span>Crea el cliente y queda seleccionado para esta venta.</span>
+        </div>
+        <button type="button" class="selector-btn compact" (click)="alternarFormularioCliente()">
+          {{ mostrarFormularioCliente ? 'Ocultar formulario' : 'Crear cliente' }}
+        </button>
+      </div>
+
+      <form
+        class="inline-create-form"
+        *ngIf="mostrarFormularioCliente"
+        [formGroup]="nuevoClienteForm"
+        (ngSubmit)="crearClienteDesdeVenta()"
+      >
+        <div class="inline-grid">
+          <div class="field">
+            <label>Nombre *</label>
+            <input type="text" formControlName="nombre" placeholder="Nombre">
+            <div class="invalid-feedback" *ngIf="clienteNuevoInvalido('nombre')">Ingrese al menos 2 caracteres</div>
+          </div>
+          <div class="field">
+            <label>Apellidos *</label>
+            <input type="text" formControlName="apellidos" placeholder="Apellidos">
+            <div class="invalid-feedback" *ngIf="clienteNuevoInvalido('apellidos')">Ingrese al menos 2 caracteres</div>
+          </div>
+          <div class="field">
+            <label>Tipo documento *</label>
+            <select formControlName="tipoDocumento">
+              <option value="DNI">DNI</option>
+              <option value="RUC">RUC</option>
+              <option value="PASAPORTE">Pasaporte</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nro. documento *</label>
+            <input type="text" formControlName="numeroDocumento" placeholder="Documento">
+            <div class="invalid-feedback" *ngIf="clienteNuevoInvalido('numeroDocumento')">Ingrese un documento valido</div>
+          </div>
+          <div class="field">
+            <label>Telefono *</label>
+            <input type="text" formControlName="telefono" placeholder="Telefono">
+            <div class="invalid-feedback" *ngIf="clienteNuevoInvalido('telefono')">Ingrese un telefono valido</div>
+          </div>
+          <div class="field">
+            <label>Email *</label>
+            <input type="email" formControlName="email" placeholder="correo@ejemplo.com">
+            <div class="invalid-feedback" *ngIf="clienteNuevoInvalido('email')">Ingrese un email valido</div>
+          </div>
+          <div class="field full-width">
+            <label>Direccion</label>
+            <input type="text" formControlName="direccion" placeholder="Direccion">
+          </div>
+          <div class="field checkbox-field">
+            <label>
+              <input type="checkbox" formControlName="esEmpresa">
+              Es empresa
+            </label>
+          </div>
+          <div class="field" *ngIf="nuevoClienteForm.value.esEmpresa">
+            <label>Razon social</label>
+            <input type="text" formControlName="razonSocial" placeholder="Razon social">
+          </div>
+        </div>
+        <div class="inline-actions">
+          <button type="submit" class="btn-primario small" [disabled]="guardandoCliente">
+            {{ guardandoCliente ? 'Creando...' : 'Crear y seleccionar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="selection-list">
+      <button
+        type="button"
+        class="selection-option"
+        *ngFor="let cliente of clientesFiltrados"
+        (click)="seleccionarCliente(cliente)"
+      >
+        <div class="selection-option-main">
+          <strong>{{ obtenerNombreCliente(cliente) }}</strong>
+          <span>{{ cliente.tipoDocumento }} {{ cliente.numeroDocumento }}</span>
+        </div>
+        <div class="selection-option-meta">
+          <span>{{ obtenerTipoCliente(cliente) }}</span>
+          <span>{{ cliente.telefono || 'Sin teléfono' }}</span>
+          <span>{{ cliente.email || 'Sin correo' }}</span>
+        </div>
+      </button>
+
+      <div class="no-results" *ngIf="clientesFiltrados.length === 0">
+        No se encontraron clientes con ese filtro.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="mostrarModalProductos" (click)="cerrarModalProductos()">
+  <div class="selector-modal product-modal" (click)="$event.stopPropagation()">
+    <div class="modal-topbar">
+      <div>
+        <p class="modal-eyebrow">Selección inteligente</p>
+        <h3>Elegir producto</h3>
+      </div>
+      <button type="button" class="close" (click)="cerrarModalProductos()">×</button>
+    </div>
+
+    <div class="modal-search">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Filtra por nombre, código, categoría o descripción"
+        [value]="filtroProductos"
+        (input)="filtroProductos = $any($event.target).value"
+      >
+      <span class="results-count">{{ productosFiltrados.length }} resultado(s)</span>
+    </div>
+
+    <div class="selection-list product-list">
+      <button
+        type="button"
+        class="selection-option product-option"
+        *ngFor="let producto of productosFiltrados"
+        (click)="seleccionarProducto(producto)"
+      >
+        <div class="selection-option-main">
+          <strong>{{ producto.nombre }}</strong>
+          <span>{{ producto.codigo || 'Sin código' }}</span>
+        </div>
+        <div class="product-spec-grid">
+          <div>
+            <span>Precio</span>
+            <strong>{{ formatearMoneda(producto.precioBase ?? producto.precio) }}</strong>
+          </div>
+          <div>
+            <span>Stock</span>
+            <strong>{{ producto.stockActual }}</strong>
+          </div>
+          <div>
+            <span>Vencimiento</span>
+            <strong>{{ formatearFecha(producto.fechaVencimiento) }}</strong>
+          </div>
+          <div>
+            <span>Categoría</span>
+            <strong>{{ producto.categoriaNombre || 'Sin categoría' }}</strong>
+          </div>
+        </div>
+      </button>
+
+      <div class="no-results" *ngIf="productosFiltrados.length === 0">
+        No se encontraron productos con ese filtro.
+      </div>
+    </div>
+  </div>
+</div>

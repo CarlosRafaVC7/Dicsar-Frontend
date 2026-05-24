@@ -17,6 +17,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 interface Proveedor {
   idProveedor?: number;
   nombre: string;
+  razonSocial?: string;
+  ruc?: string;
   contacto?: string;
   telefono?: string;
   email?: string;
@@ -64,6 +66,9 @@ export class InventarioComponent implements OnInit {
   mostrarModalPrecio = false;
 
   proveedores: Proveedor[] = [];
+  mostrarFormularioProveedor = false;
+  guardandoProveedor = false;
+  nuevoProveedor = this.resetProveedorInline();
 
   // === 🔍 FILTRO Y BÚSQUEDA ===
   search: string = '';
@@ -378,6 +383,8 @@ export class InventarioComponent implements OnInit {
         this.proveedores = data.map(proveedor => ({
           idProveedor: proveedor.idProveedor,
           nombre: proveedor.nombre || proveedor.razonSocial || 'Sin nombre',
+          razonSocial: proveedor.razonSocial,
+          ruc: proveedor.ruc,
           contacto: proveedor.contacto,
           telefono: proveedor.telefono,
           email: proveedor.email,
@@ -387,6 +394,64 @@ export class InventarioComponent implements OnInit {
         console.log('👥 Proveedores cargados:', this.proveedores);
       },
       error: () => this.mostrarAlerta('Error al cargar proveedores', 'error')
+    });
+  }
+
+  alternarFormularioProveedor(): void {
+    this.mostrarFormularioProveedor = !this.mostrarFormularioProveedor;
+  }
+
+  crearProveedorDesdeProducto(): void {
+    if (!this.nuevoProveedor.razonSocial.trim() ||
+      !this.nuevoProveedor.ruc.trim() ||
+      !this.nuevoProveedor.direccion.trim() ||
+      !this.nuevoProveedor.telefono.trim() ||
+      !this.nuevoProveedor.email.trim()) {
+      this.mostrarAlerta('Complete los datos obligatorios del proveedor', 'error');
+      return;
+    }
+
+    this.guardandoProveedor = true;
+    const proveedorPayload = {
+      razonSocial: this.nuevoProveedor.razonSocial.trim(),
+      ruc: this.nuevoProveedor.ruc.trim(),
+      direccion: this.nuevoProveedor.direccion.trim(),
+      telefono: this.nuevoProveedor.telefono.trim(),
+      email: this.nuevoProveedor.email.trim(),
+      contacto: this.nuevoProveedor.contacto.trim(),
+      estado: true
+    };
+
+    this.proveedorService.crear(proveedorPayload).subscribe({
+      next: (proveedorCreado: any) => {
+        const proveedorNormalizado: Proveedor = {
+          idProveedor: proveedorCreado.idProveedor,
+          nombre: proveedorCreado.nombre || proveedorCreado.razonSocial || proveedorPayload.razonSocial,
+          razonSocial: proveedorCreado.razonSocial || proveedorPayload.razonSocial,
+          ruc: proveedorCreado.ruc || proveedorPayload.ruc,
+          direccion: proveedorCreado.direccion || proveedorPayload.direccion,
+          telefono: proveedorCreado.telefono || proveedorPayload.telefono,
+          email: proveedorCreado.email || proveedorPayload.email,
+          contacto: proveedorCreado.contacto || proveedorPayload.contacto,
+          estado: proveedorCreado.estado ?? true
+        };
+
+        this.proveedores = [
+          proveedorNormalizado,
+          ...this.proveedores.filter(p => p.idProveedor !== proveedorNormalizado.idProveedor)
+        ];
+        this.nuevoProducto.proveedorId = proveedorNormalizado.idProveedor ?? null;
+        this.nuevoProveedor = this.resetProveedorInline();
+        this.mostrarFormularioProveedor = false;
+        this.guardandoProveedor = false;
+        this.mostrarAlerta('Proveedor creado y seleccionado', 'exito');
+        this.cargarProveedores();
+      },
+      error: (err) => {
+        this.guardandoProveedor = false;
+        this.mostrarAlerta(this.obtenerMensajeError(err, 'Error al crear proveedor'), 'error');
+        console.error('Error creando proveedor:', err);
+      }
     });
   }
 
@@ -727,6 +792,8 @@ export class InventarioComponent implements OnInit {
   cerrarModalProducto() {
     this.mostrarModalProducto = false;
     this.cancelarEdicionProducto();
+    this.mostrarFormularioProveedor = false;
+    this.nuevoProveedor = this.resetProveedorInline();
   }
 
   // ==================== MÉTODOS AUXILIARES ====================
@@ -744,6 +811,17 @@ export class InventarioComponent implements OnInit {
       precioCompra: 0,
       fechaVencimiento: '',
       estado: true  // 🔧 Estado por defecto ACTIVO
+    };
+  }
+
+  private resetProveedorInline() {
+    return {
+      razonSocial: '',
+      ruc: '',
+      direccion: '',
+      telefono: '',
+      email: '',
+      contacto: ''
     };
   }
 
