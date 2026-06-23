@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ReporteVentaDTO } from '../models/reporte-venta.model';
 import { ReporteVentaService } from '../services/reporte-venta.service';
 import { ToastService } from '../services/toast.service';
+import { ExportService, ExportColumn } from '../services/export.service';
 
 @Component({
   selector: 'app-historial-compras',
@@ -27,7 +28,8 @@ export class HistorialComprasComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private reporteService: ReporteVentaService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private exportService: ExportService
   ) { }
 
   ngOnInit(): void {
@@ -110,14 +112,41 @@ export class HistorialComprasComponent implements OnInit {
   }
 
   exportarPDFHistorial(): void {
-    if (!this.clienteId) {
+    if (this.compras.length === 0) {
+      this.toastService.info('No hay compras para exportar');
       return;
     }
 
-    this.reporteService.exportarVentasClientePDF(this.clienteId).subscribe({
-      next: blob => this.reporteService.descargarArchivo(blob, `ventas_cliente_${this.clienteId}.pdf`),
-      error: () => this.toastService.error('Error al exportar PDF')
-    });
+    const columns: ExportColumn[] = [
+      { header: 'Comprobante', field: 'comprobante', width: 30 },
+      { header: 'Fecha', field: 'fecha', width: 40 },
+      { header: 'Producto', field: 'producto', width: 60 },
+      { header: 'Cantidad', field: 'cantidad', width: 20 },
+      { header: 'Precio Unitario', field: 'precioUnitario', width: 30 },
+      { header: 'Subtotal', field: 'subtotal', width: 30 },
+      { header: 'IGV', field: 'igv', width: 30 },
+      { header: 'Total', field: 'total', width: 30 },
+    ];
+
+    const datosExport = this.compras.map(compra => ({
+      comprobante: `#${compra.comprobanteNumero || compra.idVenta}`,
+      fecha: this.formatearFecha(compra.fechaVenta),
+      producto: compra.nombreProducto,
+      cantidad: compra.cantidad,
+      precioUnitario: compra.precioUnitario,
+      subtotal: compra.subtotal ?? this.calcularSubtotal(compra.total),
+      igv: compra.igv ?? this.calcularIgv(compra.total),
+      total: compra.total,
+    }));
+
+    this.exportService.exportToPDF(
+      datosExport,
+      columns,
+      `historial_compras_cliente_${this.clienteId}`,
+      'Historial de Compras del Cliente'
+    );
+
+    this.toastService.success(`📄 PDF exportado: ${this.compras.length} compras`);
   }
 
   descargarComprobante(ventaId: number): void {

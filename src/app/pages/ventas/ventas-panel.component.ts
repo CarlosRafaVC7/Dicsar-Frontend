@@ -413,17 +413,27 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
   }
 
   exportarHistorialClienteExcel(venta: any): void {
-    this.reporteVentaService.exportarVentasClienteExcel(venta.idCliente).subscribe({
-      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${venta.idCliente}.xlsx`),
-      error: () => this.toastService.error('Error al exportar historial del cliente')
-    });
+    const clienteId = venta.cliente?.idCliente;
+    if (clienteId) {
+      this.reporteVentaService.exportarVentasClienteExcel(clienteId).subscribe({
+        next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${clienteId}.xlsx`),
+        error: () => this.toastService.error('Error al exportar historial del cliente')
+      });
+    } else {
+      this.toastService.error('No se encontró el ID del cliente');
+    }
   }
 
   exportarHistorialClientePDF(venta: any): void {
-    this.reporteVentaService.exportarVentasClientePDF(venta.idCliente).subscribe({
-      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${venta.idCliente}.pdf`),
-      error: () => this.toastService.error('Error al exportar historial del cliente')
-    });
+    const clienteId = venta.cliente?.idCliente;
+    if (clienteId) {
+      this.reporteVentaService.exportarVentasClientePDF(clienteId).subscribe({
+        next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${clienteId}.pdf`),
+        error: () => this.toastService.error('Error al exportar historial del cliente')
+      });
+    } else {
+      this.toastService.error('No se encontró el ID del cliente');
+    }
   }
 
   calcularSubtotal(venta: any): number {

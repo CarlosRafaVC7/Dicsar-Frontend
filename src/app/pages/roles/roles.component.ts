@@ -90,6 +90,7 @@ export class RolesComponent implements OnInit {
   }
 
   abrirModal(): void {
+    console.log('abrirModal called!');
     this.editandoRol = null;
     this.permisosSeleccionados = [];
     this.rolForm.reset({ activo: true });
@@ -178,7 +179,12 @@ export class RolesComponent implements OnInit {
     }
   }
 
-  eliminarRol(id: number, nombre: string): void {
+  eliminarRol(id: number, nombre: string, activo: boolean): void {
+    if (activo) {
+      this.mostrarAlerta('No se puede eliminar un rol activo. Por favor, desactívelo primero.', 'error');
+      return;
+    }
+
     if (confirm(`¿Estás seguro de eliminar el rol "${nombre}"?`)) {
       this.loading = true;
       this.rolService.eliminar(id).subscribe({

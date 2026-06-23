@@ -9,6 +9,7 @@ import { CompraDTO } from '../../models/compra.model';
 import { PaginatedResponse } from '../../models/paginated-response.model';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { ExportService, ExportColumn } from '../../services/export.service';
 
 @Component({
   selector: 'app-clientes',
@@ -107,7 +108,8 @@ export class ClientesComponent implements OnInit {
     private dashboardService: DashboardService,
     private authService: AuthService,
     private toastService: ToastService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private exportService: ExportService
   ) {
     this.clienteForm = this.fb.group({
       idCliente: [null],
@@ -474,13 +476,59 @@ export class ClientesComponent implements OnInit {
   }
 
   descargarHistorialPDF(): void {
-    if (!this.clienteSeleccionado?.idCliente) {
+    if (this.compras.length === 0) {
+      this.mostrarAlerta('No hay compras para exportar', 'info');
       return;
     }
 
-    this.reporteVentaService.exportarVentasClientePDF(this.clienteSeleccionado.idCliente).subscribe({
-      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${this.clienteSeleccionado?.idCliente}.pdf`),
-      error: () => this.mostrarAlerta('Error al exportar historial en PDF', 'error')
+    const columns: ExportColumn[] = [
+      { header: 'Fecha', field: 'fecha', width: 40 },
+      { header: 'Producto', field: 'producto', width: 60 },
+      { header: 'Cantidad', field: 'cantidad', width: 20 },
+      { header: 'Precio Unitario', field: 'precioUnitario', width: 30 },
+      { header: 'Subtotal', field: 'subtotal', width: 30 },
+      { header: 'IGV', field: 'igv', width: 30 },
+      { header: 'Total', field: 'total', width: 30 },
+      { header: 'Estado', field: 'estado', width: 25 }
+    ];
+
+    const datosExport = this.compras.map(compra => ({
+      fecha: this.formatearFecha(compra.fechaVenta),
+      producto: compra.nombreProducto,
+      cantidad: compra.cantidad,
+      precioUnitario: compra.precioUnitario,
+      subtotal: this.reporteVentaService.calcularSubtotal(compra.total),
+      igv: this.reporteVentaService.calcularIgv(compra.total),
+      total: compra.total,
+      estado: compra.estado ? 'Completada' : 'Cancelada'
+    }));
+
+    this.exportService.exportToPDF(
+      datosExport,
+      columns,
+      `historial_compras_cliente_${this.clienteSeleccionado?.idCliente}`,
+      `Historial de Compras - ${this.getNombreCompleto(this.clienteSeleccionado!)}`
+    );
+
+    this.mostrarAlerta(`📄 PDF exportado: ${this.compras.length} compras`, 'exito');
+  }
+
+  formatearFecha(fecha: string | Date | undefined): string {
+    if (!fecha) {
+      return 'Sin fecha';
+    }
+
+    const fechaObj = new Date(fecha);
+    if (Number.isNaN(fechaObj.getTime())) {
+      return 'Sin fecha';
+    }
+
+    return fechaObj.toLocaleDateString('es-PE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 

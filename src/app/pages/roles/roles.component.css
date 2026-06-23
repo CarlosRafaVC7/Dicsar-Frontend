@@ -37,6 +37,11 @@
   border-radius: 50%;
 }
 
+.roles-header > * {
+  position: relative;
+  z-index: 1;
+}
+
 .header-info h1 {
   color: white;
   margin: 0;

@@ -68,7 +68,7 @@
                 <button class="action-btn edit" (click)="editarRol(rol)" [disabled]="loading" title="Editar rol">
                   <span>✏️</span>
                 </button>
-                <button class="action-btn delete" (click)="eliminarRol(rol.idRol!, rol.nombre)" [disabled]="loading" title="Eliminar rol">
+                <button class="action-btn delete" (click)="eliminarRol(rol.idRol!, rol.nombre, rol.activo)" [disabled]="loading || rol.activo" title="Eliminar rol">
                   <span>🗑️</span>
                 </button>
               </div>
