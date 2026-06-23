@@ -1,0 +1,87 @@
+<div class="historial-shell">
+  <div class="module-header">
+    <div>
+      <h1 class="module-title">Historial de Compras</h1>
+      <p class="module-description">Consulta, filtra y descarga comprobantes del cliente</p>
+    </div>
+    <div class="export-actions">
+      <button class="btn-export excel" (click)="exportarExcel()" [disabled]="loading">
+        Exportar Excel
+      </button>
+      <button class="btn-export pdf" (click)="exportarPDFHistorial()" [disabled]="loading">
+        Exportar PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-panel">
+    <div class="filter-group">
+      <label for="fechaInicio">Fecha inicio</label>
+      <input id="fechaInicio" type="date" [(ngModel)]="fechaInicio">
+    </div>
+    <div class="filter-group">
+      <label for="fechaFin">Fecha fin</label>
+      <input id="fechaFin" type="date" [(ngModel)]="fechaFin">
+    </div>
+    <button class="btn-secondary" (click)="aplicarFiltroFecha()" [disabled]="loading">
+      Aplicar filtro
+    </button>
+    <button class="btn-secondary outline" (click)="limpiarFiltroFecha()" [disabled]="loading">
+      Limpiar
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando historial...</p>
+  </div>
+
+  <div class="table-container" *ngIf="!loading">
+    <table class="products-table">
+      <thead>
+        <tr>
+          <th>Comprobante</th>
+          <th>Fecha</th>
+          <th>Producto</th>
+          <th class="text-center">Cant.</th>
+          <th class="text-right">P. Unit.</th>
+          <th class="text-right">Subtotal</th>
+          <th class="text-right">IGV</th>
+          <th class="text-right">Total</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let compra of compras">
+          <td>#{{ compra.comprobanteNumero || compra.idVenta }}</td>
+          <td>{{ formatearFecha(compra.fechaVenta) }}</td>
+          <td class="client-name">{{ compra.nombreProducto }}</td>
+          <td class="text-center">{{ compra.cantidad }}</td>
+          <td class="text-right">{{ formatearMoneda(compra.precioUnitario) }}</td>
+          <td class="text-right">{{ formatearMoneda(compra.subtotal ?? calcularSubtotal(compra.total)) }}</td>
+          <td class="text-right">{{ formatearMoneda(compra.igv ?? calcularIgv(compra.total)) }}</td>
+          <td class="price-cell text-right">{{ formatearMoneda(compra.total) }}</td>
+          <td class="text-center">
+            <div class="action-buttons compact">
+              <button class="btn-history" (click)="descargarComprobante(compra.idVenta)">PDF</button>
+              <button class="btn-history" (click)="imprimirComprobante(compra.idVenta)">Imprimir</button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="compras.length === 0">
+          <td colspan="9" class="no-data">No hay compras registradas para este cliente</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="irPagina(page - 1)" [disabled]="page === 0">
+        Anterior
+      </button>
+      <span class="page-info">Página {{ page + 1 }} de {{ totalPages }}</span>
+      <button class="page-btn" (click)="irPagina(page + 1)" [disabled]="page >= totalPages - 1">
+        Siguiente
+      </button>
+    </div>
+  </div>
+</div>

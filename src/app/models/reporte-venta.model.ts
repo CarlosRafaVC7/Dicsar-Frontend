@@ -2,13 +2,17 @@ export interface ReporteVentaDTO {
   idVenta: number;
   idCliente: number;
   nombreCliente: string;
+  apellidosCliente?: string;
   emailCliente: string;
   idProducto: number;
   nombreProducto: string;
   cantidad: number;
   precioUnitario: number;
+  subtotal?: number;
+  igv?: number;
   total: number;
   tipoDocumento: string;
+  comprobanteNumero?: number;
   fechaVenta: Date;
   estado: boolean;
 }

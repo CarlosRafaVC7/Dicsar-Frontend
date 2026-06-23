@@ -3,6 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RolService, Rol } from '../../services/rol.service';
 
+// Define available permissions
+export const PERMISOS_DISPONIBLES = [
+  { id: 'DASHBOARD', label: 'Dashboard', icon: 'bi-speedometer2' },
+  { id: 'INVENTARIO', label: 'Inventario', icon: 'bi-box-seam' },
+  { id: 'MOVIMIENTOS', label: 'Movimientos', icon: 'bi-arrow-left-right' },
+  { id: 'CLIENTES', label: 'Clientes', icon: 'bi-people' },
+  { id: 'PROVEEDORES', label: 'Proveedores', icon: 'bi-truck' },
+  { id: 'VENTAS', label: 'Ventas', icon: 'bi-receipt' },
+  { id: 'USUARIOS', label: 'Usuarios', icon: 'bi-person-gear' },
+  { id: 'ROLES', label: 'Roles', icon: 'bi-shield-lock' },
+  { id: 'HISTORIAL_PRECIOS', label: 'Historial de Precios', icon: 'bi-clock-history' },
+  { id: 'REPORTES', label: 'Reportes', icon: 'bi-bar-chart-line' }
+];
+
 @Component({
   selector: 'app-roles',
   standalone: true,
@@ -18,6 +32,8 @@ export class RolesComponent implements OnInit {
   loading = false;
   errorCargando = false;
   mensajeError = '';
+  permisosDisponibles = PERMISOS_DISPONIBLES;
+  permisosSeleccionados: string[] = [];
 
   // Paginación
   paginaActual = 1;
@@ -75,6 +91,7 @@ export class RolesComponent implements OnInit {
 
   abrirModal(): void {
     this.editandoRol = null;
+    this.permisosSeleccionados = [];
     this.rolForm.reset({ activo: true });
     this.mostrarModal = true;
   }
@@ -86,13 +103,38 @@ export class RolesComponent implements OnInit {
       descripcion: rol.descripcion,
       activo: rol.activo
     });
+    // Parse permissions string to array
+    this.permisosSeleccionados = rol.permisos ? rol.permisos.split(',') : [];
     this.mostrarModal = true;
   }
 
   cerrarModal(): void {
     this.mostrarModal = false;
     this.editandoRol = null;
+    this.permisosSeleccionados = [];
     this.rolForm.reset();
+  }
+
+  togglePermiso(permisoId: string): void {
+    const index = this.permisosSeleccionados.indexOf(permisoId);
+    if (index === -1) {
+      this.permisosSeleccionados.push(permisoId);
+    } else {
+      this.permisosSeleccionados.splice(index, 1);
+    }
+  }
+
+  toggleTodosPermisos(): void {
+    if (this.permisosSeleccionados.length === this.permisosDisponibles.length) {
+      this.permisosSeleccionados = [];
+    } else {
+      this.permisosSeleccionados = this.permisosDisponibles.map(p => p.id);
+    }
+  }
+
+  getPermisoLabel(permisoId: string): string {
+    const permiso = this.permisosDisponibles.find(p => p.id === permisoId);
+    return permiso ? permiso.label : permisoId;
   }
 
   guardarRol(): void {
@@ -103,6 +145,7 @@ export class RolesComponent implements OnInit {
 
     this.loading = true;
     const rol: Rol = this.rolForm.value;
+    rol.permisos = this.permisosSeleccionados.join(',');
 
     if (this.editandoRol?.idRol) {
       // Actualizar

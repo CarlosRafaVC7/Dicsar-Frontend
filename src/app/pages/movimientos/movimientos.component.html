@@ -280,7 +280,7 @@
               {{ m.cantidad | number }}
             </td>
             <td>{{ m.usuario?.nombreCompleto || m.usuario?.username || m.usuarioMovimiento || '---' }}</td>
-            <td>{{ m.tipoMovimiento === 'SALIDA' ? 'S/ ' + (m.cantidad * (m.producto?.precio || 0) | number:'1.2-2') : '-' }}</td>
+            <td>{{ m.tipoMovimiento === 'SALIDA' ? 'S/ ' + (m.cantidad * (m.producto.precio || 0) | number:'1.2-2') : '-' }}</td>
           </tr>
         </tbody>
       </table>

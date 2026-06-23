@@ -122,4 +122,25 @@ export class ClienteService {
   obtenerActivos(): Observable<ClienteDTO[]> {
     return this.http.get<ClienteDTO[]>(`${this.apiUrl}/activos`);
   }
+
+  exportarClientesCSV(): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/exportar/clientes/csv`, {
+      responseType: 'blob',
+      headers: { Accept: 'text/csv' }
+    });
+  }
+
+  exportarClientesExcel(): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/exportar/clientes/excel`, {
+      responseType: 'blob',
+      headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    });
+  }
+
+  exportarClientesPDF(): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/exportar/clientes/pdf`, {
+      responseType: 'blob',
+      headers: { Accept: 'application/pdf' }
+    });
+  }
 }

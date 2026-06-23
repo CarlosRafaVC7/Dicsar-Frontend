@@ -64,6 +64,11 @@ export class SidebarComponent {
     }
   ,
     {
+      label: 'Roles',
+      icon: 'fa-solid fa-user-shield',
+      route: '/roles'
+    },
+    {
       label: 'Usuarios',
       icon: 'fa-solid fa-user-group',
       route: '/usuarios'

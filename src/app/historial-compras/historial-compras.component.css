@@ -1,0 +1,156 @@
+.historial-shell {
+  padding: 24px;
+}
+
+.module-header,
+.filters-panel,
+.export-actions,
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.module-header {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.module-title {
+  margin: 0;
+  font-size: 28px;
+}
+
+.module-description {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.filters-panel {
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+input[type='date'] {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.products-table th,
+.products-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.products-table th {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right,
+.price-cell {
+  text-align: right;
+}
+
+.no-data {
+  text-align: center;
+  color: #64748b;
+  padding: 32px;
+}
+
+.loading-state {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 24px;
+  color: #475569;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #cbd5e1;
+  border-top-color: #0f766e;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.page-btn,
+.btn-secondary,
+.btn-export {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn-secondary.outline {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-history {
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  cursor: pointer;
+}
+
+.btn-export.excel {
+  background: #16a34a;
+  color: #fff;
+}
+
+.btn-export.pdf {
+  background: #dc2626;
+  color: #fff;
+}
+
+.action-buttons.compact {
+  justify-content: center;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

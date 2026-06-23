@@ -8,7 +8,6 @@ import { ClienteDTO } from '../../models/cliente.model';
 import { CompraDTO } from '../../models/compra.model';
 import { PaginatedResponse } from '../../models/paginated-response.model';
 import { AuthService } from '../../services/auth.service';
-import { ExportService, ExportColumn } from '../../services/export.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
@@ -49,6 +48,8 @@ export class ClientesComponent implements OnInit {
   comprasPageNumber = 0;
   comprasPageSize = 10;
   totalCompras = 0;
+  fechaInicio = '';
+  fechaFin = '';
 
   metricas: any = {
     totalVentas: 0,
@@ -105,7 +106,6 @@ export class ClientesComponent implements OnInit {
     private reporteVentaService: ReporteVentaService,
     private dashboardService: DashboardService,
     private authService: AuthService,
-    private exportService: ExportService,
     private toastService: ToastService,
     private fb: FormBuilder
   ) {
@@ -321,13 +321,17 @@ export class ClientesComponent implements OnInit {
     cliente.estado = nuevoEstado;
     this.actualizarListasFiltradas(!nuevoEstado);
 
-    this.clienteService.cambiarEstado(id, nuevoEstado).subscribe({
+    const payload: ClienteDTO = { ...cliente, estado: nuevoEstado };
+    this.clienteService.actualizar(id, payload).subscribe({
       next: () => {
         this.confirmarCambioEstado(id, nuevoEstado);
       },
       error: (err) => {
         console.error('Error al cambiar estado del cliente:', err);
-        this.reintentarCambioEstadoConActualizacion(cliente, previousEstado, nuevoEstado);
+        cliente.estado = previousEstado;
+        this.changingEstadoIds.delete(id);
+        this.actualizarListasFiltradas(false);
+        this.mostrarAlerta(this.obtenerMensajeError(err, 'Error al cambiar el estado del cliente'), 'error');
       }
     });
   }
@@ -384,49 +388,27 @@ export class ClientesComponent implements OnInit {
   }
 
   exportarExcel(): void {
-    const clientesExportar = this.allClientes.filter(cliente => cliente.estado);
-    if (clientesExportar.length === 0) {
+    if (this.allClientes.filter(cliente => cliente.estado).length === 0) {
       this.mostrarAlerta('No hay clientes activos para exportar', 'info');
       return;
     }
 
-    const columns: ExportColumn[] = [
-      { header: 'ID', field: 'idCliente', width: 10 },
-      { header: 'Nombre', field: 'nombre', width: 20 },
-      { header: 'Apellidos', field: 'apellidos', width: 20 },
-      { header: 'Tipo Documento', field: 'tipoDocumento', width: 15 },
-      { header: 'Documento', field: 'numeroDocumento', width: 18 },
-      { header: 'Email', field: 'email', width: 25 },
-      { header: 'Teléfono', field: 'telefono', width: 15 },
-      { header: 'Tipo', field: 'esEmpresa', width: 12 },
-      { header: 'Estado', field: 'estado', width: 12 }
-    ];
-
-    this.exportService.exportToExcel(clientesExportar, columns, 'clientes_activos', 'Clientes Activos');
-    this.mostrarAlerta(`Excel exportado: ${clientesExportar.length} clientes`, 'exito');
+    this.clienteService.exportarClientesExcel().subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, 'clientes_activos.xlsx'),
+      error: () => this.mostrarAlerta('Error al exportar Excel desde el backend', 'error')
+    });
   }
 
   exportarPDF(): void {
-    const clientesExportar = this.allClientes.filter(cliente => cliente.estado);
-    if (clientesExportar.length === 0) {
+    if (this.allClientes.filter(cliente => cliente.estado).length === 0) {
       this.mostrarAlerta('No hay clientes activos para exportar', 'info');
       return;
     }
 
-    const columns: ExportColumn[] = [
-      { header: 'ID', field: 'idCliente', width: 12 },
-      { header: 'Nombre', field: 'nombre', width: 40 },
-      { header: 'Apellidos', field: 'apellidos', width: 40 },
-      { header: 'Tipo Documento', field: 'tipoDocumento', width: 20 },
-      { header: 'Documento', field: 'numeroDocumento', width: 25 },
-      { header: 'Email', field: 'email', width: 40 },
-      { header: 'Teléfono', field: 'telefono', width: 20 },
-      { header: 'Tipo', field: 'esEmpresa', width: 15 },
-      { header: 'Estado', field: 'estado', width: 12 }
-    ];
-
-    this.exportService.exportToPDF(clientesExportar, columns, 'clientes_activos', 'Reporte de Clientes Activos');
-    this.mostrarAlerta(`PDF exportado: ${clientesExportar.length} clientes`, 'exito');
+    this.clienteService.exportarClientesPDF().subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, 'clientes_activos.pdf'),
+      error: () => this.mostrarAlerta('Error al exportar PDF desde el backend', 'error')
+    });
   }
 
   mostrarAlerta(mensaje: string, tipo: 'exito' | 'error' | 'info' = 'info'): void {
@@ -468,6 +450,40 @@ export class ClientesComponent implements OnInit {
     this.cambiarTab('historial');
   }
 
+  aplicarFiltroFechaCompras(): void {
+    this.comprasPageNumber = 0;
+    this.cargarCompras();
+  }
+
+  limpiarFiltroFechaCompras(): void {
+    this.fechaInicio = '';
+    this.fechaFin = '';
+    this.comprasPageNumber = 0;
+    this.cargarCompras();
+  }
+
+  descargarHistorialExcel(): void {
+    if (!this.clienteSeleccionado?.idCliente) {
+      return;
+    }
+
+    this.reporteVentaService.exportarVentasClienteExcel(this.clienteSeleccionado.idCliente).subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${this.clienteSeleccionado?.idCliente}.xlsx`),
+      error: () => this.mostrarAlerta('Error al exportar historial en Excel', 'error')
+    });
+  }
+
+  descargarHistorialPDF(): void {
+    if (!this.clienteSeleccionado?.idCliente) {
+      return;
+    }
+
+    this.reporteVentaService.exportarVentasClientePDF(this.clienteSeleccionado.idCliente).subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${this.clienteSeleccionado?.idCliente}.pdf`),
+      error: () => this.mostrarAlerta('Error al exportar historial en PDF', 'error')
+    });
+  }
+
   cargarCompras(): void {
     if (!this.clienteSeleccionado) return;
 
@@ -478,8 +494,9 @@ export class ClientesComponent implements OnInit {
       this.comprasPageSize
     ).subscribe({
       next: (response: PaginatedResponse<CompraDTO>) => {
-        this.compras = response.content;
-        this.totalCompras = response.totalElements;
+        const contenido = response.content;
+        this.compras = this.aplicarFiltroFecha(contenido);
+        this.totalCompras = this.fechaInicio || this.fechaFin ? this.compras.length : response.totalElements;
         this.comprasLoading = false;
       },
       error: (err) => {
@@ -487,6 +504,32 @@ export class ClientesComponent implements OnInit {
         this.mostrarAlerta('Error al cargar historial de compras', 'error');
         this.comprasLoading = false;
       }
+    });
+  }
+
+  private aplicarFiltroFecha(compras: CompraDTO[]): CompraDTO[] {
+    if (!this.fechaInicio && !this.fechaFin) {
+      return compras;
+    }
+
+    const inicio = this.fechaInicio ? new Date(this.fechaInicio) : null;
+    const fin = this.fechaFin ? new Date(this.fechaFin) : null;
+
+    return compras.filter(compra => {
+      const fecha = new Date(compra.fechaVenta);
+      if (Number.isNaN(fecha.getTime())) {
+        return false;
+      }
+      if (inicio && fecha < inicio) {
+        return false;
+      }
+      if (fin) {
+        fin.setHours(23, 59, 59, 999);
+        if (fecha > fin) {
+          return false;
+        }
+      }
+      return true;
     });
   }
 

@@ -1,8 +1,9 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { VentaService } from '../../services/venta.service';
+import { ReporteVentaService } from '../../services/reporte-venta.service';
 import { RegistroVentasComponent } from './registro-ventas.component';
 import { ExportService, ExportColumn } from '../../services/export.service';
 import { Chart, registerables } from 'chart.js';
@@ -37,6 +38,10 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
 
   busquedaCliente: string = '';
   filtroEstado: 'todas' | 'activas' | 'anuladas' = 'todas';
+  fechaDesde: string = '';
+  fechaHasta: string = '';
+  openMenuId: number | null = null;
+  expandedVentaId: number | null = null;
 
   productosMasVendidos: Observable<any[]> | null = null;
   clientesTopCompras: Observable<any[]> | null = null;
@@ -48,7 +53,7 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
    clientesTopComprasArray: any[] = [];
    totalesMensualesArray: any[] = [];
 
-   constructor(private ventaService: VentaService, private exportService: ExportService, private toastService: ToastService) { }
+   constructor(private ventaService: VentaService, private reporteVentaService: ReporteVentaService, private exportService: ExportService, private toastService: ToastService) { }
 
   ngOnInit(): void {
     this.cargarVentas();
@@ -73,24 +78,46 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
 
   cargarVentas(page: number = 0): void {
     this.currentPage = page;
-    this.ventaService.listarPaginado(page, this.pageSize).subscribe({
+    this.reporteVentaService.listarPaginado(page, this.pageSize).subscribe({
       next: (response: any) => {
-        console.log('📊 Respuesta del servidor (Movimientos/Ventas):', response);
+        console.log('📊 Respuesta del servidor (Ventas):', response);
 
-        // Transformar movimientos a formato de venta para mostrar en tabla
+        // Mapear ReporteVentaDTO a la estructura que espera la plantilla
+        let ventasData: any[] = [];
         if (Array.isArray(response)) {
-          this.ventas = this.transformarMovimientosAVentas(response);
+          ventasData = response;
           this.totalVentas = response.length;
         } else if (response.content) {
-          this.ventas = this.transformarMovimientosAVentas(response.content || []);
+          ventasData = response.content || [];
           this.totalVentas = response.totalElements || 0;
         } else if (response.data) {
-          this.ventas = this.transformarMovimientosAVentas(response.data || []);
+          ventasData = response.data || [];
           this.totalVentas = response.total || response.data.length;
-        } else {
-          this.ventas = [];
-          this.totalVentas = 0;
         }
+
+        // Convertir a la estructura con cliente y producto anidados
+        this.ventas = ventasData.map((dto: any) => ({
+          idVenta: dto.idVenta,
+          comprobanteNumero: dto.comprobanteNumero,
+          cliente: {
+            idCliente: dto.idCliente,
+            nombre: dto.nombreCliente,
+            apellidos: dto.apellidosCliente,
+            email: dto.emailCliente
+          },
+          producto: {
+            idProducto: dto.idProducto,
+            nombre: dto.nombreProducto
+          },
+          cantidad: dto.cantidad,
+          precioUnitario: dto.precioUnitario,
+          subtotal: dto.subtotal,
+          igv: dto.igv,
+          total: dto.total,
+          tipoDocumento: dto.tipoDocumento,
+          fechaVenta: dto.fechaVenta,
+          estado: dto.estado
+        }));
 
         this.totalPages = Math.ceil(this.totalVentas / this.pageSize) || 1;
         this.filtrarVentas();
@@ -104,28 +131,6 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // Transformar movimientos de inventario a formato de venta
-  private transformarMovimientosAVentas(movimientos: any[]): any[] {
-    return movimientos
-      .filter(m => m.tipoMovimiento === 'SALIDA') // Solo salidas son ventas
-      .map(m => ({
-        idVenta: m.idMovimiento,
-        cliente: {
-          idCliente: 0,
-          nombre: 'Venta',
-          apellidos: 'General'
-        },
-        producto: m.producto,
-        cantidad: m.cantidad,
-        precioUnitario: m.producto?.precioBase || m.producto?.precio || 0,
-        total: (m.cantidad * (m.producto?.precioBase || m.producto?.precio || 0)),
-        tipoDocumento: 'Movimiento',
-        fechaVenta: m.fechaMovimiento,
-        estado: true,
-        usuarioMovimiento: m.usuarioMovimiento
-      }));
-  }
-
   filtrarVentas(): void {
     this.ventasFiltradas = this.ventas.filter(venta => {
       const cumpleBusqueda = venta.cliente?.nombre?.toLowerCase().includes(this.busquedaCliente.toLowerCase()) ||
@@ -135,7 +140,25 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
         (this.filtroEstado === 'activas' && venta.estado) ||
         (this.filtroEstado === 'anuladas' && !venta.estado);
 
-      return cumpleBusqueda && cumpleFiltro;
+      // Filtrar por fecha
+      let cumpleFecha = true;
+      if (this.fechaDesde || this.fechaHasta) {
+        const ventaDate = new Date(venta.fechaVenta);
+        
+        if (this.fechaDesde) {
+          const desdeDate = new Date(this.fechaDesde);
+          desdeDate.setHours(0, 0, 0, 0);
+          if (ventaDate < desdeDate) cumpleFecha = false;
+        }
+        
+        if (this.fechaHasta) {
+          const hastaDate = new Date(this.fechaHasta);
+          hastaDate.setHours(23, 59, 59, 999);
+          if (ventaDate > hastaDate) cumpleFecha = false;
+        }
+      }
+
+      return cumpleBusqueda && cumpleFiltro && cumpleFecha;
     });
   }
 
@@ -147,6 +170,27 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     this.filtrarVentas();
   }
 
+  toggleMenu(ventaId: number): void {
+    this.openMenuId = this.openMenuId === ventaId ? null : ventaId;
+  }
+
+  toggleExpandir(ventaId: number, event: Event): void {
+    const target = event.target as HTMLElement;
+    // No expandir si se hace clic en el botón de acciones o sus hijos
+    if (target.closest('.dropdown') || target.closest('.action-btn')) {
+      return;
+    }
+    this.expandedVentaId = this.expandedVentaId === ventaId ? null : ventaId;
+  }
+
+  @HostListener('document:click', ['$event'])
+  handleClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.dropdown')) {
+      this.openMenuId = null;
+    }
+  }
+
   irPagina(page: number): void {
     if (page >= 0 && page < this.totalPages) {
       this.cargarVentas(page);
@@ -156,7 +200,7 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
   cargarReportes(): void {
     this.loadingReportes = true;
 
-    this.ventaService.obtenerProductosMasVendidos().subscribe({
+    this.reporteVentaService.obtenerProductosMasVendidos().subscribe({
       next: (datos) => {
         this.productosMasVendidosArray = datos;
         this.inicializarGraficos();
@@ -167,7 +211,7 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
       }
     });
 
-    this.ventaService.obtenerClientesTopCompras().subscribe({
+    this.reporteVentaService.obtenerClientesTopCompras().subscribe({
       next: (datos) => {
         this.clientesTopComprasArray = datos;
       },
@@ -176,7 +220,7 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
       }
     });
 
-    this.ventaService.obtenerTotalesMensuales().subscribe({
+    this.reporteVentaService.obtenerTotalesMensuales().subscribe({
       next: (datos) => {
         this.totalesMensualesArray = datos;
         this.loadingReportes = false;
@@ -214,8 +258,8 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     const ctx = this.chartProductosRef.nativeElement.getContext('2d');
     const top5 = this.productosMasVendidosArray.slice(0, 5);
 
-    const labels = top5.map((p: any) => p[0]);
-    const data = top5.map((p: any) => p[1]);
+    const labels = top5.map((p: any) => p.nombreProducto || p[1]);
+    const data = top5.map((p: any) => p.cantidadVendida ?? p[2] ?? 0);
     const colores = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
     this.chartProductosInstance = new Chart(ctx, {
@@ -256,8 +300,8 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     const ctx = this.chartClientesRef.nativeElement.getContext('2d');
     const top5 = this.clientesTopComprasArray.slice(0, 5);
 
-    const labels = top5.map((c: any) => c[0]);
-    const data = top5.map((c: any) => c[1]);
+    const labels = top5.map((c: any) => c.nombreCliente || c[1]);
+    const data = top5.map((c: any) => c.cantidadCompras ?? c.cantidadVentas ?? c[3] ?? 0);
     const colores = ['#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#6366f1'];
 
     this.chartClientesInstance = new Chart(ctx, {
@@ -293,10 +337,10 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     const ctx = this.chartTotalesRef.nativeElement.getContext('2d');
 
     const labels = this.totalesMensualesArray.map((t: any) => {
-      const fecha = new Date(t[0]);
+      const fecha = t.anio && t.mes ? new Date(t.anio, t.mes - 1, 1) : new Date(t[0]);
       return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
     });
-    const data = this.totalesMensualesArray.map((t: any) => t[1]);
+    const data = this.totalesMensualesArray.map((t: any) => t.totalMensual ?? t[2] ?? 0);
 
     this.chartTotalesInstance = new Chart(ctx, {
       type: 'line',
@@ -354,6 +398,42 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     return valor.toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 });
   }
 
+  descargarComprobante(venta: any): void {
+    this.reporteVentaService.exportarComprobantePDF(venta.idVenta).subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, `comprobante_${venta.idVenta}.pdf`),
+      error: () => this.toastService.error('Error al descargar comprobante')
+    });
+  }
+
+  imprimirComprobante(venta: any): void {
+    this.reporteVentaService.exportarComprobantePDF(venta.idVenta).subscribe({
+      next: blob => this.reporteVentaService.abrirPDF(blob, `comprobante_${venta.idVenta}.pdf`),
+      error: () => this.toastService.error('Error al imprimir comprobante')
+    });
+  }
+
+  exportarHistorialClienteExcel(venta: any): void {
+    this.reporteVentaService.exportarVentasClienteExcel(venta.idCliente).subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${venta.idCliente}.xlsx`),
+      error: () => this.toastService.error('Error al exportar historial del cliente')
+    });
+  }
+
+  exportarHistorialClientePDF(venta: any): void {
+    this.reporteVentaService.exportarVentasClientePDF(venta.idCliente).subscribe({
+      next: blob => this.reporteVentaService.descargarArchivo(blob, `ventas_cliente_${venta.idCliente}.pdf`),
+      error: () => this.toastService.error('Error al exportar historial del cliente')
+    });
+  }
+
+  calcularSubtotal(venta: any): number {
+    return this.reporteVentaService.calcularSubtotal(venta.total);
+  }
+
+  calcularIgv(venta: any): number {
+    return this.reporteVentaService.calcularIgv(venta.total);
+  }
+
    // ==================== EXPORTACIÓN ====================
    exportarExcel(): void {
      if (this.ventasFiltradas.length === 0) {
@@ -361,32 +441,38 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
        return;
      }
 
-    const columns: ExportColumn[] = [
-      { header: 'ID', field: 'idVenta', width: 10 },
-      { header: 'Cliente', field: 'cliente.nombre', width: 25 },
-      { header: 'Apellidos', field: 'cliente.apellidos', width: 25 },
-      { header: 'Producto', field: 'producto.nombre', width: 25 },
-      { header: 'Cantidad', field: 'cantidad', width: 12 },
-      { header: 'Precio Unit.', field: 'precioUnitario', width: 15 },
-      { header: 'Total', field: 'total', width: 15 },
-      { header: 'Tipo Documento', field: 'tipoDocumento', width: 15 },
-      { header: 'Fecha', field: 'fechaVenta', width: 18 },
-      { header: 'Estado', field: 'estado', width: 12 }
-    ];
+     const columns: ExportColumn[] = [
+       { header: 'ID', field: 'idVenta', width: 10 },
+       { header: 'Comprobante', field: 'comprobanteNumero', width: 14 },
+       { header: 'Cliente', field: 'cliente.nombre', width: 25 },
+       { header: 'Apellidos', field: 'cliente.apellidos', width: 25 },
+       { header: 'Producto', field: 'producto.nombre', width: 25 },
+       { header: 'Cantidad', field: 'cantidad', width: 12 },
+       { header: 'Precio Unit.', field: 'precioUnitario', width: 15 },
+       { header: 'Subtotal', field: 'subtotal', width: 15 },
+       { header: 'IGV', field: 'igv', width: 15 },
+       { header: 'Total', field: 'total', width: 15 },
+       { header: 'Tipo Documento', field: 'tipoDocumento', width: 15 },
+       { header: 'Fecha', field: 'fechaVenta', width: 18 },
+       { header: 'Estado', field: 'estado', width: 12 }
+     ];
 
-    // Preparar datos para export
-    const datosExport = this.ventasFiltradas.map(venta => ({
-      idVenta: venta.idVenta,
-      'cliente.nombre': venta.cliente?.nombre || '',
-      'cliente.apellidos': venta.cliente?.apellidos || '',
-      'producto.nombre': venta.producto?.nombre || '',
-      cantidad: venta.cantidad,
-      precioUnitario: venta.precioUnitario,
-      total: venta.total,
-      tipoDocumento: venta.tipoDocumento,
-      fechaVenta: venta.fechaVenta,
-      estado: venta.estado ? 'Activa' : 'Anulada'
-    }));
+     // Preparar datos para export
+     const datosExport = this.ventasFiltradas.map(venta => ({
+       idVenta: venta.idVenta,
+       comprobanteNumero: venta.comprobanteNumero || venta.idVenta,
+       'cliente.nombre': venta.cliente?.nombre || '',
+       'cliente.apellidos': venta.cliente?.apellidos || '',
+       'producto.nombre': venta.producto?.nombre || '',
+       cantidad: venta.cantidad,
+       precioUnitario: venta.precioUnitario,
+       subtotal: venta.subtotal ?? this.calcularSubtotal(venta),
+       igv: venta.igv ?? this.calcularIgv(venta),
+       total: venta.total,
+       tipoDocumento: venta.tipoDocumento,
+       fechaVenta: venta.fechaVenta,
+       estado: venta.estado ? 'Activa' : 'Anulada'
+     }));
 
      this.exportService.exportToExcel(
        datosExport,
@@ -404,30 +490,36 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
        return;
      }
 
-    const columns: ExportColumn[] = [
-      { header: 'ID', field: 'idVenta', width: 12 },
-      { header: 'Cliente', field: 'cliente.nombre', width: 30 },
-      { header: 'Producto', field: 'producto.nombre', width: 35 },
-      { header: 'Cantidad', field: 'cantidad', width: 15 },
-      { header: 'Precio Unit.', field: 'precioUnitario', width: 18 },
-      { header: 'Total', field: 'total', width: 18 },
-      { header: 'Tipo Doc.', field: 'tipoDocumento', width: 15 },
-      { header: 'Fecha', field: 'fechaVenta', width: 20 },
-      { header: 'Estado', field: 'estado', width: 15 }
-    ];
+     const columns: ExportColumn[] = [
+       { header: 'ID', field: 'idVenta', width: 12 },
+       { header: 'Comprobante', field: 'comprobanteNumero', width: 14 },
+       { header: 'Cliente', field: 'cliente.nombre', width: 30 },
+       { header: 'Producto', field: 'producto.nombre', width: 35 },
+       { header: 'Cantidad', field: 'cantidad', width: 15 },
+       { header: 'Precio Unit.', field: 'precioUnitario', width: 18 },
+       { header: 'Subtotal', field: 'subtotal', width: 18 },
+       { header: 'IGV', field: 'igv', width: 18 },
+       { header: 'Total', field: 'total', width: 18 },
+       { header: 'Tipo Doc.', field: 'tipoDocumento', width: 15 },
+       { header: 'Fecha', field: 'fechaVenta', width: 20 },
+       { header: 'Estado', field: 'estado', width: 15 }
+     ];
 
-    // Preparar datos para export
-    const datosExport = this.ventasFiltradas.map(venta => ({
-      idVenta: venta.idVenta,
-      'cliente.nombre': venta.cliente?.nombre || '',
-      'producto.nombre': venta.producto?.nombre || '',
-      cantidad: venta.cantidad,
-      precioUnitario: venta.precioUnitario,
-      total: venta.total,
-      tipoDocumento: venta.tipoDocumento,
-      fechaVenta: venta.fechaVenta,
-      estado: venta.estado ? 'Activa' : 'Anulada'
-    }));
+     // Preparar datos para export
+     const datosExport = this.ventasFiltradas.map(venta => ({
+       idVenta: venta.idVenta,
+       comprobanteNumero: venta.comprobanteNumero || venta.idVenta,
+       'cliente.nombre': venta.cliente?.nombre || '',
+       'producto.nombre': venta.producto?.nombre || '',
+       cantidad: venta.cantidad,
+       precioUnitario: venta.precioUnitario,
+       subtotal: venta.subtotal ?? this.calcularSubtotal(venta),
+       igv: venta.igv ?? this.calcularIgv(venta),
+       total: venta.total,
+       tipoDocumento: venta.tipoDocumento,
+       fechaVenta: venta.fechaVenta,
+       estado: venta.estado ? 'Activa' : 'Anulada'
+     }));
 
      this.exportService.exportToPDF(
        datosExport,
@@ -451,23 +543,23 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     // Preparar datos de productos
     const productosData = this.productosMasVendidosArray.map((p: any, i: number) => ({
       Ranking: i + 1,
-      'Producto': p[0] || '',
-      'Cantidad Vendida': p[1] || 0,
-      'Monto Total': p[2] || 0
+      'Producto': p.nombreProducto || p[1] || '',
+      'Cantidad Vendida': p.cantidadVendida ?? p[2] ?? 0,
+      'Monto Total': p.montoTotal ?? p[3] ?? 0
     }));
 
     // Preparar datos de clientes
     const clientesData = this.clientesTopComprasArray.map((c: any, i: number) => ({
       Ranking: i + 1,
-      'Cliente': c[0] || '',
-      'Cantidad Ventas': c[1] || 0,
-      'Monto Total': c[2] || 0
+      'Cliente': c.nombreCliente || c[1] || '',
+      'Cantidad Ventas': c.cantidadCompras ?? c.cantidadVentas ?? c[3] ?? 0,
+      'Monto Total': c.montoTotal ?? c[2] ?? 0
     }));
 
     // Preparar datos de totales mensuales
     const totalesData = this.totalesMensualesArray.map((t: any) => ({
-      'Mes': t[0] || '',
-      'Total Ventas': t[1] || 0
+      'Mes': t.anio && t.mes ? `${t.mes}/${t.anio}` : (t[0] || ''),
+      'Total Ventas': t.totalMensual ?? t[2] ?? 0
     }));
 
     const columns: ExportColumn[] = [
@@ -498,9 +590,9 @@ export class VentasPanelComponent implements OnInit, AfterViewInit {
     // Preparar datos de productos
     const productosData = this.productosMasVendidosArray.map((p: any, i: number) => ({
       Ranking: i + 1,
-      'Producto': p[0] || '',
-      'Cantidad': p[1] || 0,
-      'Total': p[2] || 0
+      'Producto': p.nombreProducto || p[1] || '',
+      'Cantidad': p.cantidadVendida ?? p[2] ?? 0,
+      'Total': p.montoTotal ?? p[3] ?? 0
     }));
 
     const columns: ExportColumn[] = [

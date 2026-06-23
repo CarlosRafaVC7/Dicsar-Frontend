@@ -273,7 +273,28 @@
           <h2>{{ getNombreCompleto(clienteSeleccionado) }}</h2>
           <p>{{ clienteSeleccionado.tipoDocumento }} {{ clienteSeleccionado.numeroDocumento }} · {{ clienteSeleccionado.email }}</p>
         </div>
-        <button class="btn-secondary" (click)="cerrarHistorialCliente()">Cambiar Cliente</button>
+        <div class="history-actions">
+          <button class="btn-export excel" (click)="descargarHistorialExcel()" [disabled]="comprasLoading">
+            Excel
+          </button>
+          <button class="btn-export pdf" (click)="descargarHistorialPDF()" [disabled]="comprasLoading">
+            PDF
+          </button>
+          <button class="btn-secondary" (click)="cerrarHistorialCliente()">Cambiar Cliente</button>
+        </div>
+      </div>
+
+      <div class="filters-panel">
+        <div class="filter-group">
+          <label for="fechaInicioHistorial">Fecha inicio</label>
+          <input id="fechaInicioHistorial" type="date" [(ngModel)]="fechaInicio">
+        </div>
+        <div class="filter-group">
+          <label for="fechaFinHistorial">Fecha fin</label>
+          <input id="fechaFinHistorial" type="date" [(ngModel)]="fechaFin">
+        </div>
+        <button class="btn-secondary" (click)="aplicarFiltroFechaCompras()" [disabled]="comprasLoading">Aplicar</button>
+        <button class="btn-secondary outline" (click)="limpiarFiltroFechaCompras()" [disabled]="comprasLoading">Limpiar</button>
       </div>
 
       <div class="table-container">
