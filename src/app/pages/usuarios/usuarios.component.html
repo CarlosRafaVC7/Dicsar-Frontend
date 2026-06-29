@@ -100,7 +100,7 @@
     </div>
 
     <div class="modal-body">
-      <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
+      <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()" novalidate>
         <div class="form-row">
           <div class="form-group">
             <label for="username">Usuario</label>
@@ -172,7 +172,7 @@
     </div>
 
     <div class="modal-body">
-      <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
+      <form [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()" novalidate>
         <div class="form-row">
           <div class="form-group full-width">
             <label for="passwordActual">Contraseña Actual</label>

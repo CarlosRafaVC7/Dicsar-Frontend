@@ -26,13 +26,23 @@
     </div>
 
     <div class="filtro-group">
+      <label>Buscar Producto:</label>
+      <input
+        type="text"
+        [(ngModel)]="productoSearchTerm"
+        (input)="paginaActualHistorial = 0"
+        placeholder="Nombre o código"
+        [disabled]="cargando" />
+    </div>
+
+    <div class="filtro-group">
       <label> Seleccionar Producto:</label>
       <select 
         [(ngModel)]="productoSeleccionadoId" 
         (change)="cargarHistorialPrecios()"
         [disabled]="cargando">
         <option [value]="null">-- Seleccione un producto --</option>
-        <option *ngFor="let p of productosFiltrados" [value]="p.idProducto">
+        <option *ngFor="let p of productosFiltrados" [ngValue]="p.idProducto">
           {{ p.nombre }} - {{ p.codigo }} (S/ {{ p.precioBase | number:'1.2-2' }})
         </option>
       </select>
@@ -93,7 +103,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let historial of historialPrecios; let i = index" 
+          <tr *ngFor="let historial of historialPagina; let i = index" 
               [class.ultimo-registro]="i === 0">
             <td class="fecha">{{ historial.fechaCambio | date:'dd/MM/yyyy HH:mm' }}</td>
             <td class="precio-anterior">S/ {{ historial.precioAnterior | number:'1.2-2' }}</td>
@@ -112,6 +122,29 @@
           </tr>
         </tbody>
       </table>
+
+      <div class="pagination" *ngIf="totalPaginasHistorial > 1">
+        <button class="page-btn" (click)="cambiarPaginaHistorial(paginaActualHistorial - 1)" [disabled]="paginaActualHistorial === 0 || cargando">
+          Anterior
+        </button>
+
+        <button
+          *ngFor="let page of paginasHistorialArray"
+          class="page-btn"
+          [class.active]="paginaActualHistorial === page - 1"
+          (click)="cambiarPaginaHistorial(page - 1)"
+          [disabled]="cargando">
+          {{ page }}
+        </button>
+
+        <button class="page-btn" (click)="cambiarPaginaHistorial(paginaActualHistorial + 1)" [disabled]="paginaActualHistorial === totalPaginasHistorial - 1 || cargando">
+          Siguiente
+        </button>
+      </div>
+
+      <div class="pagination-info" *ngIf="totalPaginasHistorial > 1">
+        Página {{ paginaActualHistorial + 1 }} de {{ totalPaginasHistorial }} ({{ totalRegistros }} registros)
+      </div>
     </div>
 
     <!-- SIN DATOS -->

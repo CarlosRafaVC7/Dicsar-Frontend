@@ -37,13 +37,16 @@
     </div>
 
     <div class="search-filter">
-      <input class="search" placeholder="Buscar por producto, código o descripción..." [(ngModel)]="searchMov" />
-      <select [(ngModel)]="filterTipo">
+      <input class="search" placeholder="Buscar por producto, código o descripción..." [(ngModel)]="searchMov"
+        (ngModelChange)="onFiltroHistorialChange()" />
+      <select [(ngModel)]="filterTipo" (ngModelChange)="onFiltroHistorialChange()">
         <option value="TODOS">Todos los tipos</option>
         <option value="ENTRADA">Entrada</option>
         <option value="SALIDA">Salida</option>
         <option value="AJUSTE">Ajuste</option>
       </select>
+      <input type="date" [(ngModel)]="fechaInicio" (ngModelChange)="onFiltroHistorialChange()" title="Desde" />
+      <input type="date" [(ngModel)]="fechaFin" (ngModelChange)="onFiltroHistorialChange()" title="Hasta" />
     </div>
   </div>
 
@@ -55,7 +58,7 @@
         <button class="close" (click)="cerrarModalMovimiento()">✖</button>
       </header>
 
-      <form class="product-modal-form" (ngSubmit)="registrarMovimiento()">
+      <form class="product-modal-form" (ngSubmit)="registrarMovimiento()" novalidate>
         <div class="field">
           <label>Categoría</label>
           <select [(ngModel)]="filtroCategoriaId" name="filtroCategoriaId">
@@ -77,7 +80,7 @@
           <select [(ngModel)]="nuevoMovimiento.tipoMovimiento" name="tipoMovimiento" required>
             <option value="ENTRADA">Entrada</option>
             <option value="SALIDA">Salida</option>
-            <option value="AJUSTE">Ajuste</option>
+            <option value="AJUSTE" *ngIf="isAdmin">Ajuste</option>
           </select>
         </div>
 
@@ -145,14 +148,21 @@
       </table>
 
       <!-- Paginación -->
-      <div class="pagination" *ngIf="totalPaginas > 1">
+      <div class="pagination" *ngIf="movimientosHistorialFiltrados.length > itemsPorPagina">
         <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">
           ← Anterior
+        </button>
+        <button *ngFor="let p of paginasArray" class="page-btn" [class.active]="p === paginaActual"
+          (click)="cambiarPagina(p)">
+          {{ p }}
         </button>
         <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
         <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">
           Siguiente →
         </button>
+      </div>
+      <div class="pagination-info" *ngIf="movimientosHistorialFiltrados.length > 0">
+        Mostrando {{ filteredMovimientos.length }} de {{ movimientosHistorialFiltrados.length }} movimientos
       </div>
     </div>
   </section>

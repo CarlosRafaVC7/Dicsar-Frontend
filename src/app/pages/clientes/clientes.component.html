@@ -461,7 +461,7 @@
       <button class="modal-close" (click)="cerrarModal()">×</button>
     </div>
 
-    <form [formGroup]="clienteForm" (ngSubmit)="guardarCliente()" class="modal-form">
+    <form [formGroup]="clienteForm" (ngSubmit)="guardarCliente()" class="modal-form" novalidate>
       <div class="form-row">
         <div class="form-group">
           <label for="nombre">Nombre *</label>

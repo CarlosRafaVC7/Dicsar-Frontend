@@ -161,7 +161,7 @@ export class ClientesComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error cargando clientes:', err);
-        this.mostrarAlerta('Error al cargar clientes', 'error');
+        this.mostrarAlerta(this.obtenerMensajeError(err, 'Error al cargar clientes'), 'error');
         this.loading = false;
       }
     });
@@ -430,6 +430,19 @@ export class ClientesComponent implements OnInit {
   }
 
   private obtenerMensajeError(error: any, mensajeDefault: string): string {
+    if (error?.status) {
+      switch (error.status) {
+        case 401:
+          return 'No autorizado. Por favor inicia sesión de nuevo.';
+        case 403:
+          return 'Acceso denegado. No tienes permiso para listar clientes.';
+        case 404:
+          return 'Recurso de clientes no encontrado.';
+        case 500:
+          return 'Error interno del servidor al cargar clientes.';
+      }
+    }
+
     if (error?.error?.message) {
       return error.error.message;
     }

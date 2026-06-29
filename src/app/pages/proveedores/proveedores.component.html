@@ -457,7 +457,7 @@
     </div>
     
     <div class="modal-body">
-      <form [formGroup]="proveedorForm" (ngSubmit)="guardarProveedor()">
+      <form [formGroup]="proveedorForm" (ngSubmit)="guardarProveedor()" novalidate>
         <div class="form-row">
           <div class="form-group full-width">
             <label for="razonSocial">Razón Social *</label>
