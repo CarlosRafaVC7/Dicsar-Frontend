@@ -182,6 +182,10 @@
           <input type="date" [(ngModel)]="fechaFin" (change)="aplicarFiltros()">
         </div>
         <div class="filtro-group">
+          <label>Buscar:</label>
+          <input type="text" [(ngModel)]="searchMov" (ngModelChange)="aplicarFiltros()" placeholder="Buscar por producto, código o descripción" />
+        </div>
+        <div class="filtro-group">
           <label>Tipo:</label>
           <select [(ngModel)]="filterTipo" (change)="aplicarFiltros()">
             <option value="TODOS">Todos</option>
@@ -274,7 +278,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let m of movimientosFiltrados">
+          <tr *ngFor="let m of filteredMovimientos">
             <td>{{ m.idMovimiento }}</td>
             <td>{{ m.fechaMovimiento | date:'dd/MM/yyyy, HH:mm' }}</td>
             <td>{{ m.producto.nombre }}</td>
@@ -294,21 +298,17 @@
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <!-- Mensaje si no hay resultados -->
-    <div class="no-data" *ngIf="movimientosFiltrados.length === 0 && (fechaInicio || fechaFin)">
-      <span class="icon">📭</span>
-      <h4>No hay movimientos</h4>
-      <p>No se encontraron movimientos en el período seleccionado.</p>
-      <button class="btn-limpiar" (click)="limpiarFiltros()">Ver todos los movimientos</button>
-    </div>
-
-    <!-- Instrucciones iniciales -->
-    <div class="no-data" *ngIf="movimientosFiltrados.length === 0 && !fechaInicio && !fechaFin">
-      <span class="icon">📅</span>
-      <h4>Selecciona un rango de fechas</h4>
-      <p>Elige un período para generar el reporte de movimientos.</p>
+      <div class="pagination" *ngIf="movimientosHistorialFiltrados.length > itemsPorPagina">
+        <button class="page-btn" [disabled]="paginaActual === 1" (click)="cambiarPagina(paginaActual - 1)">← Anterior</button>
+        <button *ngFor="let p of paginasArray" class="page-btn" [class.active]="p === paginaActual" (click)="cambiarPagina(p)">
+          {{ p }}
+        </button>
+        <button class="page-btn" [disabled]="paginaActual === totalPaginas" (click)="cambiarPagina(paginaActual + 1)">Siguiente →</button>
+      </div>
+      <div class="pagination-info" *ngIf="movimientosHistorialFiltrados.length > 0">
+        Mostrando {{ filteredMovimientos.length }} de {{ movimientosHistorialFiltrados.length }} movimientos
+      </div>
     </div>
   </section>
 
