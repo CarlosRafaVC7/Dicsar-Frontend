@@ -135,16 +135,24 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
   }
 
   guardarProveedor(): void {
+    const proveedor: Proveedor = this.proveedorForm.value;
+    const idProveedor = this.editandoProveedor?.idProveedor ?? proveedor.idProveedor;
+
+    if (this.existeRucRegistrado(proveedor.ruc, idProveedor)) {
+      this.proveedorForm.get('ruc')?.setErrors({ rucDuplicado: true });
+      this.proveedorForm.get('ruc')?.markAsTouched();
+      this.mostrarAlerta('El RUC ingresado ya existe en otro proveedor', 'error');
+      return;
+    }
+
     if (this.proveedorForm.invalid) {
       this.marcarCamposComoTocados();
       this.mostrarAlerta('Por favor complete todos los campos obligatorios correctamente', 'error');
       return;
     }
 
-    const proveedor: Proveedor = this.proveedorForm.value;
-
-    if (this.editandoProveedor && proveedor.idProveedor) {
-      this.proveedorService.actualizar(proveedor.idProveedor, proveedor).subscribe({
+    if (this.editandoProveedor && idProveedor) {
+      this.proveedorService.actualizar(idProveedor, { ...proveedor, idProveedor }).subscribe({
         next: () => {
           this.mostrarAlerta('Proveedor actualizado correctamente', 'exito');
           this.cerrarModalProveedor();
@@ -203,19 +211,11 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
 
   // ==================== BÚSQUEDA Y FILTROS ====================
   onBuscar(): void {
-    // Si el filtro está en "inactivos", cambiar a "todos" para ver la tabla principal
-    if (this.filtroEstado === 'inactivos') {
-      this.filtroEstado = 'todos';
-    }
     this.paginaActualProveedores = 1;
     this.actualizarPaginacionProveedores();
   }
 
   onFiltroEstadoChange(): void {
-    // Si selecciona "inactivos", cambiar a "todos" (los inactivos se ven en la sección separada)
-    if (this.filtroEstado === 'inactivos') {
-      this.filtroEstado = 'todos';
-    }
     this.paginaActualProveedores = 1;
     this.actualizarPaginacionProveedores();
   }
@@ -242,13 +242,17 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
   getProveedoresFiltrados(): Proveedor[] {
     const busqueda = (this.busqueda || '').toLowerCase().trim();
     
-    let filtered = this.proveedores.filter(p => {
+    const filtered = this.proveedores.filter(p => {
       const matchesBusqueda = !busqueda ||
         p.razonSocial?.toLowerCase().includes(busqueda) ||
         p.ruc?.toLowerCase().includes(busqueda);
-      
-      // Solo mostrar activos en la tabla principal
-      return matchesBusqueda && p.estado === true;
+
+      const matchesEstado =
+        this.filtroEstado === 'todos' ||
+        (this.filtroEstado === 'activos' && p.estado === true) ||
+        (this.filtroEstado === 'inactivos' && p.estado === false);
+
+      return matchesBusqueda && matchesEstado;
     });
 
     return filtered;
@@ -507,6 +511,9 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
         return 'El RUC debe tener 11 dígitos y comenzar con 10, 15, 16, 17 o 20';
       }
     }
+    if (control.hasError('rucDuplicado')) {
+      return 'Este RUC ya esta registrado';
+    }
     if (control.hasError('minlength')) {
       const minLength = control.getError('minlength').requiredLength;
       return `Mínimo ${minLength} caracteres`;
@@ -516,6 +523,16 @@ export class ProveedoresComponent implements OnInit, AfterViewInit {
       return `Máximo ${maxLength} caracteres`;
     }
     return '';
+  }
+
+  private existeRucRegistrado(ruc?: string, idProveedorActual?: number): boolean {
+    const rucNormalizado = (ruc || '').trim();
+    if (!rucNormalizado) return false;
+
+    return this.proveedores.some(p =>
+      (p.ruc || '').trim() === rucNormalizado &&
+      p.idProveedor !== idProveedorActual
+    );
   }
 
   exportarProveedoresPDF(): void {
