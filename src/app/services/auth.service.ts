@@ -4,6 +4,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { LoginRequest, AuthResponse } from '../models/auth.model';
 import { environment } from '../../environments/environment';
+import { ToastService } from './toast.service';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +14,7 @@ export class AuthService {
   private currentUserSubject: BehaviorSubject<AuthResponse | null>;
   public currentUser: Observable<AuthResponse | null>;
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private toastService: ToastService) {
     const storedUser = localStorage.getItem('currentUser');
     this.currentUserSubject = new BehaviorSubject<AuthResponse | null>(
       storedUser ? JSON.parse(storedUser) : null
@@ -47,6 +48,7 @@ export class AuthService {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('token');
     this.currentUserSubject.next(null);
+    this.toastService.success('Sesión cerrada correctamente');
   }
 
   getToken(): string | null {
@@ -61,6 +63,7 @@ export class AuthService {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const expirationDate = new Date(payload.exp * 1000);
       if (expirationDate <= new Date()) {
+        this.toastService.info('Tu sesión ha expirado');
         this.logout();
         return false;
       }

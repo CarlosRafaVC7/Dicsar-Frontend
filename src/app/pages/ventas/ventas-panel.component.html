@@ -41,6 +41,14 @@
           <option value="anuladas">Anuladas</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label>Fecha Desde</label>
+        <input type="date" [(ngModel)]="fechaDesde" (ngModelChange)="filtrarVentas()" class="filter-date">
+      </div>
+      <div class="filter-group">
+        <label>Fecha Hasta</label>
+        <input type="date" [(ngModel)]="fechaHasta" (ngModelChange)="filtrarVentas()" class="filter-date">
+      </div>
       <div class="export-buttons">
         <button class="btn-export excel" (click)="exportarExcel()" title="Exportar a Excel">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -70,35 +78,97 @@
       <table class="tabla">
         <thead>
           <tr>
-            <th>ID</th>
+            <th width="40"></th>
+            <th>Comprobante</th>
             <th>Cliente</th>
-            <th>Producto</th>
-            <th class="text-center">Cant.</th>
-            <th class="text-right">P. Unit.</th>
             <th class="text-right">Total</th>
-            <th class="text-center">Tipo Doc.</th>
-            <th>Fecha</th>
             <th class="text-center">Estado</th>
+            <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let venta of ventasFiltradas" [class.anulada]="!venta.estado">
-            <td><strong>#{{ venta.idVenta }}</strong></td>
-            <td class="client-name">{{ venta.cliente?.nombre }} {{ venta.cliente?.apellidos }}</td>
-            <td>{{ venta.producto?.nombre }}</td>
-            <td class="text-center">{{ venta.cantidad }}</td>
-            <td class="text-right">{{ formatearMoneda(venta.precioUnitario) }}</td>
-            <td class="text-right"><strong>{{ formatearMoneda(venta.total) }}</strong></td>
-            <td class="text-center">{{ venta.tipoDocumento }}</td>
-            <td>{{ venta.fechaVenta | date: 'dd/MM/yyyy HH:mm' }}</td>
-            <td class="text-center">
-              <span class="badge" [ngClass]="venta.estado ? 'badge-success' : 'badge-danger'">
-                {{ venta.estado ? 'Activa' : 'Anulada' }}
-              </span>
-            </td>
-          </tr>
+          <ng-container *ngFor="let venta of ventasFiltradas">
+            <tr [class.anulada]="!venta.estado" [class.expanded]="expandedVentaId === venta.idVenta" 
+                (click)="toggleExpandir(venta.idVenta, $event)" class="row-main">
+              <td class="text-center expand-cell">
+                <span class="expand-icon">{{ expandedVentaId === venta.idVenta ? '▼' : '▶' }}</span>
+              </td>
+              <td>
+                <div class="comprobante-info">
+                  <strong>#{{ venta.comprobanteNumero || venta.idVenta }}</strong>
+                  <span class="date-small">{{ venta.fechaVenta | date: 'dd/MM/yyyy' }}</span>
+                </div>
+              </td>
+              <td class="client-name">{{ venta.cliente?.nombre }} {{ venta.cliente?.apellidos }}</td>
+              <td class="text-right"><strong class="total-main">{{ formatearMoneda(venta.total) }}</strong></td>
+              <td class="text-center">
+                <span class="badge" [ngClass]="venta.estado ? 'badge-success' : 'badge-danger'">
+                  {{ venta.estado ? 'Activa' : 'Anulada' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <div class="dropdown">
+                  <button class="action-btn" (click)="toggleMenu(venta.idVenta); $event.stopPropagation()">
+                    ⋮
+                  </button>
+                  <div class="dropdown-menu" *ngIf="openMenuId === venta.idVenta">
+                    <button class="dropdown-item" (click)="descargarComprobante(venta); openMenuId = null">
+                      <span>📄</span> Descargar PDF
+                    </button>
+                    <button class="dropdown-item" (click)="imprimirComprobante(venta); openMenuId = null">
+                      <span>🖨️</span> Imprimir
+                    </button>
+                    <button class="dropdown-item" (click)="exportarHistorialClienteExcel(venta); openMenuId = null">
+                      <span>📊</span> Historial Excel
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <!-- Fila Expandible -->
+            <tr *ngIf="expandedVentaId === venta.idVenta" class="row-details">
+              <td colspan="6">
+                <div class="details-content">
+                  <div class="details-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">ID Venta:</span>
+                      <span class="detail-value">#{{ venta.idVenta }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Producto:</span>
+                      <span class="detail-value">{{ venta.producto?.nombre }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Cantidad:</span>
+                      <span class="detail-value">{{ venta.cantidad }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Precio Unitario:</span>
+                      <span class="detail-value">{{ formatearMoneda(venta.precioUnitario) }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Subtotal:</span>
+                      <span class="detail-value">{{ formatearMoneda(venta.subtotal ?? calcularSubtotal(venta)) }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">IGV:</span>
+                      <span class="detail-value">{{ formatearMoneda(venta.igv ?? calcularIgv(venta)) }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Tipo Documento:</span>
+                      <span class="detail-value">{{ venta.tipoDocumento }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Fecha y Hora:</span>
+                      <span class="detail-value">{{ venta.fechaVenta | date: 'dd/MM/yyyy HH:mm:ss' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
           <tr *ngIf="ventasFiltradas.length === 0">
-            <td colspan="9" class="no-data">
+            <td colspan="6" class="no-data">
               <div class="empty-state">
                 <div class="empty-icon">📦</div>
                 <p>No hay ventas para mostrar en este período</p>

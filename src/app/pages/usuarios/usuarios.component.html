@@ -58,7 +58,7 @@
           <td class="status-cell">
             <div class="status-toggle">
               <label class="toggle-switch">
-                <input type="checkbox" [checked]="u.activo" (change)="toggleEstadoUsuario(u)">
+                <input type="checkbox" [checked]="u.activo" [disabled]="esAdminPrincipal(u)" (change)="toggleEstadoUsuario(u)">
                 <span class="slider"></span>
               </label>
               <span class="status-text" [class.active]="u.activo">
@@ -67,7 +67,7 @@
             </div>
           </td>
           <td class="actions-cell">
-            <button class="btn-edit" (click)="editarUsuario(u)" title="Editar">
+            <button class="btn-edit" (click)="editarUsuario(u)" [disabled]="esAdminPrincipal(u)" [title]="esAdminPrincipal(u) ? 'Admin intocable' : 'Editar'">
               ✏️
             </button>
           </td>

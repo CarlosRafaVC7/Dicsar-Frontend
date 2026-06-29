@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { RolDTO } from '../models/rol.model';
 
+export type Rol = RolDTO;
+
 @Injectable({
   providedIn: 'root'
 })

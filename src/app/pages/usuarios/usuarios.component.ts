@@ -114,11 +114,18 @@ export class UsuariosComponent implements OnInit {
 
   abrirModalUsuario(): void {
     this.editandoUsuario = null;
+    this.usuarioForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
+    this.usuarioForm.get('password')?.updateValueAndValidity();
     this.usuarioForm.reset({ rol: 'VENDEDOR', activo: true });
     this.mostrarModalUsuario = true;
   }
 
   editarUsuario(usuario: Usuario): void {
+    if (this.esAdminPrincipal(usuario)) {
+      this.toastService.info('El usuario admin es intocable');
+      return;
+    }
+
     this.editandoUsuario = usuario;
     this.usuarioForm.patchValue({
       username: usuario.username,
@@ -138,6 +145,7 @@ export class UsuariosComponent implements OnInit {
     this.usuarioForm.reset();
     // Restaurar validador de password
     this.usuarioForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
+    this.usuarioForm.get('password')?.updateValueAndValidity();
   }
 
   guardarUsuario(): void {
@@ -147,9 +155,15 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
-    const usuario = this.usuarioForm.value;
-
     if (this.editandoUsuario?.idUsuario) {
+      if (this.esAdminPrincipal(this.editandoUsuario)) {
+        this.toastService.info('El usuario admin es intocable');
+        return;
+      }
+
+      const { username, nombreCompleto, rol, activo } = this.usuarioForm.value;
+      const usuario: Partial<Usuario> = { username, nombreCompleto, rol, activo };
+
       // Editar
       this.usuarioService.actualizar(this.editandoUsuario.idUsuario, usuario).subscribe({
         next: () => {
@@ -163,6 +177,8 @@ export class UsuariosComponent implements OnInit {
         }
       });
     } else {
+      const usuario: Usuario = this.usuarioForm.value;
+
       // Crear
       this.usuarioService.crear(usuario).subscribe({
         next: () => {
@@ -179,6 +195,12 @@ export class UsuariosComponent implements OnInit {
   }
 
   eliminarUsuario(id: number): void {
+    const usuario = this.usuarios.find(u => u.idUsuario === id);
+    if (usuario && this.esAdminPrincipal(usuario)) {
+      this.toastService.info('El usuario admin es intocable');
+      return;
+    }
+
     if (confirm('¿Estás seguro de eliminar este usuario?')) {
       this.usuarioService.eliminar(id).subscribe({
         next: () => {
@@ -195,6 +217,10 @@ export class UsuariosComponent implements OnInit {
 
   toggleEstadoUsuario(usuario: Usuario): void {
     if (!usuario.idUsuario) return;
+    if (this.esAdminPrincipal(usuario)) {
+      this.toastService.info('El usuario admin es intocable');
+      return;
+    }
 
     const nuevoEstado = !usuario.activo;
     this.usuarioService.actualizar(usuario.idUsuario, { ...usuario, activo: nuevoEstado }).subscribe({
@@ -293,5 +319,9 @@ export class UsuariosComponent implements OnInit {
       this.sortField = campo;
       this.sortDirection = 'asc';
     }
+  }
+
+  esAdminPrincipal(usuario: Usuario): boolean {
+    return usuario.username?.trim().toLowerCase() === 'admin';
   }
 }

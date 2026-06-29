@@ -67,7 +67,7 @@
       </div>
       
       <div class="filter-group">
-        <select [(ngModel)]="filtroEstado" (change)="onBuscar()" class="filter-select">
+        <select [(ngModel)]="filtroEstado" (change)="onFiltroEstadoChange()" class="filter-select">
           <option value="todos">Todos los estados</option>
           <option value="activos">Solo Activos</option>
           <option value="inactivos">Solo Inactivos</option>

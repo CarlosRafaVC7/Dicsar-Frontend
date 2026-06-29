@@ -12,6 +12,8 @@ import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { MiperfilComponent } from './seguridad/navbar/miperfil/miperfil.component';
 import { CambiarcontrasenaComponent } from './seguridad/navbar/cambiarcontrasena/cambiarcontrasena.component';
 import { HistorialPreciosComponent } from './pages/historial-precios/historial-precios.component';
+import { RolesComponent } from './pages/roles/roles.component';
+import { HistorialComprasComponent } from './historial-compras/historial-compras.component';
 import { VistaNoEncontradaComponent } from './shared/vista-no-encontrada/vista-no-encontrada.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
@@ -71,6 +73,16 @@ export const appRoutes: Routes = [
     path: 'usuarios',
     component: UsuariosComponent,
     canActivate: [authGuard, adminGuard]
+  },
+  {
+    path: 'roles',
+    component: RolesComponent,
+    canActivate: [authGuard, adminGuard]
+  },
+  {
+    path: 'historial-compras/:clienteId',
+    component: HistorialComprasComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'mi-perfil',

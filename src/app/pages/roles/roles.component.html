@@ -1,71 +1,77 @@
-<div class="container-fluid mt-4">
+<div class="roles-container">
   <!-- Header -->
-  <div class="header-section">
-    <div>
-      <h1 class="title">Gestión de Roles</h1>
-      <p class="subtitle">Administra los roles del sistema</p>
+  <div class="roles-header">
+    <div class="header-info">
+      <h1>Gestión de Roles</h1>
+      <p class="subtitle">Administra los roles y permisos del sistema</p>
     </div>
-    <button class="btn btn-primary" (click)="abrirModal()" [disabled]="loading">
-      <i class="bi bi-plus-lg"></i> Nuevo Rol
+    <button class="btn-primary" (click)="abrirModal()" [disabled]="loading">
+      <span>➕</span> Nuevo Rol
     </button>
   </div>
 
-  <!-- Búsqueda -->
-  <div class="search-section">
+  <!-- Búsqueda y Filtros -->
+  <div class="controls-grid">
     <div class="search-box">
-      <i class="bi bi-search"></i>
-      <input type="text" placeholder="Buscar rol..." [(ngModel)]="search" class="search-input">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Buscar rol por nombre o descripción..." 
+        [(ngModel)]="search" class="search-input" aria-label="Buscar rol">
     </div>
     <div class="search-info">
-      Mostrando {{ rolesVisibles.length }} de {{ rolesFiltrados.length }} roles
+      Mostrando <strong>{{ rolesVisibles.length }}</strong> de {{ rolesFiltrados.length }} roles
     </div>
   </div>
 
   <!-- Alertas -->
-  <div *ngIf="alertaVisible" [ngClass]="'alert alert-' + alertaTipo" role="alert">
-    {{ alertaMensaje }}
-    <button type="button" class="btn-close" (click)="alertaVisible = false"></button>
+  <div *ngIf="alertaVisible" class="alert" [ngClass]="'alert-' + alertaTipo" role="alert">
+    <div class="alert-content">
+      <span class="alert-icon">{{ alertaTipo === 'exito' ? '✅' : '⚠️' }}</span>
+      {{ alertaMensaje }}
+    </div>
+    <button type="button" class="btn-close" (click)="alertaVisible = false">×</button>
   </div>
 
   <!-- Tabla de Roles -->
-  <div class="table-section" *ngIf="!loading && !errorCargando; else loadingTemplate">
-    <div *ngIf="errorCargando" class="error-message">
-      <strong>❌ Error:</strong> {{ mensajeError }}
-    </div>
-
-    <div class="table-wrapper" *ngIf="!errorCargando">
-      <table class="table table-hover">
-        <thead class="table-header">
+  <div class="table-container" *ngIf="!loading && !errorCargando; else loadingTemplate">
+    <div class="table-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
             <th>ID</th>
             <th>Nombre</th>
             <th>Descripción</th>
-            <th>Estado</th>
-            <th class="text-end">Acciones</th>
+            <th>Permisos</th>
+            <th class="text-center">Estado</th>
+            <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody *ngIf="rolesVisibles.length > 0; else emptyTemplate">
-          <tr *ngFor="let rol of rolesVisibles" class="table-row">
+          <tr *ngFor="let rol of rolesVisibles">
             <td><strong>#{{ rol.idRol }}</strong></td>
-            <td>{{ rol.nombre }}</td>
-            <td>{{ rol.descripcion }}</td>
+            <td class="role-name">{{ rol.nombre }}</td>
+            <td class="role-desc">{{ rol.descripcion }}</td>
             <td>
-              <span *ngIf="rol.activo" class="badge badge-success">
-                <i class="bi bi-check-circle"></i> Activo
-              </span>
-              <span *ngIf="!rol.activo" class="badge badge-danger">
-                <i class="bi bi-x-circle"></i> Inactivo
+              <div class="permisos-list">
+                <span *ngFor="let p of (rol.permisos ? rol.permisos.split(',') : [])" 
+                      class="badge-permiso">
+                  {{ getPermisoLabel(p) }}
+                </span>
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="badge" [ngClass]="rol.activo ? 'badge-success' : 'badge-danger'">
+                {{ rol.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-warning me-2" (click)="editarRol(rol)" [disabled]="loading"
-                title="Editar rol">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="btn btn-sm btn-danger" (click)="eliminarRol(rol.idRol!, rol.nombre)" [disabled]="loading"
-                title="Eliminar rol">
-                <i class="bi bi-trash"></i>
-              </button>
+            <td class="text-center">
+              <div class="action-buttons">
+                <button class="action-btn edit" (click)="editarRol(rol)" [disabled]="loading" title="Editar rol">
+                  <span>✏️</span>
+                </button>
+                <button class="action-btn delete" (click)="eliminarRol(rol.idRol!, rol.nombre, rol.activo)" [disabled]="loading || rol.activo" title="Eliminar rol">
+                  <span>🗑️</span>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -74,109 +80,102 @@
 
     <ng-template #emptyTemplate>
       <div class="empty-state">
-        <div class="empty-icon">
-          <i class="bi bi-inbox"></i>
-        </div>
-        <p class="empty-text">No se encontraron roles</p>
+        <div class="empty-icon">📂</div>
+        <p>No se encontraron roles que coincidan con la búsqueda</p>
       </div>
     </ng-template>
   </div>
 
-  <!-- Loading -->
+  <!-- Loading Template -->
   <ng-template #loadingTemplate>
-    <div class="loading-state">
-      <div class="spinner-border" role="status">
-        <span class="sr-only">Cargando...</span>
-      </div>
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner"></div>
       <p>Cargando roles...</p>
+    </div>
+    <div class="error-state" *ngIf="errorCargando">
+      <div class="error-icon">❌</div>
+      <p>{{ mensajeError }}</p>
+      <button class="btn-secondary" (click)="cargarRoles()">Reintentar</button>
     </div>
   </ng-template>
 
   <!-- Paginación -->
-  <div class="pagination-section" *ngIf="totalPaginas > 1">
-    <nav>
-      <ul class="pagination">
-        <li class="page-item" [class.disabled]="paginaActual === 1">
-          <a class="page-link" (click)="cambiarPagina(paginaActual - 1)"
-            [class.disabled]="paginaActual === 1">Anterior</a>
-        </li>
-        <li *ngFor="let pagina of paginasDisponibles" class="page-item" [class.active]="pagina === paginaActual">
-          <a class="page-link" (click)="cambiarPagina(pagina)">{{ pagina }}</a>
-        </li>
-        <li class="page-item" [class.disabled]="paginaActual === totalPaginas">
-          <a class="page-link" (click)="cambiarPagina(paginaActual + 1)"
-            [class.disabled]="paginaActual === totalPaginas">Siguiente</a>
-        </li>
-      </ul>
-    </nav>
+  <div class="pagination" *ngIf="totalPaginas > 1">
+    <button (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1" class="page-btn">
+      ← Anterior
+    </button>
+    <span class="page-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+    <button (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas" class="page-btn">
+      Siguiente →
+    </button>
   </div>
 </div>
 
 <!-- Modal Crear/Editar Rol -->
-<div class="modal" [class.show]="mostrarModal" [style.display]="mostrarModal ? 'block' : 'none'">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i [class]="editandoRol ? 'bi bi-pencil' : 'bi bi-plus-lg'"></i>
-          {{ editandoRol ? 'Editar Rol' : 'Nuevo Rol' }}
-        </h5>
-        <button type="button" class="btn-close" (click)="cerrarModal()"></button>
+<div class="modal-overlay" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ editandoRol ? 'Editar Rol' : 'Nuevo Rol' }}</h3>
+      <button class="close-btn" (click)="cerrarModal()">×</button>
+    </div>
+
+    <form [formGroup]="rolForm" (ngSubmit)="guardarRol()" class="modal-form">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nombre">Nombre del Rol <span class="required">*</span></label>
+            <input type="text" id="nombre" formControlName="nombre" placeholder="Ej: Administrador"
+              [class.error]="rolForm.get('nombre')?.invalid && rolForm.get('nombre')?.touched">
+            <span class="error-text" *ngIf="rolForm.get('nombre')?.invalid && rolForm.get('nombre')?.touched">
+              El nombre es requerido (mín. 3 caracteres)
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="descripcion">Descripción <span class="required">*</span></label>
+            <textarea id="descripcion" formControlName="descripcion" rows="3" 
+              placeholder="Breve descripción de las funciones del rol"
+              [class.error]="rolForm.get('descripcion')?.invalid && rolForm.get('descripcion')?.touched"></textarea>
+            <span class="error-text" *ngIf="rolForm.get('descripcion')?.invalid && rolForm.get('descripcion')?.touched">
+              La descripción es requerida
+            </span>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="switch">
+              <input type="checkbox" formControlName="activo">
+              <span class="slider round"></span>
+            </label>
+            <span>Rol Activo</span>
+          </div>
+        </div>
+
+        <div class="permisos-section">
+          <div class="permisos-header">
+            <label>Permisos de Acceso</label>
+            <button type="button" class="btn-text" (click)="toggleTodosPermisos()">
+              {{ permisosSeleccionados.length === permisosDisponibles.length ? 'Deseleccionar Todo' : 'Seleccionar Todo' }}
+            </button>
+          </div>
+          <div class="permisos-grid">
+            <div *ngFor="let permiso of permisosDisponibles" 
+                 class="permiso-item"
+                 [class.selected]="permisosSeleccionados.includes(permiso.id)"
+                 (click)="togglePermiso(permiso.id)">
+              <i class="bi {{ permiso.icon }}"></i>
+              <span>{{ permiso.label }}</span>
+              <div class="check-icon" *ngIf="permisosSeleccionados.includes(permiso.id)">✓</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <form [formGroup]="rolForm" (ngSubmit)="guardarRol()" class="modal-form" novalidate>
-        <div class="modal-body">
-          <!-- Nombre -->
-          <div class="mb-3">
-            <label for="nombre" class="form-label">
-              Nombre <span class="required">*</span>
-            </label>
-            <input type="text" id="nombre" class="form-control" formControlName="nombre" placeholder="Ej: Administrador"
-              [class.is-invalid]="rolForm.get('nombre')?.invalid && rolForm.get('nombre')?.touched">
-            <div class="invalid-feedback" *ngIf="rolForm.get('nombre')?.invalid && rolForm.get('nombre')?.touched">
-              <span *ngIf="rolForm.get('nombre')?.errors?.['required']">El nombre es requerido</span>
-              <span *ngIf="rolForm.get('nombre')?.errors?.['minlength']">Mínimo 3 caracteres</span>
-            </div>
-          </div>
-
-          <!-- Descripción -->
-          <div class="mb-3">
-            <label for="descripcion" class="form-label">
-              Descripción <span class="required">*</span>
-            </label>
-            <textarea id="descripcion" class="form-control" formControlName="descripcion"
-              placeholder="Describe las funciones de este rol" rows="4"
-              [class.is-invalid]="rolForm.get('descripcion')?.invalid && rolForm.get('descripcion')?.touched"></textarea>
-            <div class="invalid-feedback"
-              *ngIf="rolForm.get('descripcion')?.invalid && rolForm.get('descripcion')?.touched">
-              <span *ngIf="rolForm.get('descripcion')?.errors?.['required']">La descripción es requerida</span>
-            </div>
-          </div>
-
-          <!-- Estado -->
-          <div class="mb-3">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="activo" formControlName="activo">
-              <label class="form-check-label" for="activo">
-                Rol Activo
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="cerrarModal()" [disabled]="loading">
-            Cancelar
-          </button>
-          <button type="submit" class="btn btn-primary" [disabled]="rolForm.invalid || loading">
-            <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
-            {{ editandoRol ? 'Guardar Cambios' : 'Crear Rol' }}
-          </button>
-        </div>
-      </form>
-    </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="rolForm.invalid || loading">
+          {{ loading ? 'Guardando...' : (editandoRol ? 'Actualizar Rol' : 'Crear Rol') }}
+        </button>
+      </div>
+    </form>
   </div>
 </div>
-
-<!-- Backdrop del modal -->
-<div class="modal-backdrop fade" [class.show]="mostrarModal" *ngIf="mostrarModal" (click)="cerrarModal()"></div>
