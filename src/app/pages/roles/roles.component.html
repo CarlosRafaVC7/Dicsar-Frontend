@@ -124,7 +124,7 @@
         <button type="button" class="btn-close" (click)="cerrarModal()"></button>
       </div>
 
-      <form [formGroup]="rolForm" (ngSubmit)="guardarRol()" class="modal-form">
+      <form [formGroup]="rolForm" (ngSubmit)="guardarRol()" class="modal-form" novalidate>
         <div class="modal-body">
           <!-- Nombre -->
           <div class="mb-3">

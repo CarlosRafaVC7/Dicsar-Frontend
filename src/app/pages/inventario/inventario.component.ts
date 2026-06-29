@@ -92,6 +92,18 @@ export class InventarioComponent implements OnInit {
     private authService: AuthService
   ) { }
 
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  private bloquearSiNoEsAdmin(accion: string): boolean {
+    if (this.isAdmin) {
+      return false;
+    }
+    this.mostrarAlerta(`No tienes permiso para ${accion}.`, 'error');
+    return true;
+  }
+
 
 
   get minDate(): string {
@@ -153,18 +165,27 @@ export class InventarioComponent implements OnInit {
 
   private obtenerMensajeError(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'Error al conectar con el servidor';
+      }
+      if (error.status === 403) {
+        return 'No tiene permisos para realizar esta acción';
+      }
+      if (error.status === 500) {
+        return 'Error interno del servidor';
+      }
+      if (error.status === 400) {
+        return 'Datos inválidos';
+      }
       if (typeof error.error === 'string' && error.error.trim()) {
         return error.error;
       }
-
       if (error.error?.message) {
         return error.error.message;
       }
-
       if (error.error?.error) {
         return error.error.error;
       }
-
       if (error.message) {
         return error.message;
       }
@@ -190,6 +211,17 @@ export class InventarioComponent implements OnInit {
   }
 
   guardarCategoria(): void {
+    if (this.bloquearSiNoEsAdmin('crear o editar categorías')) {
+      return;
+    }
+
+    if (!this.nuevaCategoria.nombre || this.nuevaCategoria.nombre.trim() === '') {
+      this.toastService.error('El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    this.nuevaCategoria.nombre = this.nuevaCategoria.nombre.trim();
+
     if (this.editandoCategoria) {
       this.categoriaService.actualizar(this.editandoCategoria.idCategoria!, this.nuevaCategoria)
         .subscribe({
@@ -215,6 +247,9 @@ export class InventarioComponent implements OnInit {
   }
 
   editarCategoria(c: Categoria) {
+    if (this.bloquearSiNoEsAdmin('editar categorías')) {
+      return;
+    }
     this.editandoCategoria = c;
     this.nuevaCategoria = { ...c };
   }
@@ -248,13 +283,30 @@ export class InventarioComponent implements OnInit {
   }
 
   guardarUnidad() {
+    if (this.bloquearSiNoEsAdmin('crear o editar tipos')) {
+      return;
+    }
+
+    if (!this.nuevaUnidad.nombre || this.nuevaUnidad.nombre.trim() === '') {
+      this.toastService.error('El nombre del tipo es obligatorio');
+      return;
+    }
+
+    if (!this.nuevaUnidad.abreviatura || this.nuevaUnidad.abreviatura.trim() === '') {
+      this.toastService.error('La abreviatura o unidad es obligatoria');
+      return;
+    }
+
+    this.nuevaUnidad.nombre = this.nuevaUnidad.nombre.trim();
+    this.nuevaUnidad.abreviatura = this.nuevaUnidad.abreviatura.trim();
+
     if (this.editandoUnidad) {
       this.unidadMedService.actualizar(this.editandoUnidad.idUnidadMed!, this.nuevaUnidad).subscribe({
         next: () => {
           this.cargarUnidades();
           this.cancelarEdicionUnidad();
           this.cerrarModalUnidad();
-          this.mostrarAlerta('Tipo actualizado correctamente', 'exito');
+          this.mostrarAlerta('Tipo/unidad actualizada correctamente', 'exito');
         },
         error: (err) => this.mostrarAlerta(err.error?.message || 'Error al actualizar unidad', 'error')
       });
@@ -264,7 +316,7 @@ export class InventarioComponent implements OnInit {
           this.cargarUnidades();
           this.nuevaUnidad = { nombre: '', abreviatura: '' };
           this.cerrarModalUnidad();
-          this.mostrarAlerta('Tipo creado correctamente', 'exito');
+          this.mostrarAlerta('Tipo/unidad creada correctamente', 'exito');
         },
         error: (err) => this.mostrarAlerta(err.error?.message || 'Error al crear unidad', 'error')
       });
@@ -272,6 +324,9 @@ export class InventarioComponent implements OnInit {
   }
 
   editarUnidad(u: UnidadMed) {
+    if (this.bloquearSiNoEsAdmin('editar tipos')) {
+      return;
+    }
     this.editandoUnidad = u;
     this.nuevaUnidad = { ...u };
   }
@@ -456,21 +511,35 @@ export class InventarioComponent implements OnInit {
   }
 
   guardarProducto() {
+    if (this.bloquearSiNoEsAdmin('crear o editar productos')) {
+      return;
+    }
+
     console.log('💾 Intentando guardar producto:', this.nuevoProducto);
     console.log('💾 Modo edición:', this.editandoProducto ? 'SÍ' : 'NO');
 
     if (!this.nuevoProducto.categoriaId || this.nuevoProducto.categoriaId === 0) {
-      this.mostrarAlerta('❌ La Categoría es obligatoria', 'error');
+      this.toastService.error('Debe seleccionar una categoría');
       return;
     }
     if (!this.nuevoProducto.unidadMedidaId || this.nuevoProducto.unidadMedidaId === 0) {
-      this.mostrarAlerta('❌ El Tipo es obligatorio', 'error');
+      this.toastService.error('Debe seleccionar un tipo o unidad');
       return;
     }
     if (!this.nuevoProducto.nombre || this.nuevoProducto.nombre.trim() === '') {
-      this.mostrarAlerta('❌ El Nombre del producto es obligatorio', 'error');
+      this.toastService.error('El nombre del producto es obligatorio');
       return;
     }
+    if (this.nuevoProducto.precioBase === null || this.nuevoProducto.precioBase === undefined || this.nuevoProducto.precioBase <= 0) {
+      this.toastService.error('El precio debe ser mayor que 0');
+      return;
+    }
+    if (this.nuevoProducto.stockActual === null || this.nuevoProducto.stockActual === undefined || this.nuevoProducto.stockActual < 0) {
+      this.toastService.error('El stock no puede ser negativo');
+      return;
+    }
+
+    this.nuevoProducto.nombre = this.nuevoProducto.nombre.trim();
 
     // 🔧 ASEGURAR QUE EL ESTADO ESTÉ DEFINIDO
     if (this.nuevoProducto.estado === undefined) {
@@ -508,7 +577,7 @@ export class InventarioComponent implements OnInit {
           this.cargarProductos();
           this.nuevoProducto = this.resetProducto();
           this.cerrarModalProducto();
-          this.mostrarAlerta('✅ Producto creado correctamente (Estado: Activo)', 'exito');
+          this.mostrarAlerta('Producto creado correctamente', 'exito');
         },
         error: (err) => {
           console.error('❌ Error creando producto:', err);
@@ -522,6 +591,10 @@ export class InventarioComponent implements OnInit {
   }
 
   editarProducto(p: any) {
+    if (this.bloquearSiNoEsAdmin('editar productos')) {
+      return;
+    }
+
     console.log('✏️ Editando producto:', p);
 
     // 🔒 REGLA DE NEGOCIO: No se puede editar un producto vencido
@@ -568,6 +641,10 @@ export class InventarioComponent implements OnInit {
 
   // ==================== TOGGLE ESTADO PRODUCTO ====================
   toggleEstadoProducto(producto: any) {
+    if (this.bloquearSiNoEsAdmin('cambiar el estado de productos')) {
+      return;
+    }
+
     // 🔒 REGLA DE NEGOCIO: No se puede cambiar estado de un producto vencido
     if (this.esProductoVencido(producto.fechaVencimiento)) {
       this.mostrarAlerta('❌ No se puede cambiar el estado de un producto vencido.', 'error');
@@ -601,10 +678,11 @@ export class InventarioComponent implements OnInit {
           }
           producto.estado = nuevoEstado;
 
-          this.mostrarAlerta(
-            `🔄 ${producto.nombre}: ${nuevoEstado ? '✅ ACTIVADO' : '❌ DESACTIVADO'}`,
-            'exito'
-          );
+          if (nuevoEstado) {
+            this.mostrarAlerta('Producto activado correctamente', 'exito');
+          } else {
+            this.mostrarAlerta('Producto inactivado correctamente', 'exito');
+          }
 
           console.log('✅ Estado actualizado exitosamente');
         },
@@ -624,6 +702,10 @@ export class InventarioComponent implements OnInit {
 
   // ==================== EDITAR PRECIO ====================
   abrirModalPrecio(producto: any) {
+    if (this.bloquearSiNoEsAdmin('editar precios')) {
+      return;
+    }
+
     // 🔒 REGLA DE NEGOCIO: No se puede editar precio de un producto vencido
     if (this.esProductoVencido(producto.fechaVencimiento)) {
       this.mostrarAlerta('❌ No se puede editar el precio de un producto vencido.', 'error');
@@ -768,6 +850,9 @@ export class InventarioComponent implements OnInit {
 
   // ==================== MODALES ====================
   abrirModalUnidad() {
+    if (this.bloquearSiNoEsAdmin('gestionar tipos')) {
+      return;
+    }
     this.mostrarModalUnidad = true;
   }
 
@@ -777,6 +862,9 @@ export class InventarioComponent implements OnInit {
   }
 
   abrirModalCategoria() {
+    if (this.bloquearSiNoEsAdmin('gestionar categorías')) {
+      return;
+    }
     this.mostrarModalCategoria = true;
   }
 
@@ -786,6 +874,9 @@ export class InventarioComponent implements OnInit {
   }
 
   abrirModalProducto() {
+    if (this.bloquearSiNoEsAdmin('crear productos')) {
+      return;
+    }
     this.mostrarModalProducto = true;
   }
 

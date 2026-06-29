@@ -29,9 +29,12 @@ export class HistorialPreciosComponent implements OnInit {
   
   // === 🎛️ FILTROS ===
   productoSeleccionadoId: number | null = null;
+  productoSearchTerm: string = '';
   fechaInicio: string = '';
   fechaFin: string = '';
   filtroCategoriaId: number | null = null;
+  paginaActualHistorial = 0;
+  itemsPorPaginaHistorial = 10;
   
   // === ⚠️ ESTADOS ===
   cargando: boolean = false;
@@ -73,12 +76,20 @@ export class HistorialPreciosComponent implements OnInit {
   }
 
   get productosFiltrados(): Producto[] {
+    const term = this.productoSearchTerm.trim().toLowerCase();
     let resultado = this.productos;
-    
+
     if (this.filtroCategoriaId) {
       resultado = resultado.filter(p => p.categoriaId === this.filtroCategoriaId);
     }
-    
+
+    if (term) {
+      resultado = resultado.filter(p =>
+        (p.nombre || '').toLowerCase().includes(term) ||
+        (p.codigo || '').toLowerCase().includes(term)
+      );
+    }
+
     return resultado.slice(0, 10);
   }
 
@@ -89,18 +100,24 @@ export class HistorialPreciosComponent implements OnInit {
     }
 
     this.cargando = true;
-    this.historialPrecioService.obtenerPorProducto(this.productoSeleccionadoId).subscribe({
+    this.paginaActualHistorial = 0;
+
+    this.historialPrecioService.obtenerConFiltros({
+      productoId: this.productoSeleccionadoId,
+      fechaInicio: this.fechaInicio || undefined,
+      fechaFin: this.fechaFin || undefined
+    }).subscribe({
       next: (data) => {
-        this.historialPrecios = this.filtrarPorFechas(data);
+        this.historialPrecios = data || [];
         this.cargando = false;
         
         if (this.historialPrecios.length === 0) {
-          this.mostrarAlerta('No hay historial de precios para este producto', 'info');
+          this.mostrarAlerta('No hay historial de precios para este producto en el período seleccionado', 'info');
         }
       },
       error: (err) => {
         console.error('Error al cargar historial:', err);
-        this.mostrarAlerta('Error al cargar historial de precios', 'error');
+        this.mostrarAlerta(err?.message || 'Error al cargar historial de precios', 'error');
         this.cargando = false;
         this.historialPrecios = [];
       }
@@ -137,19 +154,20 @@ export class HistorialPreciosComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
-    if (this.historialPrecios.length > 0) {
-      // Re-aplicar filtros si ya hay datos cargados
-      const historialCompleto = [...this.historialPrecios];
-      this.historialPrecios = this.filtrarPorFechas(historialCompleto);
-    } else {
-      this.cargarHistorialPrecios();
+    if (!this.productoSeleccionadoId) {
+      this.mostrarAlerta('Selecciona un producto antes de filtrar', 'info');
+      return;
     }
+    this.paginaActualHistorial = 0;
+    this.cargarHistorialPrecios();
   }
 
   limpiarFiltros(): void {
     this.fechaInicio = '';
     this.fechaFin = '';
+    this.productoSearchTerm = '';
     if (this.productoSeleccionadoId) {
+      this.paginaActualHistorial = 0;
       this.cargarHistorialPrecios();
     }
   }
@@ -186,6 +204,25 @@ export class HistorialPreciosComponent implements OnInit {
   // === 🎯 GETTERS ÚTILES ===
   get totalRegistros(): number {
     return this.historialPrecios.length;
+  }
+
+  get totalPaginasHistorial(): number {
+    return Math.max(1, Math.ceil(this.historialPrecios.length / this.itemsPorPaginaHistorial));
+  }
+
+  get paginasHistorialArray(): number[] {
+    return Array.from({ length: this.totalPaginasHistorial }, (_, i) => i + 1);
+  }
+
+  get historialPagina(): HistorialPrecio[] {
+    const inicio = this.paginaActualHistorial * this.itemsPorPaginaHistorial;
+    return this.historialPrecios.slice(inicio, inicio + this.itemsPorPaginaHistorial);
+  }
+
+  cambiarPaginaHistorial(pagina: number): void {
+    if (pagina >= 0 && pagina < this.totalPaginasHistorial) {
+      this.paginaActualHistorial = pagina;
+    }
   }
 
   get precioActual(): number {
